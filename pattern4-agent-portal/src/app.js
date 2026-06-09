@@ -750,12 +750,27 @@ function renderDatasets() {
   const tick = `<img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />`;
   document.getElementById("datasetGrid").innerHTML = DATASETS.map(
     (d) => `
-      <div class="dataset-card">
+      <div class="dataset-card" data-dataset-alias="${escapeHtml(d.alias)}">
         <div class="alias">${tick}${d.name}</div>
         <div class="object">${d.object}</div>
+        <div class="dataset-links">
+          <button type="button" data-domo-dataset="${escapeHtml(d.dataSetId)}">Open Domo dataset</button>
+          <button type="button" data-dbx-table="${escapeHtml(d.object)}">Open Databricks table</button>
+        </div>
       </div>
     `
   ).join("");
+  document.querySelectorAll("[data-domo-dataset]").forEach((btn) => {
+    btn.addEventListener("click", () => openExternal(`https://databricks-demo.domo.com/datasources/${btn.getAttribute("data-domo-dataset")}/details/overview`));
+  });
+  document.querySelectorAll("[data-dbx-table]").forEach((btn) => {
+    btn.addEventListener("click", () => openExternal(databricksObjectUrl(btn.getAttribute("data-dbx-table"))));
+  });
+}
+
+function databricksObjectUrl(objectName) {
+  const parts = String(objectName || "").split(".").map(encodeURIComponent);
+  return `${WORKSPACE_HOST}/explore/data/${parts.join("/")}`;
 }
 
 /* ---------- ML Predictions ---------- */
