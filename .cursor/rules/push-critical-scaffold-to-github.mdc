@@ -1,0 +1,28 @@
+---
+description: Push critical app scaffold to GitHub after major milestones
+alwaysApply: true
+---
+
+# Push Critical Scaffold After Major Milestones
+
+After every major completion point on this project, push the critical app scaffold and project artifacts to:
+
+`https://github.com/cassidythilton/dbais-2026-revenue-command-center`
+
+Major completion points include:
+
+- Domo app scaffold/publish workflow changes (`pattern4-agent-portal/`, `dist/`, `manifest.json`, `thumbnail.png`, `public/`, `src/`).
+- Code Engine package source/contract changes, excluding real secrets/tokens.
+- Databricks/Genie/ML/Lakebase integration assets and scripts.
+- Scope, shaping, roadmap, validation, and tracker docs.
+- Any released/demo-ready state that would be costly to reconstruct.
+
+Before pushing:
+
+- Run `git status` and review changed files.
+- Do not commit or push secrets, tokens, local auth files, or generated files that contain credentials.
+- Keep `databricks token` and any real Code Engine token-bearing payloads out of git.
+- Use normal git safety: no force push, no destructive reset/checkout, and only commit when the user has explicitly requested it or when this rule applies after a major completion point.
+- Prefer concise milestone commit messages focused on the outcome.
+
+If the remote is not configured, add/verify it only after checking current remotes and repository state.

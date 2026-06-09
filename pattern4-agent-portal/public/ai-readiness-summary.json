@@ -1,0 +1,52 @@
+[
+  {
+    "alias": "executiveRevenueHealth",
+    "datasetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_executive_revenue_health",
+    "context": "Executive revenue health dataset for Pattern 4. Use for questions about net revenue, gross margin, expansion ARR, churned ARR, revenue at risk, fiscal periods, region, segment, and tenant.",
+    "synonymCount": 16,
+    "aiEnabledCount": 12,
+    "columnCount": 12,
+    "tagCount": 4
+  },
+  {
+    "alias": "customerRenewalRisk",
+    "datasetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+    "context": "Customer renewal risk dataset for Pattern 4. Use for account triage, risk tiers, renewal risk scores, top risk drivers, support pressure, usage drops, and recommended retention actions.",
+    "synonymCount": 17,
+    "aiEnabledCount": 15,
+    "columnCount": 21,
+    "tagCount": 4
+  },
+  {
+    "alias": "incidentRevenueImpact",
+    "datasetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact",
+    "context": "Incident revenue impact dataset for Pattern 4. Use for root-cause analysis of incidents, affected accounts, SLA breaches, support case spikes, customer impact, and renewal revenue at risk.",
+    "synonymCount": 17,
+    "aiEnabledCount": 13,
+    "columnCount": 14,
+    "tagCount": 4
+  },
+  {
+    "alias": "agentActionQueue",
+    "datasetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_agent_action_queue",
+    "context": "Agent action queue dataset for Pattern 4. Use for questions about recommended actions, approvals, execution status, workflows, protected revenue, and agent-to-agent business execution.",
+    "synonymCount": 17,
+    "aiEnabledCount": 18,
+    "columnCount": 19,
+    "tagCount": 4
+  },
+  {
+    "alias": "portalUserScope",
+    "datasetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_portal_user_scope",
+    "context": "Portal user scope dataset for Pattern 4. Use for persona scoping, tenant access, region access, account-owner access, and alignment between Unity Catalog row filters and Domo PDP.",
+    "synonymCount": 14,
+    "aiEnabledCount": 7,
+    "columnCount": 7,
+    "tagCount": 4
+  }
+]

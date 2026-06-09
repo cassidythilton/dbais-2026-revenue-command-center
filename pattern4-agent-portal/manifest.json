@@ -1,0 +1,131 @@
+{
+  "name": "Pattern 4 Agent Portal",
+  "version": "1.0.0",
+  "description": "Governed Databricks + Domo Pattern 4 portal with Genie-assisted agent automation.",
+  "id": "e8a0b5da-d20b-450d-8790-de7ef1634ea7",
+  "fileName": "manifest.json",
+  "datasetsMapping": [
+    {
+      "alias": "executiveRevenueHealth",
+      "dataSetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+      "fields": []
+    },
+    {
+      "alias": "customerRenewalRisk",
+      "dataSetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+      "fields": []
+    },
+    {
+      "alias": "incidentRevenueImpact",
+      "dataSetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+      "fields": []
+    },
+    {
+      "alias": "agentActionQueue",
+      "dataSetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+      "fields": []
+    },
+    {
+      "alias": "portalUserScope",
+      "dataSetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+      "fields": []
+    }
+  ],
+  "workflowMapping": [],
+  "proxyId": "pattern4ce",
+  "packageMapping": [
+    {
+      "alias": "askGenie",
+      "parameters": [
+        {
+          "alias": "question",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "conversationId",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "persona",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "model",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "writeActionStatus",
+      "parameters": [
+        {
+          "alias": "actionId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "decision",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "executionStatus",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "approvedBy",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "note",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "persona",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    }
+  ],
+  "collectionsMapping": []
+}

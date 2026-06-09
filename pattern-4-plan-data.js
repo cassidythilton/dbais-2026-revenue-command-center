@@ -1,0 +1,303 @@
+window.PATTERN_4_PLAN_MODEL = {
+  sprints: [
+    {
+      done: true,
+      key: "Sprint 0",
+      title: "Project Framing and Environment Readiness",
+      goals: [
+        "Confirm demo story, personas, target Domo instance, Databricks workspace, Unity Catalog catalog/schema, and whether Genie embed or Conversation API will be used.",
+        "Confirm that the `Databricks Raptor AWS` Domo integration is available and can query the intended Databricks workspace.",
+        "Confirm authentication paths for Domo APIs, Databricks CLI/API, Genie, and any MCP/gateway components."
+      ],
+      deliverables: [
+        "Final project requirements document.",
+        "Confirmed catalog/schema and Domo integration.",
+        "Environment checklist with credentials, profiles, and API access owners.",
+        "Initial implementation backlog."
+      ],
+      acceptance: [
+        "No data generation starts until catalog/schema is confirmed.",
+        "Integration ID is validated in Domo.",
+        "Demo personas and entitlement model are approved."
+      ]
+    },
+    {
+      done: true,
+      key: "Sprint 1",
+      title: "Synthetic Data and Databricks Semantic Layer",
+      goals: [
+        "Generate story-driven synthetic data.",
+        "Land data in Databricks with clear parent-child relationships.",
+        "Build gold views and metric views.",
+        "Create UC row-filter strategy."
+      ],
+      deliverables: [
+        "Data generation script or Domo generator catalog extensions.",
+        "Generated tables in the confirmed UC schema.",
+        "Gold views for Domo and Genie consumption.",
+        "Data dictionary with metric definitions and entity relationships.",
+        "Validation queries for row counts, anomalies, skew, and incident story."
+      ],
+      acceptance: [
+        "Incident story is visible in the data.",
+        "At least two personas return different scoped results.",
+        "Domo-ready shared dimensions exist across all dashboard datasets.",
+        "Main fact tables are large enough for credible aggregation."
+      ]
+    },
+    {
+      done: true,
+      key: "Sprint 2",
+      title: "Domo Cloud Integration and Dashboard Assets",
+      goals: [
+        "Connect Domo to Databricks through `Databricks Raptor AWS`.",
+        "Create live datasets or DataSet Views over gold Databricks objects.",
+        "Build first-pass cards and dashboard content."
+      ],
+      deliverables: [
+        "Domo datasets mapped to Databricks gold views.",
+        "KPI cards for revenue, renewal risk, incident impact, support pressure, and protected revenue.",
+        "Trend and detail cards for regional drilldown and account-level triage.",
+        "PDP design or implemented PDP rules aligned to UC scope."
+      ],
+      acceptance: [
+        "Domo cards query the Databricks-backed sources successfully.",
+        "Genie and Domo show matching KPI values for the same scope.",
+        "Dashboard filters work across datasets using consistent column names."
+      ]
+    },
+    {
+      done: true,
+      key: "Sprint 3",
+      title: "Portal Experience",
+      goals: [
+        "Assemble the unified Pattern 4 experience.",
+        "Put Domo dashboard content and Genie access into one governed user journey."
+      ],
+      deliverables: [
+        "Pro-code portal shell.",
+        "Embedded Domo dashboards/cards.",
+        "Genie pane, launch link, or Conversation API-backed chat module.",
+        "Persona switcher or demo login pattern.",
+        "User journey script for executive, regional manager, and operations owner."
+      ],
+      acceptance: [
+        "User can navigate from KPI to customer detail to Genie explanation.",
+        "Data scope is consistent between Domo and Genie for the same persona.",
+        "Portal feels like one business experience rather than two disconnected embeds."
+      ]
+    },
+    {
+      done: false,
+      key: "Sprint 4",
+      title: "Agent Catalyst and Workflow Automation",
+      goals: [
+        "Build the Domo-side action runtime.",
+        "Convert insight into approved business action."
+      ],
+      deliverables: [
+        "Agent Catalyst agent definition for renewal-risk triage.",
+        "Workflow for account owner notification, approval, and action execution.",
+        "Action status dataset/table.",
+        "Domo cards showing pending, approved, executed, and failed actions.",
+        "Optional Code Engine package for custom action payload shaping."
+      ],
+      acceptance: [
+        "Agent can create an action recommendation from a risk condition.",
+        "Workflow requires approval for material actions.",
+        "Action status appears back in the portal.",
+        "Failed or rejected actions are visible and auditable."
+      ]
+    },
+    {
+      done: false,
+      key: "Sprint 5",
+      title: "Agent-to-Agent Mesh",
+      goals: [
+        "Connect Domo agent reasoning to Genie/Databricks.",
+        "Define the Databricks-to-Domo action path."
+      ],
+      deliverables: [
+        "Genie Conversation API wrapper or tool contract.",
+        "Domo workflow trigger contract exposed as a tool/action endpoint.",
+        "Unity AI Gateway registration plan or implemented gateway configuration, depending on access.",
+        "Agent trace schema capturing question, context, answer, action, approval, and result.",
+        "End-to-end demo: Domo agent asks Genie for root cause, then starts workflow."
+      ],
+      acceptance: [
+        "Domo agent can call Genie for live reasoning or use a documented mocked path if gateway access is not available.",
+        "Genie or Databricks-side action can trigger a Domo workflow through a governed endpoint or documented stub.",
+        "Trace records connect the source question to the final action."
+      ]
+    },
+    {
+      done: false,
+      key: "Sprint 6",
+      title: "Hardening, Demo Packaging, and Executive Polish",
+      goals: [
+        "Make the demo reliable, repeatable, and presentation-ready.",
+        "Package the project so future agents can rebuild or extend it."
+      ],
+      deliverables: [
+        "Final demo script.",
+        "Architecture diagram and component inventory.",
+        "Runbook for data refresh, dashboard validation, and agent demo reset.",
+        "Known limitations and fallback paths.",
+        "Optional short capture plan for a walkthrough video."
+      ],
+      acceptance: [
+        "Demo can be reset and run end-to-end.",
+        "All critical claims have a visible proof point.",
+        "Fallback path exists for Genie embed/API, Unity AI Gateway, and Domo workflow triggers."
+      ]
+    },
+    {
+      done: false,
+      key: "Sprint 7",
+      title: "ML Model, Domo AI Services, and Ad Hoc Inference",
+      goals: [
+        "Build a Databricks ML model on the existing revenue-risk/customer-health data.",
+        "Register the model through MLflow / Unity Catalog and serve it through Databricks Model Serving.",
+        "Integrate the model into Domo through AI Services Layer / Databricks ML adapter.",
+        "Expose ad hoc inference inside the Revenue Command Center through Code Engine."
+      ],
+      deliverables: [
+        "Databricks model training asset or notebook/job.",
+        "MLflow registered model and Model Serving endpoint plan/status.",
+        "Domo AI Services model integration proof point.",
+        "`pattern4ce.runModelInference` contract and app UI for scoring.",
+        "Prediction output cards/insights integrated into the main analytics flow."
+      ],
+      acceptance: [
+        "A presenter can explain model lineage from UC data to MLflow to serving.",
+        "The app can request a prediction without exposing credentials in the browser.",
+        "Prediction output appears in context with forecast/risk analytics."
+      ]
+    },
+    {
+      done: false,
+      key: "Sprint 8",
+      title: "Lakebase Operations and Predictive UX Redesign",
+      goals: [
+        "Add a meaningful Lakebase-backed operational state layer.",
+        "Redesign the app into a forecast-first predictive command center.",
+        "Refine Genie into a centered, usable workspace with synced seeded questions and chart support."
+      ],
+      deliverables: [
+        "Lakebase scenario/prediction-feedback/action-state design and Code Engine functions.",
+        "Forecast Home page inspired by the forecast line Recharts reference.",
+        "Subpage/navigation model for Forecast, ML Predictions, Lakebase Ops, Genie, and How It Works.",
+        "Genie Workspace redesign with centered chat, visible input, exact seeded questions, and Domo-side result charts where feasible.",
+        "Updated How It Works architecture including MLflow, Model Serving, Domo AI Services, Lakebase, Genie, UC, and Code Engine."
+      ],
+      acceptance: [
+        "Lakebase is visible as a key part of the app experience, not only a backend footnote.",
+        "The main page is a polished time-based forecast/comparison experience.",
+        "Genie is usable without cramped layout or awkward vertical scrolling.",
+        "The app can render useful plots from Genie result data when returned by the Conversation API."
+      ]
+    }
+  ],
+  notes: [
+    "2026-06-09: Initial scope and sprint build plan created.",
+    "2026-06-09: Project-level Cursor rule requested to keep this plan updated during the build.",
+    "2026-06-09: Basic HTML project manager UI requested to read this Markdown file as its source of truth.",
+    "2026-06-09: Added file-protocol fallback data for the HTML project manager because browsers block local Markdown fetches.",
+    "2026-06-09: User provided answers to open decisions; plan updated with resolved decisions and remaining questions.",
+    "2026-06-09: Added a Gantt-style project timeline to the HTML project manager for one-view sprint status.",
+    "2026-06-09: Sprint 0 started. Verified `community-domo-cli`, `domo`, Python, and Node are available.",
+    "2026-06-09: Domo API access confirmed for `databricks-demo` using `DOMO_INSTANCE=databricks-demo` and `DOMO_AUTH_MODE=ryuu-session`.",
+    "2026-06-09: Installed Databricks CLI v1.2.1 at `~/bin/databricks`; no Databricks profile/config is present yet.",
+    "2026-06-09: Found `Databricks Raptor AWS` (`a83b5bbc-fc3f-43c0-8ea5-f15117de997d`) in Domo dataset metadata, but visible datasets on that cloud ID are currently AWS EC2 Monitoring/API datasets in `ERROR` state, so live Databricks query readiness still needs validation.",
+    "2026-06-09: Configured Databricks CLI profile `pattern4` from the provided token and validated workspace access as `cassidy.hilton@domo.com`.",
+    "2026-06-09: Validated `databricks_raptor` catalog access and listed available schemas; `pattern4_agent_automation` does not exist yet.",
+    "2026-06-09: Identified `Main SQL Warehouse` (`ea829ba58bcae093`) as a running candidate warehouse for SQL validation and live query work.",
+    "2026-06-09: Added `databricks token` to `.gitignore` so the local token file is not committed.",
+    "2026-06-09: Confirmed Databricks CLI exposes Genie commands (`list-spaces`, `start-conversation`, `create-message`) and existing Genie Spaces on `Main SQL Warehouse`.",
+    "2026-06-09: Confirmed Databricks CLI exposes Beta `supervisor-agents` and `knowledge-assistants` surfaces; no explicit Unity AI Gateway command group was visible in CLI help.",
+    "2026-06-09: Created `databricks_raptor.pattern4_agent_automation` and verified it through `Main SQL Warehouse` with a SQL statement smoke test.",
+    "2026-06-09: Drafted Sprint 1 synthetic data generation spec in `pattern-4-synthetic-data-generation-spec.md`; awaiting approval before writing tables.",
+    "2026-06-09: User approved Sprint 1 data generation by saying \"proceed\"; generated 10 Delta tables/fact tables and 5 gold views in `databricks_raptor.pattern4_agent_automation`.",
+    "2026-06-09: Wrote generation assets: `scripts/run_databricks_sql.py`, `sql/pattern4_generate_synthetic_data.sql`, and `sql/pattern4_fix_incident_view.sql`.",
+    "2026-06-09: Validation report created at `pattern-4-synthetic-data-validation-report.md`; row counts and story checks passed after correcting incident revenue-at-risk aggregation.",
+    "2026-06-09: Sprint 2 discovery confirmed Domo can query existing Databricks-backed datasets and that `Databricks Raptor AWS` is a DATABRICKS Cloud Amplifier integration.",
+    "2026-06-09: Public/API surfaces did not expose supported creation of new Databricks Cloud Amplifier datasets; created `pattern-4-domo-cloud-integration-report.md` with manual registration steps for the five gold views.",
+    "2026-06-09: Created pro-code portal scaffold in `pattern4-agent-portal/` with mock-mode UI, fixed dataset aliases, and Domo alias fetch logic.",
+    "2026-06-09: Added `scripts/discover_pattern4_domo_datasets.py`; current discovery found 0/5 Pattern 4 Domo datasets registered.",
+    "2026-06-09: User registered all Pattern 4 Databricks tables/views in Domo. Discovery found all 5 required gold-view datasets on `Databricks Raptor AWS`.",
+    "2026-06-09: Updated `pattern4-agent-portal/manifest.json` with real Domo dataset IDs and validated all 5 as `direct_federated` with successful sample queries.",
+    "2026-06-09: Published `pattern4-agent-portal/` as Domo design `e8a0b5da-d20b-450d-8790-de7ef1634ea7` and added a 300x300 thumbnail.",
+    "2026-06-09: Created Domo page `1097826706` and placed pro-code card `1022760405` titled `Pattern 4 Agent Portal`.",
+    "2026-06-09: Redesigned the portal from the ground up on the Domo styleguide (Domo Blue, orange, neutrals, Open Sans) with elegant, sparing Databricks branding; added sparkline, persona scoping, interactive Genie panel, and governed-lineage grid; republished design `e8a0b5da-d20b-450d-8790-de7ef1634ea7`.",
+    "2026-06-09: Design revision per feedback: swapped in the real Domo + Databricks logos, tightened to a daintier scale (smaller type/objects/spacing), and replaced the native macOS dropdown with a fully custom-styled one (branded panel, sublabels, selected check). Republished.",
+    "2026-06-09: Added a second in-app page, 'How It Works' (tabbed): clickable agent-to-agent architecture flow, a 7-step user guide, and a component bill-of-requirements (Databricks / Interop / Domo). Added to Sprint 3 deliverables. Republished.",
+    "2026-06-09: Placed in App Studio app 105910661 (view 1913185115); added a co-branded app icon (dataFileId 140) and app description via the app-studio skill (scripts/setup_appstudio_icon.py).",
+    "2026-06-09: Shaping doc created for innovative Genie chat capabilities (pop-out, resize, theme, model, API inspector, open-in-Databricks deep link, branding): pattern-4-genie-chat-shaping.md. Awaiting decisions (Q1-Q6) before build.",
+    "2026-06-09: Reconciled tracker — Sprints 0-3 complete. Built the enhanced Genie chat (Shape C + staged K-A): amplified branding, model selector, accent themes, API call inspector (preview), pop-out + resize, and an Open-in-Databricks deep link. Republished. Live Conversation API + a dedicated Genie Space are the next live-wiring step.",
+    "2026-06-09: Created and tested dedicated Pattern 4 Genie Space `01f1642295b61d6b8849e106f52fc781` over the five gold views. Test question returned the expected West renewal-risk answer, generated SQL, row count, and suggested follow-ups. Wired `GENIE_SPACE_ID` in `pattern4-agent-portal/src/app.js`; the Open-in-Databricks link now targets the actual space and the inspector references the real space id. Republished.",
+    "2026-06-09: Added governance/readiness slice. Applied Unity Catalog comments, table properties, and true UC tags to all five gold views; generated `pattern-4-ai-readiness-manifest.json` / `.md` plus `pattern4-agent-portal/public/ai-readiness-summary.json`; added an in-app AI Readiness Sync section to the How It Works page with dataset cards and an \"Update Domo AI Readiness\" action. Domo AI Readiness public writes appear UI-managed/no public endpoint, so the app demonstrates the governed UC→Domo readiness update pattern and uses the manifest as the integration contract.",
+    "2026-06-09: Created Code Engine package `Pattern 4 Genie Proxy` (`45a89bf2-150e-42a0-83a9-3d911c928712`, v1.0.0) for server-side Databricks Genie calls; app manifest now maps alias `askPattern4Genie`. Created Code Engine package `Pattern 4 Action Writeback` (`888c73e7-7959-4169-a266-0e4ab72a6ff4`, v1.0.0) for Domo-to-Databricks action writeback; app manifest maps alias `writeActionStatus`. Added `agent_action_writeback` Delta table and Execute buttons in the Agent Action Queue. Packages are not released yet because release requires explicit user approval.",
+    "2026-06-09: User RELEASED both Code Engine packages at v1.0.0. Verified via product API that Genie Proxy v1.0.0 exposes `askGenie(question, conversationId, persona, model)` and Action Writeback v1.0.0 exposes `writeActionStatus(actionId, decision, executionStatus, approvedBy, note, persona)` — both match the app manifest packagesMapping (alias/function/param names/types) exactly, so in-app `domo.post` calls are correctly wired. `agent_action_writeback` baseline = 0 rows. Added `scripts/codeengine_probe.py` for re-verification.",
+    "2026-06-09: Live Genie/writeback fell back to preview with NO Code Engine logs. Reworked to the deal-inspect pattern: top-level `proxyId` + singular `packageMapping`, app calls `domo.post('/domo/codeengine/v2/packages/<functionName>')`, and Domo routes by `proxyId` = CE package NAME. Created consolidated CE package `pattern4ce` (`36a18258-0fb7-407a-b268-4a326c5b73c3`, v1.0.0) exposing `askGenie` and `writeActionStatus`; fixed runtime bugs in CE code (`writeActionStatus` writes real `agent_action_writeback` columns; `askGenie` returns on useful Genie attachments); released `pattern4ce` v1.0.0; republished app. Next: reload/re-add App Studio card and run live Genie/action tests.",
+    "2026-06-09: Shaped the ML + Lakebase + Genie UX scope expansion in `pattern-4-ml-lakebase-experience-expansion-shaping.md`. Selected Shape B: Forecast-first predictive command center. Main page becomes a polished time-based forecast/comparison view; Databricks trains/registers/serves an ML model via MLflow/Model Serving; Domo picks it up through AI Services Layer / Databricks ML adapter; `pattern4ce` grows an ad hoc inference function; Lakebase stores operational scenario/prediction-feedback state; Genie becomes a centered workspace with exact Databricks seeded questions and Domo-side plot rendering from Genie result data where possible. Added Sprints 7-8.",
+    "2026-06-09: Resolved all three expansion spikes (read-only investigation; full report in `pattern-4-expansion-spike-findings.md`). X1: `runModelInference` calls Databricks Model Serving directly (`POST /serving-endpoints/<name>/invocations` -> `{predictions:[...]}`); Domo AI Services (`/api/ml/v1/models`) is the governance/catalog layer; ML target = renewal-risk/churn classifier on `gold_customer_renewal_risk` with a named-column signature. X2: existing CE package `LakebaseQuery` (`55a6749a`) connects to Lakebase project `cobra-v1` (user-owned, always-warm) via node-postgres + SP M2M token exchange; reuse cobra-v1, add `p4_scenario_runs` + `p4_prediction_feedback`, fold Lakebase into `pattern4ce`. X3: Genie exposes no chart metadata (only SQL + manifest.schema.columns + result.data_array), so charts are reconstructed Domo-side; exported the 5 verbatim seeded sample questions; `askGenie` must be extended to return columns+rows."
+  ],
+  blockers: [
+    "Unity AI Gateway availability is not yet confirmed; Code Engine proxy currently provides the server-side bridge while Gateway/OBO is finalized.",
+    "UC row-filter implementation is still pending; entitlement design exists in `dim_user_entitlement` / `gold_portal_user_scope`.",
+    "Domo AI Readiness write automation is not publicly exposed; current implementation uses UC metadata + readiness manifest + in-app update demo pending an internal/supported write endpoint.",
+    "Code Engine packages released and verified against the manifest; final check is action writeback execution from the published Domo app.",
+    "RESOLVED 2026-06-09: ML/AI-Services/Lakebase/Genie spikes complete (`pattern-4-expansion-spike-findings.md`); implementation can proceed.",
+    "Gated on user confirm before execution (cost / shared-resource writes): deploying a Databricks Model Serving endpoint, and writing Lakebase tables into the shared `cobra-v1` project. The forecast-first front-end redesign proceeds mock-first in parallel.",
+    "Domo AI Services runtime invoke contract for a registered Databricks model is unconfirmed (registry list is POST-gated); direct Model Serving avoids the dependency."
+  ],
+  decisions: [
+    "Pattern 4 is the baseline experience.",
+    "Agent-to-agent automation is included as a primary build module.",
+    "`Databricks Raptor AWS` (`a83b5bbc-fc3f-43c0-8ea5-f15117de997d`) is the intended Domo cloud integration.",
+    "When opened from disk, the HTML dashboard uses bundled plan data from `pattern-4-plan-data.js`; when served over HTTP, it fetches the live Markdown file.",
+    "The HTML project manager should include a visual timeline/Gantt view in addition to sprint cards and lists.",
+    "Use `databricks_raptor` as the Unity Catalog catalog for generated data.",
+    "Use `databricks_raptor.pattern4_agent_automation` as the project schema.",
+    "Use a hybrid synthetic data approach: generate governed scale data in Databricks with Spark + Faker, using the Domo data-generator skill patterns for entity design, realism, reproducibility, date grain, and Domo card compatibility.",
+    "Build the portal as a fully pro-code experience rather than App Studio-only.",
+    "Anchor all portal UI on `snowflake-summary/domo-styleguide.mdc`: Domo Blue dominant, orange secondary/risk accent, Domo neutrals, Open Sans; Databricks red + lakehouse glyph used sparingly and never overpowering Domo Blue.",
+    "Use `https://databricks-demo.domo.com/` as the Domo instance; Domo CLI access is already logged in.",
+    "Use `~/bin/databricks` as the local Databricks CLI path until PATH is updated.",
+    "Use Databricks CLI profile `pattern4` for workspace validation and build automation.",
+    "Use `Main SQL Warehouse` (`ea829ba58bcae093`) as the candidate SQL warehouse unless a better project-specific warehouse is selected.",
+    "Use Shape C hybrid for Genie chat: enhanced in-place Domo panel plus actual Pattern 4 Genie Space deep link; stage K-A preview UI now, K-B live Conversation API proxy next.",
+    "Treat Databricks `supervisor-agents` as a possible later agent-mesh enhancement, not a Sprint 1 dependency.",
+    "Use `pattern-4-synthetic-data-generation-spec.md` as the Sprint 1 data generation approval artifact.",
+    "Use `pattern-4-synthetic-data-validation-report.md` as the Sprint 1 data validation proof point.",
+    "Use `pattern-4-domo-cloud-integration-report.md` as the Sprint 2 Cloud Amplifier registration guide.",
+    "Use `pattern4-agent-portal/` as the pro-code portal scaffold and keep it in mock mode until Domo dataset IDs are discovered.",
+    "Use `pattern4-agent-portal/dataset-validation-report.json` as the Sprint 2 Domo dataset validation proof point.",
+    "Unity Catalog is the source of truth for Domo AI Readiness metadata. Mirror `pattern-4-ai-readiness-manifest.json` into Domo AI Readiness / AI Dictionary for the five gold datasets.",
+    "Published portal page: `https://databricks-demo.domo.com/page/1097826706`",
+    "Published design: `https://databricks-demo.domo.com/assetlibrary?designId=e8a0b5da-d20b-450d-8790-de7ef1634ea7`",
+    "Use `pattern-4-ml-lakebase-experience-expansion-shaping.md` as the source of truth for the ML/Lakebase/forecasting/Genie UX expansion.",
+    "Selected expansion shape: Shape B — Forecast-first predictive command center.",
+    "Main page redesign should be inspired by `/Users/cassidy.hilton/Cursor Projects/forecast line recharts` (actual vs prediction, confidence band, period controls, compact legend, polished tooltip).",
+    "ML inference runtime path: `pattern4ce.runModelInference` calls Databricks Model Serving directly (`dataframe_records` in, `{predictions:[...]}` out); Domo AI Services is the governance/catalog layer.",
+    "ML model = renewal-risk/churn classifier on `gold_customer_renewal_risk`, named-column MLflow signature, registered in UC, served like `CassidyLightGBM`.",
+    "Lakebase: reuse project `cobra-v1`; first tables `public.p4_scenario_runs` + `public.p4_prediction_feedback`; fold Lakebase access into `pattern4ce` (SP M2M token -> node-postgres).",
+    "Genie has no chart metadata; render Domo-side charts from `manifest.schema.columns` + `result.data_array`. App seeded-question chips must match the 5 verbatim Genie sample questions.",
+    "App IA = tabs/views inside the pro-code app: Forecast Home, ML Predictions, Lakebase Ops, Genie Workspace, How It Works."
+  ],
+  openDecisions: [
+    "Investigate whether Unity AI Gateway is available in the target workspace for tool registration; requires Databricks API token or configured CLI profile.",
+    "Decide the persona/group model to mirror between UC row filters and Domo PDP.",
+    "Confirm with user: deploy a Databricks Model Serving endpoint (ongoing compute cost) for the renewal-risk model.",
+    "Confirm with user: write `p4_scenario_runs` + `p4_prediction_feedback` tables into the shared `cobra-v1` Lakebase project (reuse vs new project).",
+    "Optionally capture the Domo AI Services model network call from the browser to confirm the AI-Services-mediated invoke contract (not required for direct Model Serving)."
+  ],
+  nextSteps: [
+    "DONE — All three expansion spikes resolved (`pattern-4-expansion-spike-findings.md`).",
+    "Redesign the app IA around Forecast Home, ML Predictions, Lakebase Ops, Genie Workspace, and How It Works; build the forecast-first hero (mock-first), inspired by `forecast line recharts`.",
+    "Genie Workspace redesign: centered/tight layout, input always visible, seeded chips matching the 5 verbatim Genie questions, and Domo-side chart rendering from `askGenie` columns+rows.",
+    "Sprint 7 (gated by user confirm): train renewal-risk/churn model, register via MLflow/UC, deploy Model Serving, add `pattern4ce.runModelInference` + ML Predictions page.",
+    "Sprint 8 (gated by user confirm): create Lakebase tables in `cobra-v1`, add Lakebase functions to `pattern4ce`, build the Lakebase Ops page.",
+    "Keep UC row-filter/PDP alignment and Agent Catalyst/Workflow approval wrapper in scope as supporting governance and automation work."
+  ]
+};

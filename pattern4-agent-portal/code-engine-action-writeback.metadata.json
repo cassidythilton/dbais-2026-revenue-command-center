@@ -1,0 +1,27 @@
+{
+  "id": "888c73e7-7959-4169-a266-0e4ab72a6ff4",
+  "name": "Pattern 4 Action Writeback",
+  "description": "Server-side Domo Code Engine package for writing approved agent action status back to Databricks Unity Catalog.",
+  "language": "JAVASCRIPT",
+  "environment": "LAMBDA",
+  "availability": "PRIVATE",
+  "owner": "1433178023",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "description": "",
+      "createdBy": "1433178023",
+      "released": null,
+      "functions": [],
+      "configuration": {
+        "accountsMapping": [],
+        "mlModel": [],
+        "externalPackageMapping": {}
+      }
+    }
+  ],
+  "users": [],
+  "createdOn": "2026-06-09T17:00:27.830Z",
+  "updatedOn": "2026-06-09T17:00:27.884Z",
+  "packageSource": "CUSTOM"
+}

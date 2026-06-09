@@ -1,0 +1,15 @@
+---
+description: Keep the Pattern 4 agent-to-agent build plan current
+alwaysApply: true
+---
+
+# Pattern 4 Build Plan Updates
+
+When working on this project, treat `pattern-4-agent-to-agent-automation-scope-build-plan.md` as the source of truth for scope, sprint status, prerequisites, risks, and decisions.
+
+- Update the `Build Progress Tracker` section after meaningful progress, blocked work, scope changes, new decisions, or completed sprint items.
+- Keep sprint checkboxes, progress notes, blockers/prerequisites, and recent decisions accurate.
+- Keep `pattern-4-plan-data.js` synchronized with the same sprint status, progress notes, blockers, decisions, open decisions, and next steps so `pattern-4-project-manager.html` works when opened directly from disk.
+- If implementation changes requirements, update the relevant requirements, backlog, risks, or definition-of-done sections in the same file.
+- Do not generate live Databricks data until the Unity Catalog catalog and schema are confirmed.
+- Preserve the `Databricks Raptor AWS` integration ID unless the user explicitly changes it.

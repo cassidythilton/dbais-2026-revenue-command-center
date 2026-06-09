@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pattern 4 · Revenue Command Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;0,800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="./src/styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand-row">
+        <span class="brand-lockup">
+          <span class="logo-chip"><img src="./public/domo-logo.png" alt="Domo" /></span>
+          <span class="brand-divider" aria-hidden="true"></span>
+          <span class="logo-chip"><img src="./public/databricks-logo.png" alt="Databricks" /></span>
+          <span class="brand-dbx-word">Databricks</span>
+        </span>
+        <span class="brand-spacer"></span>
+        <span class="lineage-chip">
+          <span class="lineage-dot" aria-hidden="true"></span>
+          Live · Cloud Amplifier · Unity Catalog governed
+        </span>
+      </div>
+
+      <div class="header-titles">
+        <p class="eyebrow">Pattern 4 · Predictive Revenue Operations</p>
+        <h1>Revenue Command Center</h1>
+        <p class="subtitle">
+          One governed experience &mdash; a forecast-first cockpit where Databricks predicts,
+          Genie explains, and Domo acts, reading live from the lakehouse.
+        </p>
+      </div>
+
+      <div class="header-controls">
+        <div class="control-group">
+          <span class="label">Viewing as</span>
+          <div class="select" id="personaSelect"></div>
+        </div>
+        <span class="mode-pill" id="modePill">Loading</span>
+      </div>
+    </header>
+
+    <!-- View tabs -->
+    <nav class="view-tabs" role="tablist" aria-label="Command center views">
+      <button class="view-tab active" type="button" data-view="forecast" role="tab" aria-selected="true">
+        <span class="tab-dot" aria-hidden="true"></span> Forecast Home
+      </button>
+      <button class="view-tab" type="button" data-view="ml" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> ML Predictions
+      </button>
+      <button class="view-tab" type="button" data-view="lakebase" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> Lakebase Ops
+      </button>
+      <button class="view-tab" type="button" data-view="genie" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> Genie Workspace
+      </button>
+      <button class="view-tab" type="button" data-view="guide" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> How It Works
+      </button>
+    </nav>
+
+    <!-- ============================ FORECAST HOME ============================ -->
+    <div id="viewForecast" class="view">
+
+      <!-- Forecast hero -->
+      <section class="panel forecast-hero">
+        <div class="forecast-head">
+          <div class="forecast-titles">
+            <span class="forecast-eyebrow">
+              <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+              Databricks-modeled &middot; renewal-risk adjusted
+            </span>
+            <h2>Net Revenue &mdash; Actual vs. Forecast</h2>
+            <p class="forecast-sub" id="forecastSub">Trailing actuals with model forecast and confidence band.</p>
+          </div>
+          <div class="forecast-controls">
+            <div class="seg" id="forecastRange" role="group" aria-label="Range">
+              <button type="button" class="seg-btn" data-range="12">12M</button>
+              <button type="button" class="seg-btn active" data-range="18">18M</button>
+              <button type="button" class="seg-btn" data-range="24">24M</button>
+            </div>
+            <button type="button" class="confidence-toggle active" id="confidenceToggle">
+              <span class="toggle-icon" aria-hidden="true">◉</span> Confidence band
+            </button>
+          </div>
+        </div>
+
+        <div class="forecast-chips" id="forecastChips"></div>
+
+        <div class="forecast-chart-wrap">
+          <div class="forecast-chart" id="forecastChart"></div>
+          <div class="forecast-tooltip" id="forecastTooltip" hidden></div>
+        </div>
+
+        <div class="forecast-legend" id="forecastLegend">
+          <span class="lg-item"><span class="lg-line solid"></span> Actual net revenue</span>
+          <span class="lg-item"><span class="lg-line dashed"></span> Model forecast</span>
+          <span class="lg-item"><span class="lg-band"></span> Confidence band</span>
+          <span class="lg-item"><span class="lg-today"></span> Today</span>
+        </div>
+      </section>
+
+      <!-- KPI row -->
+      <section class="kpi-row" aria-label="Executive KPIs">
+        <article class="kpi">
+          <span class="kpi-label">Net Revenue</span>
+          <span class="kpi-value" id="kpiNetRevenue">&mdash;</span>
+          <div class="kpi-meta">
+            <span class="kpi-delta up" id="kpiNetDelta">&mdash;</span>
+            <span>trailing 12 periods</span>
+          </div>
+          <svg class="kpi-spark" id="kpiSpark" viewBox="0 0 240 28" preserveAspectRatio="none" aria-hidden="true"></svg>
+        </article>
+
+        <article class="kpi is-risk">
+          <span class="kpi-label">Revenue at Risk</span>
+          <span class="kpi-value" id="kpiRisk">&mdash;</span>
+          <div class="kpi-meta">
+            <span class="kpi-delta warn" id="kpiRiskDelta">&mdash;</span>
+            <span>renewal exposure</span>
+          </div>
+        </article>
+
+        <article class="kpi is-protected">
+          <span class="kpi-label">Protected Revenue</span>
+          <span class="kpi-value" id="kpiProtected">&mdash;</span>
+          <div class="kpi-meta">
+            <span class="kpi-delta up" id="kpiProtectedDelta">&mdash;</span>
+            <span>approved agent actions</span>
+          </div>
+        </article>
+
+        <article class="kpi is-breach">
+          <span class="kpi-label">SLA Breaches</span>
+          <span class="kpi-value" id="kpiBreaches">&mdash;</span>
+          <div class="kpi-meta">
+            <span class="kpi-delta down" id="kpiBreachDelta">&mdash;</span>
+            <span>incident-linked</span>
+          </div>
+        </article>
+      </section>
+
+      <!-- Main grid -->
+      <section class="grid">
+        <article class="panel col-7">
+          <div class="panel-head">
+            <div>
+              <h2>Regional Renewal Risk</h2>
+              <p>Average renewal-risk score by region &mdash; the West hotspot stands apart.</p>
+            </div>
+            <span class="panel-tag">gold_customer_renewal_risk</span>
+          </div>
+          <div class="bar-chart" id="riskChart"></div>
+        </article>
+
+        <article class="panel col-5 insight-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Insight Rail</h2>
+              <p>What the forecast and model are telling you right now.</p>
+            </div>
+            <span class="panel-tag">forecast + ML</span>
+          </div>
+          <div class="insight-rail" id="insightRail"></div>
+        </article>
+
+        <article class="panel col-5">
+          <div class="panel-head">
+            <div>
+              <h2>Incident Root Cause</h2>
+              <p>The reliability event behind the West exposure.</p>
+            </div>
+            <span class="panel-tag">gold_incident_revenue_impact</span>
+          </div>
+          <div class="incident-headline">
+            <span class="sev-badge" id="incidentSev">&mdash;</span>
+            <span class="incident-id" id="incidentId">&mdash;</span>
+          </div>
+          <p class="root-cause" id="incidentRoot">&mdash;</p>
+          <dl class="metric-list" id="incidentMetrics"></dl>
+        </article>
+
+        <article class="panel col-7">
+          <div class="panel-head">
+            <div>
+              <h2>Agent Action Queue</h2>
+              <p>Genie-informed recommendations with human approval and writeback.</p>
+            </div>
+            <span class="panel-tag">gold_agent_action_queue</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Account</th>
+                  <th>Recommended action</th>
+                  <th>Approval</th>
+                  <th>Execution</th>
+                  <th style="text-align:right;">Protected</th>
+                </tr>
+              </thead>
+              <tbody id="actionRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel col-12">
+          <div class="lineage-head">
+            <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" style="width:18px;height:18px;" />
+            <div>
+              <h2>Governed Data Lineage</h2>
+              <p>Five Unity Catalog gold views, live-federated into Domo via the Databricks Raptor AWS Cloud Amplifier integration &mdash; no copies.</p>
+            </div>
+          </div>
+          <div class="dataset-grid" id="datasetGrid"></div>
+        </article>
+      </section>
+    </div><!-- /viewForecast -->
+
+    <!-- ============================ ML PREDICTIONS ============================ -->
+    <div id="viewMl" class="view is-hidden">
+      <section class="panel ml-status-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Renewal-Risk Model</h2>
+            <p>A Databricks-trained classifier, MLflow/Unity Catalog registered, surfaced in Domo AI Services.</p>
+          </div>
+          <span class="model-state" id="mlModelState">Planned</span>
+        </div>
+        <div class="ml-meta-grid" id="mlMetaGrid"></div>
+      </section>
+
+      <section class="grid">
+        <article class="panel col-5">
+          <div class="panel-head">
+            <div>
+              <h2>Ad Hoc Inference</h2>
+              <p>Score an account against the renewal-risk model.</p>
+            </div>
+            <span class="panel-tag">pattern4ce.runModelInference</span>
+          </div>
+          <form class="ml-form" id="mlForm"></form>
+          <button class="btn btn-primary" id="mlRunBtn" type="button">Run prediction</button>
+          <p class="ml-form-note" id="mlFormNote"></p>
+        </article>
+
+        <article class="panel col-7">
+          <div class="panel-head">
+            <div>
+              <h2>Prediction</h2>
+              <p>Score, confidence, drivers, and recommended action.</p>
+            </div>
+            <span class="panel-tag" id="mlResultTag">awaiting input</span>
+          </div>
+          <div class="ml-result" id="mlResult"></div>
+        </article>
+      </section>
+    </div><!-- /viewMl -->
+
+    <!-- ============================ LAKEBASE OPS ============================ -->
+    <div id="viewLakebase" class="view is-hidden">
+      <section class="panel lakebase-status-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Lakebase Operational State</h2>
+            <p>Low-latency Postgres alongside the lakehouse &mdash; scenario runs and prediction feedback, served through Code Engine.</p>
+          </div>
+          <span class="model-state" id="lakebaseState">Planned</span>
+        </div>
+        <div class="ml-meta-grid" id="lakebaseMetaGrid"></div>
+      </section>
+
+      <section class="grid">
+        <article class="panel col-7">
+          <div class="panel-head">
+            <div>
+              <h2>Scenario Runs</h2>
+              <p>What-if forecast scenarios saved to Lakebase.</p>
+            </div>
+            <span class="panel-tag">public.p4_scenario_runs</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>Scenario</th><th>Status</th><th>Created by</th><th style="text-align:right;">Δ Forecast</th></tr>
+              </thead>
+              <tbody id="scenarioRows"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="panel col-5">
+          <div class="panel-head">
+            <div>
+              <h2>Prediction Feedback</h2>
+              <p>Human accept / adjust on model predictions.</p>
+            </div>
+            <span class="panel-tag">public.p4_prediction_feedback</span>
+          </div>
+          <div class="feedback-list" id="feedbackList"></div>
+        </article>
+      </section>
+    </div><!-- /viewLakebase -->
+
+    <!-- ============================ GENIE WORKSPACE ============================ -->
+    <div id="viewGenie" class="view is-hidden">
+      <section class="genie-workspace">
+        <article class="panel genie" id="geniePanel" data-accent="dbx">
+          <div class="genie-head">
+            <div class="genie-titles">
+              <span class="genie-brand">
+                <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+                Databricks <b>Genie</b>
+                <span class="genie-spark" aria-hidden="true"></span>
+              </span>
+              <h2>Ask the lakehouse</h2>
+              <span class="genie-powered">Governed by Unity Catalog &middot; on-behalf-of you</span>
+            </div>
+            <div class="genie-tools">
+              <div class="select genie-model" id="genieModel" aria-label="Model"></div>
+              <button class="icon-btn" id="genieThemeBtn" type="button" title="Change accent" aria-label="Change accent">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="15" cy="9" r="1.3" fill="currentColor" stroke="none"/><circle cx="9.5" cy="14.5" r="1.3" fill="currentColor" stroke="none"/></svg>
+              </button>
+              <button class="icon-btn" id="genieInspectBtn" type="button" title="Show API call detail" aria-label="Show API call detail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m9 8-5 4 5 4"/><path d="m15 8 5 4-5 4"/></svg>
+              </button>
+              <button class="icon-btn" id="genieExpandBtn" type="button" title="Pop out" aria-label="Pop out">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4H4v5"/><path d="M15 20h5v-5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/></svg>
+              </button>
+              <a class="icon-link" id="genieOpenLink" href="#" target="_blank" rel="noopener" title="Open this Genie agent in Databricks">
+                <img src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+                Open in Databricks
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17 17 7"/><path d="M8 7h9v9"/></svg>
+              </a>
+            </div>
+          </div>
+          <div class="chat">
+            <div class="chat-thread" id="genieThread"></div>
+            <div class="chip-row" id="genieChips"></div>
+            <div class="genie-input">
+              <input id="genieInput" type="text" placeholder="Ask Genie about renewal risk&hellip;" />
+              <button class="btn btn-primary" id="genieAsk" type="button">Ask</button>
+            </div>
+            <div class="genie-resize" id="genieResize" title="Drag to resize" aria-hidden="true"></div>
+          </div>
+        </article>
+      </section>
+    </div><!-- /viewGenie -->
+
+    <!-- ============================ HOW IT WORKS ============================ -->
+    <div id="viewGuide" class="view is-hidden">
+      <section class="panel guide-section">
+        <div class="guide-section-head">
+          <h2>Solution Architecture &mdash; Agent-to-Agent Flow</h2>
+          <p>Click any stage to see what it does, how it's governed, and its inputs &amp; outputs.</p>
+        </div>
+        <div class="flow-rail" id="flowRail"></div>
+        <div class="flow-detail" id="flowDetail"></div>
+      </section>
+
+      <section class="panel guide-section">
+        <div class="guide-section-head">
+          <h2>User Guide &mdash; Using the Command Center</h2>
+          <p>A business-user walkthrough, from picking a persona to approving a governed action.</p>
+        </div>
+        <div class="guide-grid" id="guideGrid"></div>
+      </section>
+
+      <section class="panel guide-section">
+        <div class="guide-section-head">
+          <h2>Component Architecture &mdash; Bill of Requirements</h2>
+          <p>Databricks reasons, Domo acts, governance never forks. Every component needed to stand this up.</p>
+        </div>
+        <div class="arch-grid" id="archGrid"></div>
+        <div class="req-row" id="reqRow"></div>
+      </section>
+
+      <section class="panel guide-section">
+        <div class="guide-section-head readiness-head">
+          <div>
+            <h2>AI Readiness Sync &mdash; Unity Catalog as Source of Truth</h2>
+            <p>Comments, tags, context, synonyms, and enabled columns originate in Unity Catalog and are mirrored into Domo AI Readiness.</p>
+          </div>
+          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Update Domo AI Readiness</button>
+        </div>
+        <div class="readiness-note" id="readinessNote">
+          Ready to sync UC comments and tags into Domo dataset context. This demo uses the generated readiness manifest and can be wired to the Domo AI Readiness endpoint when available.
+        </div>
+        <div class="readiness-grid" id="readinessGrid"></div>
+      </section>
+    </div><!-- /viewGuide -->
+
+    <footer class="app-footer">
+      <span class="powered">Build with Databricks &middot; Deliver with Domo &middot; Govern everywhere</span>
+      <span class="synthetic-tag">Synthetic demo data &middot; databricks_raptor.pattern4_agent_automation</span>
+    </footer>
+
+    <div id="genieBackdrop" hidden></div>
+  </main>
+
+  <script
+    src="https://unpkg.com/ryuu.js@4.6.0/dist/domo.js"
+    integrity="sha384-YYsd9wQ+wDlUWhvpfGdptxmNYIqBC+52oJtWgPKJadbs3sSFTY/+ZotPbEHTTRWz"
+    crossorigin="anonymous"
+  ></script>
+  <script src="./src/app.js"></script>
+</body>
+</html>

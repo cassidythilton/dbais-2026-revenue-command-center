@@ -1,0 +1,29 @@
+---
+description: Require project Databricks AI Dev Kit skills for Databricks work
+alwaysApply: true
+---
+
+# Databricks AI Dev Kit Skills Required
+
+For any task involving Databricks, consult the relevant project-level AI Dev Kit skill(s) before acting from memory.
+
+Use the skills installed in this workspace under `.cursor/skills/`, including but not limited to:
+
+- `databricks`
+- `databricks-config`
+- `databricks-dbsql`
+- `databricks-genie`
+- `databricks-unity-catalog`
+- `databricks-synthetic-data-gen`
+- `databricks-agent-bricks`
+- `databricks-apps`
+- `databricks-python-sdk`
+- `databricks-model-serving`
+- `databricks-mlflow-evaluation`
+- `databricks-metric-views`
+- `databricks-jobs`
+- `databricks-bundles`
+
+This applies to Databricks CLI/API usage, SQL Warehouses, Unity Catalog, Genie, Agent Bricks, model serving, MLflow, synthetic data, Databricks Apps, jobs, bundles, and any Databricks-side architecture or implementation choices.
+
+If a Databricks implementation detail conflicts with memory or prior assumptions, prefer the relevant project-level skill and verify against live CLI/API behavior where practical.

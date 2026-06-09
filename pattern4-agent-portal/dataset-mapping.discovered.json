@@ -1,0 +1,62 @@
+{
+  "executiveRevenueHealth": {
+    "dataSetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_executive_revenue_health",
+    "recommendedDomoName": "Pattern 4 | Executive Revenue Health",
+    "state": "IDLE",
+    "status": "SUCCESS",
+    "rowCount": 52560,
+    "columnCount": 12,
+    "transportType": "CLOUD",
+    "cloudId": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+    "cloudName": "Databricks Raptor AWS"
+  },
+  "customerRenewalRisk": {
+    "dataSetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+    "recommendedDomoName": "Pattern 4 | Customer Renewal Risk",
+    "state": "IDLE",
+    "status": "SUCCESS",
+    "rowCount": 4000,
+    "columnCount": 21,
+    "transportType": "CLOUD",
+    "cloudId": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+    "cloudName": "Databricks Raptor AWS"
+  },
+  "incidentRevenueImpact": {
+    "dataSetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact",
+    "recommendedDomoName": "Pattern 4 | Incident Revenue Impact",
+    "state": "IDLE",
+    "status": "SUCCESS",
+    "rowCount": 120,
+    "columnCount": 14,
+    "transportType": "CLOUD",
+    "cloudId": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+    "cloudName": "Databricks Raptor AWS"
+  },
+  "agentActionQueue": {
+    "dataSetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_agent_action_queue",
+    "recommendedDomoName": "Pattern 4 | Agent Action Queue",
+    "state": "IDLE",
+    "status": "SUCCESS",
+    "rowCount": 12000,
+    "columnCount": 19,
+    "transportType": "CLOUD",
+    "cloudId": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+    "cloudName": "Databricks Raptor AWS"
+  },
+  "portalUserScope": {
+    "dataSetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_portal_user_scope",
+    "recommendedDomoName": "Pattern 4 | Portal User Scope",
+    "state": "IDLE",
+    "status": "SUCCESS",
+    "rowCount": 10,
+    "columnCount": 7,
+    "transportType": "CLOUD",
+    "cloudId": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+    "cloudName": "Databricks Raptor AWS"
+  }
+}

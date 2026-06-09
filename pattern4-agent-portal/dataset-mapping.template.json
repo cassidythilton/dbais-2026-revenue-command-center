@@ -1,0 +1,27 @@
+{
+  "executiveRevenueHealth": {
+    "dataSetId": "",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_executive_revenue_health",
+    "recommendedDomoName": "Pattern 4 | Executive Revenue Health"
+  },
+  "customerRenewalRisk": {
+    "dataSetId": "",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+    "recommendedDomoName": "Pattern 4 | Customer Renewal Risk"
+  },
+  "incidentRevenueImpact": {
+    "dataSetId": "",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact",
+    "recommendedDomoName": "Pattern 4 | Incident Revenue Impact"
+  },
+  "agentActionQueue": {
+    "dataSetId": "",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_agent_action_queue",
+    "recommendedDomoName": "Pattern 4 | Agent Action Queue"
+  },
+  "portalUserScope": {
+    "dataSetId": "",
+    "databricksObject": "databricks_raptor.pattern4_agent_automation.gold_portal_user_scope",
+    "recommendedDomoName": "Pattern 4 | Portal User Scope"
+  }
+}

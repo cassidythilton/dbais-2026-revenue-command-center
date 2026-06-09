@@ -1,0 +1,19 @@
+# --- Local secrets / credentials (never commit) ---
+databricks token
+*.pat
+.databrickscfg
+**/codeengine/*.local.js
+
+# --- Local tooling / editor / OS ---
+.claude/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Installed skill libraries (third-party, not project artifacts) ---
+.cursor/skills/
+.ai-dev-kit/
+
+# --- Node ---
+node_modules/
+npm-debug.log*

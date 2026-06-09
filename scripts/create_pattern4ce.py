@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""Create (or version) the consolidated `pattern4ce` Code Engine package.
+
+Reads the Databricks token at runtime from the local `databricks token` file and
+injects it into the function code before POSTing. The token is never written back
+to disk. Does NOT release (release requires explicit user approval).
+"""
+
+from __future__ import annotations
+
+import json
+import re
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parents[1]
+VENV_SITE = Path.home() / ".local/pipx/venvs/community-domo-cli/lib/python3.14/site-packages"
+sys.path.insert(0, str(VENV_SITE))
+
+from community_domo_cli.config import resolve_config  # noqa: E402
+from community_domo_cli.http import DomoApiError, DomoClient  # noqa: E402
+
+FUNCTIONS_JS = REPO / "pattern4-agent-portal/codeengine/functions.js"
+TOKEN_FILE = REPO / "databricks token"
+
+
+def read_token() -> str:
+    text = TOKEN_FILE.read_text()
+    m = re.search(r"(dapi[0-9a-f]+)", text)
+    if not m:
+        raise SystemExit("Could not find a dapi... token in 'databricks token'")
+    return m.group(1)
+
+
+def text_input(name: str, nullable: bool) -> dict:
+    return {
+        "name": name,
+        "displayName": name,
+        "type": "text",
+        "value": None,
+        "nullable": nullable,
+        "isList": False,
+        "children": None,
+        "entitySubType": None,
+    }
+
+
+def result_output() -> dict:
+    return {
+        "name": "result",
+        "displayName": "result",
+        "type": "object",
+        "value": None,
+        "nullable": False,
+        "isList": False,
+        "children": None,
+        "entitySubType": None,
+    }
+
+
+def fn(name: str, display: str, inputs: list, private: bool = False) -> dict:
+    return {
+        "name": name,
+        "displayName": display,
+        "description": "",
+        "isPrivate": private,
+        "inputs": inputs,
+        "output": result_output(),
+    }
+
+
+def client() -> DomoClient:
+    cfg = resolve_config(None, "databricks-demo")
+    return DomoClient(
+        instance=cfg.instance,
+        auth_mode=cfg.auth_mode,
+        developer_token=cfg.developer_token,
+        refresh_token=cfg.refresh_token,
+    )
+
+
+def main() -> int:
+    token = read_token()
+    code = FUNCTIONS_JS.read_text().replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
+
+    functions = [
+        fn(
+            "askGenie",
+            "Ask Pattern 4 Genie",
+            [
+                text_input("question", False),
+                text_input("conversationId", True),
+                text_input("persona", True),
+                text_input("model", True),
+            ],
+        ),
+        fn(
+            "writeActionStatus",
+            "Write Action Status",
+            [
+                text_input("actionId", False),
+                text_input("decision", True),
+                text_input("executionStatus", True),
+                text_input("approvedBy", True),
+                text_input("note", True),
+                text_input("persona", True),
+            ],
+        ),
+        fn("runSql", "Run SQL", [text_input("statement", False)], private=True),
+        fn("sqlString", "SQL String", [text_input("value", False)], private=True),
+    ]
+
+    payload = {
+        "name": "pattern4ce",
+        "description": "Consolidated Pattern 4 Code Engine package: Genie proxy + Databricks action writeback. proxyId for the Pattern 4 Agent Portal.",
+        "code": code,
+        "environment": "LAMBDA",
+        "language": "JAVASCRIPT",
+        "manifest": {
+            "functions": functions,
+            "configuration": {"accountsMapping": [], "mlModel": [], "externalPackageMapping": {}},
+        },
+    }
+
+    c = client()
+    for path in ("/codeengine/v2/packages", "/api/codeengine/v2/packages"):
+        try:
+            resp = c.request("POST", path, json_body=payload)
+            print(f"CREATED via {path}")
+            # avoid printing code/token back
+            slim = {k: v for k, v in (resp or {}).items() if k != "code"}
+            print(json.dumps(slim, indent=2)[:2000])
+            return 0
+        except DomoApiError as err:
+            print(f"  {err.status_code} POST {path}: {json.dumps(err.payload)[:300]}")
+    return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

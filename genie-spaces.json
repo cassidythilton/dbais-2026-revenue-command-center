@@ -1,0 +1,45 @@
+{
+  "spaces": [
+    {
+      "space_id": "01f16380db7d197395f2da5164f9bd48",
+      "title": "Healthcare Claims Analysis",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "description": "Natural language interface for Zendesk support data. Covers open/new and resolved tickets plus their comment threads. Key metrics: resolution_time_hours, satisfaction_rating, priority, category, assignee. Tables join on ticket_id.",
+      "space_id": "01f163706ad1164ab4a371f4a60feecc",
+      "title": "Zendesk Support Analytics",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f1509baf6e164cb1fc0cb0fb991ea2",
+      "title": "Manufacturing Line Performance",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f10d4323c61272b4a5a0848ef4314a",
+      "title": "New Space (1)",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f10afac86615b4bd54631727ee9ea6",
+      "title": "New Space",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f0c3639fa21cd0a77acf4fed36c7de",
+      "title": "New Space",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f0bb306fa9185dad3b8ccca194e319",
+      "title": "New Space",
+      "warehouse_id": "ea829ba58bcae093"
+    },
+    {
+      "space_id": "01f0aa0cb5631a87acd21ce20728dc8a",
+      "title": "New Space",
+      "warehouse_id": "ea829ba58bcae093"
+    }
+  ]
+}

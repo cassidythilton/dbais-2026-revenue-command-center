@@ -1,0 +1,41 @@
+{
+  "designId": "e8a0b5da-d20b-450d-8790-de7ef1634ea7",
+  "mapping": [
+    {
+      "alias": "executiveRevenueHealth",
+      "dataSetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+      "fields": [],
+      "dql": null
+    },
+    {
+      "alias": "customerRenewalRisk",
+      "dataSetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+      "fields": [],
+      "dql": null
+    },
+    {
+      "alias": "incidentRevenueImpact",
+      "dataSetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+      "fields": [],
+      "dql": null
+    },
+    {
+      "alias": "agentActionQueue",
+      "dataSetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+      "fields": [],
+      "dql": null
+    },
+    {
+      "alias": "portalUserScope",
+      "dataSetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+      "fields": [],
+      "dql": null
+    }
+  ],
+  "collections": [],
+  "accountMapping": [],
+  "actionMapping": [],
+  "workflowMapping": [],
+  "packageMapping": [],
+  "isDisabled": false
+}

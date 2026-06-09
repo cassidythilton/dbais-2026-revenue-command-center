@@ -1,0 +1,27 @@
+{
+  "id": "45a89bf2-150e-42a0-83a9-3d911c928712",
+  "name": "Pattern 4 Genie Proxy",
+  "description": "Server-side proxy from the Domo Pattern 4 portal to Databricks Genie Conversation API. Holds Databricks token server-side and returns answer, SQL, latency, and audit metadata.",
+  "language": "JAVASCRIPT",
+  "environment": "LAMBDA",
+  "availability": "PRIVATE",
+  "owner": "1433178023",
+  "versions": [
+    {
+      "version": "1.0.0",
+      "description": "",
+      "createdBy": "1433178023",
+      "released": null,
+      "functions": [],
+      "configuration": {
+        "accountsMapping": [],
+        "mlModel": [],
+        "externalPackageMapping": {}
+      }
+    }
+  ],
+  "users": [],
+  "createdOn": "2026-06-09T16:57:39.446Z",
+  "updatedOn": "2026-06-09T16:57:39.498Z",
+  "packageSource": "CUSTOM"
+}

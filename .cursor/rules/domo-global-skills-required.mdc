@@ -1,0 +1,18 @@
+---
+description: Require global Domo skills for all Domo platform work
+alwaysApply: true
+---
+
+# Domo Global Skills Required
+
+For any task involving Domo, consult the relevant globally installed Domo skill(s) before acting from memory.
+
+This includes, but is not limited to:
+
+- App Studio, pro-code apps, manifests, datasetsMapping, packageMapping/packagesMapping, `proxyId`, and `domo publish`.
+- Code Engine package creation, updates, release, function signatures, runtime `domo.post` calls, and input/output contracts.
+- Domo data access, Cloud Amplifier/federated datasets, AppDB, Workflows, cards, variables, AI Readiness, embeds, filters, and theme/styleguide work.
+
+Use the global skill files under `/Users/cassidy.hilton/.claude/skills/` and `/Users/cassidy.hilton/.agents/skills/` as the source of truth for Domo-specific behavior. If a Domo implementation detail conflicts with memory or prior assumptions, prefer the relevant skill and verify against a known working local reference project when available.
+
+For this project, `deal-inspect` is an approved working reference for Domo Code Engine app manifest/runtime patterns.

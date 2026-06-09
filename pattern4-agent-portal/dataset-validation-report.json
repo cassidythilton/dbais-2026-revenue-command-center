@@ -1,0 +1,107 @@
+[
+  {
+    "alias": "executiveRevenueHealth",
+    "datasetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+    "name": "gold_executive_revenue_health",
+    "distribution": "direct_federated",
+    "columnCount": 12,
+    "sampleRows": 3,
+    "columns": [
+      "date",
+      "fiscal_year",
+      "quarter",
+      "fiscal_period",
+      "tenant_id",
+      "region",
+      "segment",
+      "net_revenue",
+      "gross_margin",
+      "expansion_arr",
+      "churned_arr",
+      "revenue_at_risk"
+    ]
+  },
+  {
+    "alias": "customerRenewalRisk",
+    "datasetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+    "name": "gold_customer_renewal_risk",
+    "distribution": "direct_federated",
+    "columnCount": 21,
+    "sampleRows": 3,
+    "columns": [
+      "account_id",
+      "account_name",
+      "tenant_id",
+      "region",
+      "segment",
+      "industry",
+      "account_owner_id",
+      "account_owner_name",
+      "annual_recurring_revenue",
+      "renewal_date",
+      "renewal_risk_score",
+      "risk_tier"
+    ]
+  },
+  {
+    "alias": "incidentRevenueImpact",
+    "datasetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+    "name": "gold_incident_revenue_impact",
+    "distribution": "direct_federated",
+    "columnCount": 14,
+    "sampleRows": 3,
+    "columns": [
+      "incident_id",
+      "incident_date",
+      "product_id",
+      "region",
+      "severity",
+      "incident_category",
+      "root_cause",
+      "customer_impact_level",
+      "estimated_revenue_impact",
+      "affected_account_count",
+      "support_case_count",
+      "sla_breach_count"
+    ]
+  },
+  {
+    "alias": "agentActionQueue",
+    "datasetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+    "name": "gold_agent_action_queue",
+    "distribution": "direct_federated",
+    "columnCount": 19,
+    "sampleRows": 3,
+    "columns": [
+      "action_id",
+      "created_ts",
+      "date",
+      "tenant_id",
+      "account_id",
+      "region",
+      "segment",
+      "account_owner_id",
+      "source_agent",
+      "source_question",
+      "recommendation",
+      "approval_status"
+    ]
+  },
+  {
+    "alias": "portalUserScope",
+    "datasetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+    "name": "gold_portal_user_scope",
+    "distribution": "direct_federated",
+    "columnCount": 7,
+    "sampleRows": 3,
+    "columns": [
+      "user_key",
+      "display_name",
+      "persona",
+      "tenant_id",
+      "region",
+      "account_owner_id",
+      "access_level"
+    ]
+  }
+]

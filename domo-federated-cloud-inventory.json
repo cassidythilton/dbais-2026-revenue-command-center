@@ -1,0 +1,511 @@
+{
+  "federated_types": [],
+  "federated_accounts": {},
+  "/query/migration/integration-types": {
+    "error": "Not found: 404",
+    "status": 404,
+    "payload": {
+      "status": 404,
+      "statusReason": "Not Found",
+      "message": "No static resource api/query/migration/integration-types for request '/api/query/migration/integration-types'.",
+      "toe": "MMFDSCTMNM-Q0Y5B-K2P1G"
+    }
+  },
+  "/query/migration/integrations/databricks": [
+    {
+      "id": "3a833d3b-9c17-4edd-9091-c663fa38ad55",
+      "name": "ATM Databricks EMEA",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1743de93-d566-4934-a24e-dfd03f8c726d",
+      "name": "ATM Finance",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "59cbd416-55be-4c7b-8cd2-350c668d0b4c",
+      "name": "ATM RETAIL",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "186849aa-4eeb-41f1-bf81-d8747a09adb4",
+      "name": "AWS Test",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "a519530b-19ac-4964-8804-0538331ca52e",
+      "name": "Azure Databricks DW",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "9880e0a1-be2e-4ca5-9fcd-04f4141a4a5c",
+      "name": "Braxton Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "43b654ca-02bb-4f7c-8866-9277d47f279c",
+      "name": "Cobra Evo",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "5f5c193c-66ed-42cb-999b-5d2aca7bdba2",
+      "name": "DBX 4",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "fb3761e5-b410-4ae5-9955-abbfac54ea2a",
+      "name": "DBX DI",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "f07bfcf1-12af-4dbe-8153-cb8f7e0de1d4",
+      "name": "DBX Test 1",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1915ae7c-ecf6-41db-ac1f-04abc9f69f3a",
+      "name": "DBX_APAC",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "dfdc368c-a7fa-4c4c-af43-8542a1533280",
+      "name": "DELETE ME",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8f4cfb1f-f68e-42ab-903b-0279b269a87f",
+      "name": "Databricks",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "30abd357-a8e7-47f8-9d8d-7d1697877fbb",
+      "name": "Databricks Clyde",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "403135e3-e7f8-48cb-a763-b31bac6bd221",
+      "name": "Databricks EMEA",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "bcddf087-3605-4332-ad00-ac5c6835d392",
+      "name": "Databricks Japan-Jimba(rwt)",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "6f2a5159-b952-45d8-897f-bf01cbc8855e",
+      "name": "Databricks Raptor",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+      "name": "Databricks Raptor AWS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "356f6d20-1833-4c2a-8793-7fea29694d82",
+      "name": "Databricks Raptor2 AWS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "de72b1ec-e120-438b-8e8c-76e3519f7a7d",
+      "name": "Databricks Vulcan AZR",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3e347ce7-e0b3-43f8-bf79-0fc9a85e1e86",
+      "name": "Databricks Warhawk",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "5445574e-7406-4c30-90eb-c2ccf694c1d1",
+      "name": "Databricks Warhog",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "7285a474-80c3-4a33-9f75-f0d04d518f80",
+      "name": "Domo Japan (rwx) ",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "396935b7-ad76-424a-ada7-2e787faea8e1",
+      "name": "EP_DBRX_DW",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "838cddbb-6be3-4c4e-9e42-126ed4e4a538",
+      "name": "Enablement Pilot DW",
+      "type": "DATABRICKS",
+      "authMethod": "OAUTH"
+    },
+    {
+      "id": "df2fbfe4-a945-4c52-ae99-8ee9dea5f69e",
+      "name": "Example Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3057e917-4f8e-45f7-88ed-24a3dac03583",
+      "name": "Greg test",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "75604cee-a4cc-4ab0-8bda-6806d5673015",
+      "name": "Hinckley test 3",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8adef828-c104-40aa-b15a-3bf4f624b968",
+      "name": "LA Databricks Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1b399d82-db78-4974-ae02-16788feb5824",
+      "name": "New Test Integration - MM",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8f68e716-f8af-4337-aaec-f3f2ec50364c",
+      "name": "RK DBX Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "fdc0f679-c47e-438d-840d-b3768ec292c7",
+      "name": "RyanTest",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "290e37d8-97c4-4532-8dc9-6c9e4209b616",
+      "name": "RyanTest2",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "07e9baf2-ec0d-4dd7-b2eb-263848d2d520",
+      "name": "SOG databricks",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "12dfabdd-dec2-4b2e-af6f-d7a8cefc7799",
+      "name": "Sfaith",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8e151638-764f-4ee8-a5c7-2f639f3db963",
+      "name": "TP_EMEA_INTEGRATION",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1493dab6-7186-4302-9b57-423a206a604f",
+      "name": "TS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "7c477524-5d4c-4101-ae38-2bce7c9623f8",
+      "name": "Test Integration - EL",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3d188d91-65cc-4889-aec5-2d77b41991e9",
+      "name": "Test Integration - MM",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "c9b7beb7-d589-4287-859e-4272c77fa96d",
+      "name": "ZBO1",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "ddfba719-ea8b-4824-bc10-cd396300bbe1",
+      "name": "tosasaki",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    }
+  ],
+  "/query/migration/integrations/DATABRICKS": [
+    {
+      "id": "3a833d3b-9c17-4edd-9091-c663fa38ad55",
+      "name": "ATM Databricks EMEA",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1743de93-d566-4934-a24e-dfd03f8c726d",
+      "name": "ATM Finance",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "59cbd416-55be-4c7b-8cd2-350c668d0b4c",
+      "name": "ATM RETAIL",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "186849aa-4eeb-41f1-bf81-d8747a09adb4",
+      "name": "AWS Test",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "a519530b-19ac-4964-8804-0538331ca52e",
+      "name": "Azure Databricks DW",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "9880e0a1-be2e-4ca5-9fcd-04f4141a4a5c",
+      "name": "Braxton Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "43b654ca-02bb-4f7c-8866-9277d47f279c",
+      "name": "Cobra Evo",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "5f5c193c-66ed-42cb-999b-5d2aca7bdba2",
+      "name": "DBX 4",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "fb3761e5-b410-4ae5-9955-abbfac54ea2a",
+      "name": "DBX DI",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "f07bfcf1-12af-4dbe-8153-cb8f7e0de1d4",
+      "name": "DBX Test 1",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1915ae7c-ecf6-41db-ac1f-04abc9f69f3a",
+      "name": "DBX_APAC",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "dfdc368c-a7fa-4c4c-af43-8542a1533280",
+      "name": "DELETE ME",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8f4cfb1f-f68e-42ab-903b-0279b269a87f",
+      "name": "Databricks",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "30abd357-a8e7-47f8-9d8d-7d1697877fbb",
+      "name": "Databricks Clyde",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "403135e3-e7f8-48cb-a763-b31bac6bd221",
+      "name": "Databricks EMEA",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "bcddf087-3605-4332-ad00-ac5c6835d392",
+      "name": "Databricks Japan-Jimba(rwt)",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "6f2a5159-b952-45d8-897f-bf01cbc8855e",
+      "name": "Databricks Raptor",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "a83b5bbc-fc3f-43c0-8ea5-f15117de997d",
+      "name": "Databricks Raptor AWS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "356f6d20-1833-4c2a-8793-7fea29694d82",
+      "name": "Databricks Raptor2 AWS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "de72b1ec-e120-438b-8e8c-76e3519f7a7d",
+      "name": "Databricks Vulcan AZR",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3e347ce7-e0b3-43f8-bf79-0fc9a85e1e86",
+      "name": "Databricks Warhawk",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "5445574e-7406-4c30-90eb-c2ccf694c1d1",
+      "name": "Databricks Warhog",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "7285a474-80c3-4a33-9f75-f0d04d518f80",
+      "name": "Domo Japan (rwx) ",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "396935b7-ad76-424a-ada7-2e787faea8e1",
+      "name": "EP_DBRX_DW",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "838cddbb-6be3-4c4e-9e42-126ed4e4a538",
+      "name": "Enablement Pilot DW",
+      "type": "DATABRICKS",
+      "authMethod": "OAUTH"
+    },
+    {
+      "id": "df2fbfe4-a945-4c52-ae99-8ee9dea5f69e",
+      "name": "Example Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3057e917-4f8e-45f7-88ed-24a3dac03583",
+      "name": "Greg test",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "75604cee-a4cc-4ab0-8bda-6806d5673015",
+      "name": "Hinckley test 3",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8adef828-c104-40aa-b15a-3bf4f624b968",
+      "name": "LA Databricks Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1b399d82-db78-4974-ae02-16788feb5824",
+      "name": "New Test Integration - MM",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8f68e716-f8af-4337-aaec-f3f2ec50364c",
+      "name": "RK DBX Integration",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "fdc0f679-c47e-438d-840d-b3768ec292c7",
+      "name": "RyanTest",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "290e37d8-97c4-4532-8dc9-6c9e4209b616",
+      "name": "RyanTest2",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "07e9baf2-ec0d-4dd7-b2eb-263848d2d520",
+      "name": "SOG databricks",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "12dfabdd-dec2-4b2e-af6f-d7a8cefc7799",
+      "name": "Sfaith",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "8e151638-764f-4ee8-a5c7-2f639f3db963",
+      "name": "TP_EMEA_INTEGRATION",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "1493dab6-7186-4302-9b57-423a206a604f",
+      "name": "TS",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "7c477524-5d4c-4101-ae38-2bce7c9623f8",
+      "name": "Test Integration - EL",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "3d188d91-65cc-4889-aec5-2d77b41991e9",
+      "name": "Test Integration - MM",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "c9b7beb7-d589-4287-859e-4272c77fa96d",
+      "name": "ZBO1",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    },
+    {
+      "id": "ddfba719-ea8b-4824-bc10-cd396300bbe1",
+      "name": "tosasaki",
+      "type": "DATABRICKS",
+      "authMethod": "PERSONAL_ACCESS_TOKEN"
+    }
+  ],
+  "/query/migration/integrations/snowflake": []
+}

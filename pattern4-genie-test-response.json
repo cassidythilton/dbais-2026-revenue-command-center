@@ -1,0 +1,57 @@
+{
+  "attachments": [
+    {
+      "attachment_id": "01f16422a56c1a2488f89977a90c70c2",
+      "query": {
+        "description": "You want to see why the renewal risk increased for West region Enterprise segment accounts by looking at average renewal risk score, total revenue at risk, and incident impact details.",
+        "query": "SELECT r.region, r.segment, ROUND(AVG(r.renewal_risk_score), 2) AS avg_risk_score, ROUND(SUM(r.revenue_at_risk), 2) AS revenue_at_risk, i.root_cause, i.support_case_count, i.sla_breach_count FROM databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk r LEFT JOIN databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact i ON r.region = i.region AND i.incident_id = 'INC-0001' WHERE r.region = 'West' AND r.segment = 'Enterprise' GROUP BY r.region, r.segment, i.root_cause, i.support_case_count, i.sla_breach_count",
+        "query_result_metadata": {
+          "row_count": 1
+        },
+        "statement_id": "01f16422-a574-13c6-9476-ba0a50226e19",
+        "thoughts": [
+          {
+            "content": "You want to see why the renewal risk increased for West region Enterprise segment accounts by looking at average renewal risk score, total revenue at risk, and incident impact details.",
+            "thought_type": "THOUGHT_TYPE_DESCRIPTION"
+          },
+          {
+            "content": "- databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk\n- databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact",
+            "thought_type": "THOUGHT_TYPE_DATA_SOURCING"
+          },
+          {
+            "content": "- Retrieve data for the West region and Enterprise segment.\n- Calculate the average renewal risk score for these accounts.\n- Calculate the total revenue at risk for these accounts.\n- Combine this with incident impact data for incident INC-0001 in the West region.\n- Group the results by region, segment, incident root cause, support case count, and SLA breach count to show detailed reasons for the risk increase.",
+            "thought_type": "THOUGHT_TYPE_STEPS"
+          }
+        ]
+      }
+    },
+    {
+      "attachment_id": "01f16422a85d11c7b8a9462379a79ae2",
+      "suggested_questions": {
+        "questions": [
+          "What are the top risk drivers for increased renewal risk in West enterprise accounts?",
+          "How has the renewal risk score trended over time for West enterprise accounts?",
+          "What is the relationship between support cases and renewal risk for West enterprise accounts?"
+        ]
+      }
+    },
+    {
+      "text": {
+        "content": "Renewal risk increased for **West enterprise accounts** due to the root cause of **workflow queue saturation after regional failover**, which led to **30,000 support cases** and **30,000 SLA breaches**. The average renewal risk score for these accounts is **82.64**, with **$55,301,657** in revenue at risk. These operational disruptions directly contributed to higher renewal risk for affected accounts."
+      }
+    }
+  ],
+  "content": "Why did renewal risk increase for West enterprise accounts?",
+  "conversation_id": "01f164229d9d14c1bdbf180e25a60d50",
+  "created_timestamp": 1781023526187,
+  "id": "01f164229da71c3d9876d7a5c23646b1",
+  "last_updated_timestamp": 1781023548885,
+  "message_id": "01f164229da71c3d9876d7a5c23646b1",
+  "query_result": {
+    "row_count": 1,
+    "statement_id": "01f16422-a574-13c6-9476-ba0a50226e19"
+  },
+  "space_id": "01f1642295b61d6b8849e106f52fc781",
+  "status": "COMPLETED",
+  "user_id": 8171563996188536
+}
