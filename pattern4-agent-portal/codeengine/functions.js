@@ -161,11 +161,14 @@ function askGenie(question, conversationId, persona, model) {
         }
       }
 
-      function finalize(rowCount) {
+      function finalize(rowCount, resultColumns, resultRows) {
+        var chartColumns = resultColumns || [];
+        var chartRows = resultRows || [];
         console.log("[pattern4ce.askGenie] success", JSON.stringify({
           conversationId: convId,
           messageId: msgId,
           rowCount: rowCount || 0,
+          columnCount: chartColumns.length,
           hasSql: !!sqlText,
           latencyMs: Date.now() - started
         }));
@@ -174,6 +177,8 @@ function askGenie(question, conversationId, persona, model) {
           answer: answerText || "Genie returned no text answer.",
           sql: sqlText,
           rowCount: rowCount || 0,
+          columns: chartColumns,
+          dataRows: chartRows,
           latencyMs: Date.now() - started,
           conversationId: convId,
           messageId: msgId,
@@ -208,12 +213,26 @@ function askGenie(question, conversationId, persona, model) {
           .get(qUrl, { headers: dbxHeaders() })
           .then(function (qr) {
             var sr = qr.data && qr.data.statement_response ? qr.data.statement_response : {};
+            var schemaColumns =
+              sr.manifest && sr.manifest.schema && sr.manifest.schema.columns
+                ? sr.manifest.schema.columns
+                : [];
+            var resultColumns = [];
+            for (var c = 0; c < schemaColumns.length; c++) {
+              resultColumns.push({
+                name: schemaColumns[c].name,
+                type_name: schemaColumns[c].type_name,
+                type_text: schemaColumns[c].type_text,
+                position: schemaColumns[c].position
+              });
+            }
+            var resultRows = sr.result && sr.result.data_array ? sr.result.data_array : [];
             var rows =
               sr.result && sr.result.data_typed_array ? sr.result.data_typed_array.length : 0;
             if (!rows && sr.result && sr.result.data_array) {
               rows = sr.result.data_array.length;
             }
-            return finalize(rows);
+            return finalize(rows, resultColumns, resultRows);
           })
           .catch(function () {
             return finalize(metadataRows);

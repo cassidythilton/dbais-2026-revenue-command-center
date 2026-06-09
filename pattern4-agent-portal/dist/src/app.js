@@ -118,6 +118,11 @@ const GENIE_CANNED = [
     sql: "SELECT region, ROUND(AVG(renewal_risk_score),1) AS risk\nFROM databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk\nWHERE risk_month = date_trunc('MONTH', current_date())\nGROUP BY region\nORDER BY risk DESC;",
     latencyMs: 1840,
     rows: 4,
+    columns: [
+      { name: "region", type_name: "STRING" },
+      { name: "risk", type_name: "DOUBLE" },
+    ],
+    dataRows: [["West", "82.6"], ["East", "40.3"], ["South", "39.3"], ["Central", "39.0"]],
   },
   {
     match: ["affected", "accounts", "who"],
@@ -126,6 +131,11 @@ const GENIE_CANNED = [
     sql: "SELECT account_name, ROUND(revenue_at_risk) AS revenue_at_risk\nFROM databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk\nWHERE region = 'West' AND segment = 'Enterprise'\nORDER BY revenue_at_risk DESC\nLIMIT 10;",
     latencyMs: 2120,
     rows: 226,
+    columns: [
+      { name: "account_name", type_name: "STRING" },
+      { name: "revenue_at_risk", type_name: "DECIMAL" },
+    ],
+    dataRows: [["Asteria Retail Group", "12450000"], ["Northstar Financial", "9180000"], ["Helio Manufacturing", "6730000"], ["Summit Health Network", "3240000"], ["Bluebird Logistics", "1180000"]],
   },
   {
     match: ["action", "do", "recommend", "next"],
@@ -134,6 +144,12 @@ const GENIE_CANNED = [
     sql: "SELECT recommendation, COUNT(*) AS n, ROUND(SUM(expected_revenue_protected)) AS protected\nFROM databricks_raptor.pattern4_agent_automation.gold_agent_action_queue\nGROUP BY recommendation\nORDER BY protected DESC;",
     latencyMs: 1610,
     rows: 5,
+    columns: [
+      { name: "recommendation", type_name: "STRING" },
+      { name: "n", type_name: "BIGINT" },
+      { name: "protected", type_name: "DECIMAL" },
+    ],
+    dataRows: [["Executive outreach", "8", "21630000"], ["Reliability credit review", "6", "14780000"], ["Technical success plan", "5", "6730000"], ["Usage enablement", "4", "1090000"]],
   },
   {
     match: ["sla", "breach", "risk", "much"],
@@ -142,6 +158,12 @@ const GENIE_CANNED = [
     sql: "SELECT region, SUM(sla_breach_count) AS breaches, ROUND(SUM(renewal_revenue_at_risk)) AS at_risk\nFROM databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact\nGROUP BY region\nORDER BY at_risk DESC;",
     latencyMs: 1720,
     rows: 4,
+    columns: [
+      { name: "region", type_name: "STRING" },
+      { name: "breaches", type_name: "BIGINT" },
+      { name: "at_risk", type_name: "DECIMAL" },
+    ],
+    dataRows: [["West", "30000", "55301657"], ["East", "1180", "6425307"], ["Central", "940", "5046695"], ["South", "820", "4464375"]],
   },
   {
     match: ["protect", "saved", "revenue", "reduce", "approved", "after"],
@@ -150,6 +172,11 @@ const GENIE_CANNED = [
     sql: "SELECT approval_status, ROUND(SUM(actual_revenue_protected)) AS protected\nFROM databricks_raptor.pattern4_agent_automation.gold_agent_action_queue\nGROUP BY approval_status\nORDER BY protected DESC;",
     latencyMs: 1490,
     rows: 4,
+    columns: [
+      { name: "approval_status", type_name: "STRING" },
+      { name: "protected", type_name: "DECIMAL" },
+    ],
+    dataRows: [["Approved", "44200000"], ["Pending", "11100000"], ["Rejected", "0"]],
   },
 ];
 
@@ -1302,6 +1329,8 @@ async function askGenieLive(question) {
       sql: output.sql || "",
       latencyMs: output.latencyMs || 0,
       rows: output.rowCount || 0,
+      columns: output.columns || [],
+      dataRows: output.dataRows || output.rows || [],
       endpoint: output.endpoint,
       conversationId: output.conversationId,
       messageId: output.messageId,
@@ -1351,6 +1380,197 @@ function inspectorHTML(question, entry) {
     </details>`;
 }
 
+/* ---------- Genie result visualization ---------- */
+
+const TEMPORAL_TYPES = new Set(["DATE", "TIMESTAMP", "TIMESTAMP_NTZ"]);
+const NUMERIC_TYPES = new Set(["DOUBLE", "DECIMAL", "FLOAT", "INT", "BIGINT", "LONG", "SHORT", "BYTE"]);
+
+function normalizeGenieColumns(columns) {
+  return (columns || []).map((c, i) => ({
+    name: c.name || c.label || `Column ${i + 1}`,
+    type: String(c.type_name || c.type || c.type_text || "").toUpperCase(),
+    index: Number.isFinite(Number(c.position)) ? Number(c.position) : i,
+  }));
+}
+
+function normalizeGenieRows(rows) {
+  return (rows || []).map((row) => Array.isArray(row) ? row : Object.values(row || {}));
+}
+
+function columnKind(col, rows) {
+  if (TEMPORAL_TYPES.has(col.type)) return "temporal";
+  if (NUMERIC_TYPES.has(col.type)) return "numeric";
+  const numericCount = rows.reduce((n, r) => Number.isFinite(Number(r[col.index])) ? n + 1 : n, 0);
+  if (rows.length && numericCount / rows.length > 0.85) return "numeric";
+  return "categorical";
+}
+
+function isCurrencyColumn(name) {
+  return /revenue|arr|amount|risk|margin|price|cost|protected/i.test(name || "");
+}
+
+function isPercentColumn(name) {
+  return /rate|pct|percent|score|ratio|probability/i.test(name || "");
+}
+
+function fmtGenieValue(value, col) {
+  if (value === null || value === undefined || value === "") return "—";
+  const n = Number(value);
+  if (Number.isFinite(n) && isCurrencyColumn(col?.name)) return fmtCurrency(n);
+  if (Number.isFinite(n) && isPercentColumn(col?.name) && Math.abs(n) <= 1) return `${(n * 100).toFixed(1)}%`;
+  if (Number.isFinite(n) && isPercentColumn(col?.name)) return `${n.toFixed(1)}%`;
+  if (Number.isFinite(n)) return Math.abs(n) >= 1000 ? fmtNumber(n) : n.toFixed(n % 1 ? 1 : 0);
+  return escapeHtml(value);
+}
+
+function chooseGenieChart(columns, rows) {
+  const kinds = columns.map((c) => ({ ...c, kind: columnKind(c, rows) }));
+  const nums = kinds.filter((c) => c.kind === "numeric");
+  const cats = kinds.filter((c) => c.kind === "categorical");
+  const times = kinds.filter((c) => c.kind === "temporal");
+  if (rows.length === 1 && nums.length === 1 && columns.length === 1) return { type: "kpi", value: nums[0] };
+  if (times.length === 1 && nums.length === 1 && rows.length > 1) return { type: "line", x: times[0], ys: [nums[0]] };
+  if (times.length === 1 && nums.length >= 2 && rows.length > 1) return { type: "line", x: times[0], ys: nums.slice(0, 3) };
+  if (cats.length === 1 && nums.length >= 1) return { type: "bar", x: cats[0], ys: nums.slice(0, Math.min(nums.length, 3)) };
+  if (cats.length >= 2 && nums.length === 1) return { type: "bar", x: cats[0], series: cats[1], ys: [nums[0]] };
+  if (nums.length === 2 && rows.length > 1) return { type: "scatter", x: nums[0], ys: [nums[1]] };
+  if (rows.length === 1 && nums.length > 1) return { type: "kpi-row", values: nums.slice(0, 5) };
+  return { type: "table" };
+}
+
+function chartTitle(chart) {
+  if (chart.type === "line") return "Trend";
+  if (chart.type === "bar") return "Breakdown";
+  if (chart.type === "scatter") return "Relationship";
+  if (chart.type === "kpi" || chart.type === "kpi-row") return "Result";
+  return "Result table";
+}
+
+function renderGenieBarChart(rows, chart) {
+  const xCol = chart.x;
+  const yCol = chart.ys[0];
+  const prepared = rows
+    .map((r) => ({ label: String(r[xCol.index] ?? "Unknown"), value: Number(r[yCol.index] || 0) }))
+    .filter((r) => Number.isFinite(r.value))
+    .sort((a, b) => b.value - a.value);
+  const top = prepared.slice(0, 12);
+  const max = Math.max(...top.map((r) => Math.abs(r.value)), 1);
+  return `<div class="genie-bars">${top.map((r) => {
+    const width = Math.max(3, (Math.abs(r.value) / max) * 100);
+    return `
+      <div class="genie-bar-row">
+        <span class="genie-bar-label" title="${escapeHtml(r.label)}">${escapeHtml(r.label)}</span>
+        <span class="genie-bar-track"><span style="width:${width}%"></span></span>
+        <span class="genie-bar-value">${fmtGenieValue(r.value, yCol)}</span>
+      </div>`;
+  }).join("")}</div>`;
+}
+
+function renderGenieLineChart(rows, chart) {
+  const xCol = chart.x;
+  const yCol = chart.ys[0];
+  const pts = rows
+    .map((r) => ({ label: String(r[xCol.index] ?? ""), value: Number(r[yCol.index] || 0) }))
+    .filter((r) => Number.isFinite(r.value));
+  if (pts.length < 2) return renderGenieTable(normalizeGenieColumns([xCol, yCol]), rows);
+  const W = 520;
+  const H = 190;
+  const m = { top: 16, right: 16, bottom: 28, left: 54 };
+  const min = Math.min(...pts.map((p) => p.value));
+  const max = Math.max(...pts.map((p) => p.value));
+  const pad = (max - min) * 0.12 || Math.abs(max) * 0.1 || 1;
+  const lo = min - pad;
+  const hi = max + pad;
+  const x = (i) => m.left + (i / Math.max(pts.length - 1, 1)) * (W - m.left - m.right);
+  const y = (v) => m.top + (H - m.top - m.bottom) * (1 - (v - lo) / (hi - lo || 1));
+  const line = pts.map((p, i) => `${x(i).toFixed(1)},${y(p.value).toFixed(1)}`).join(" ");
+  const first = pts[0];
+  const last = pts[pts.length - 1];
+  return `
+    <svg class="genie-line-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${escapeHtml(yCol.name)} trend">
+      <line class="genie-axis" x1="${m.left}" y1="${H - m.bottom}" x2="${W - m.right}" y2="${H - m.bottom}"></line>
+      <line class="genie-axis" x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${H - m.bottom}"></line>
+      <polyline class="genie-line" points="${line}"></polyline>
+      <circle class="genie-line-dot" cx="${x(pts.length - 1).toFixed(1)}" cy="${y(last.value).toFixed(1)}" r="4"></circle>
+      <text class="genie-axis-label" x="${m.left}" y="${H - 8}">${escapeHtml(first.label)}</text>
+      <text class="genie-axis-label end" x="${W - m.right}" y="${H - 8}">${escapeHtml(last.label)}</text>
+      <text class="genie-axis-label" x="${m.left - 6}" y="${y(hi).toFixed(1)}">${fmtGenieValue(hi, yCol)}</text>
+      <text class="genie-axis-label" x="${m.left - 6}" y="${y(lo).toFixed(1)}">${fmtGenieValue(lo, yCol)}</text>
+    </svg>`;
+}
+
+function renderGenieScatterChart(rows, chart) {
+  const xCol = chart.x;
+  const yCol = chart.ys[0];
+  const pts = rows
+    .map((r) => ({ x: Number(r[xCol.index] || 0), y: Number(r[yCol.index] || 0) }))
+    .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y));
+  if (pts.length < 2) return renderGenieTable([xCol, yCol], rows);
+  const W = 520;
+  const H = 190;
+  const m = { top: 16, right: 16, bottom: 32, left: 54 };
+  const xMin = Math.min(...pts.map((p) => p.x));
+  const xMax = Math.max(...pts.map((p) => p.x));
+  const yMin = Math.min(...pts.map((p) => p.y));
+  const yMax = Math.max(...pts.map((p) => p.y));
+  const xPad = (xMax - xMin) * 0.08 || 1;
+  const yPad = (yMax - yMin) * 0.08 || 1;
+  const sx = (v) => m.left + ((v - (xMin - xPad)) / ((xMax + xPad) - (xMin - xPad) || 1)) * (W - m.left - m.right);
+  const sy = (v) => m.top + (H - m.top - m.bottom) * (1 - (v - (yMin - yPad)) / ((yMax + yPad) - (yMin - yPad) || 1));
+  return `
+    <svg class="genie-line-chart" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-label="${escapeHtml(xCol.name)} by ${escapeHtml(yCol.name)}">
+      <line class="genie-axis" x1="${m.left}" y1="${H - m.bottom}" x2="${W - m.right}" y2="${H - m.bottom}"></line>
+      <line class="genie-axis" x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${H - m.bottom}"></line>
+      ${pts.slice(0, 80).map((p) => `<circle class="genie-line-dot" cx="${sx(p.x).toFixed(1)}" cy="${sy(p.y).toFixed(1)}" r="3.4"></circle>`).join("")}
+      <text class="genie-axis-label" x="${m.left}" y="${H - 8}">${escapeHtml(xCol.name)}</text>
+      <text class="genie-axis-label" x="${m.left - 6}" y="${m.top + 4}">${escapeHtml(yCol.name)}</text>
+    </svg>`;
+}
+
+function renderGenieKpis(rows, chart) {
+  const cols = chart.type === "kpi" ? [chart.value] : chart.values;
+  return `<div class="genie-kpi-row">${cols.map((c) => `
+    <div class="genie-kpi">
+      <span>${escapeHtml(c.name)}</span>
+      <b>${fmtGenieValue(rows[0]?.[c.index], c)}</b>
+    </div>`).join("")}</div>`;
+}
+
+function renderGenieTable(columns, rows) {
+  const shownCols = columns.slice(0, 5);
+  const shownRows = rows.slice(0, 8);
+  return `
+    <div class="genie-table-wrap">
+      <table class="genie-table">
+        <thead><tr>${shownCols.map((c) => `<th>${escapeHtml(c.name)}</th>`).join("")}</tr></thead>
+        <tbody>${shownRows.map((r) => `<tr>${shownCols.map((c) => `<td>${fmtGenieValue(r[c.index], c)}</td>`).join("")}</tr>`).join("")}</tbody>
+      </table>
+    </div>`;
+}
+
+function genieChartHTML(entry) {
+  const columns = normalizeGenieColumns(entry.columns || []);
+  const rows = normalizeGenieRows(entry.dataRows || []);
+  if (!columns.length || !rows.length) return "";
+  const chart = chooseGenieChart(columns, rows);
+  let body = "";
+  if (chart.type === "bar") body = renderGenieBarChart(rows, chart);
+  else if (chart.type === "line") body = renderGenieLineChart(rows, chart);
+  else if (chart.type === "scatter") body = renderGenieScatterChart(rows, chart);
+  else if (chart.type === "kpi" || chart.type === "kpi-row") body = renderGenieKpis(rows, chart);
+  else body = renderGenieTable(columns, rows);
+  const fallback = renderGenieTable(columns, rows);
+  return `
+    <div class="genie-viz">
+      <div class="genie-viz-head">
+        <span>${chartTitle(chart)}</span>
+        <span>${rows.length} rows · ${columns.length} cols</span>
+      </div>
+      ${body}
+      ${chart.type !== "table" ? `<details class="genie-table-fallback"><summary>View as table</summary>${fallback}</details>` : ""}
+    </div>`;
+}
+
 function appendUser(text) {
   const thread = document.getElementById("genieThread");
   const div = document.createElement("div");
@@ -1365,6 +1585,7 @@ function appendBot(html, opts = {}) {
   const div = document.createElement("div");
   div.className = "bubble bot";
   let inner = html;
+  if (opts.chart) inner += opts.chart;
   if (opts.model) inner += `<div class="bubble-model">Answered by ${escapeHtml(opts.model)}</div>`;
   if (opts.inspector) inner += opts.inspector;
   div.innerHTML = inner;
@@ -1380,7 +1601,11 @@ async function askGenie(question) {
   appendBot("<em>Asking the Pattern 4 Genie Space...</em>", { model: "Databricks Genie" });
   const live = await askGenieLive(text);
   const entry = live || answerFor(text);
-  appendBot(entry.answer, { model: live ? "Databricks Genie · live" : genieState.modelLabel, inspector: inspectorHTML(text, entry) });
+  appendBot(entry.answer, {
+    model: live ? "Databricks Genie · live" : genieState.modelLabel,
+    chart: genieChartHTML(entry),
+    inspector: inspectorHTML(text, entry),
+  });
 }
 
 function setGenieExpanded(expanded) {
