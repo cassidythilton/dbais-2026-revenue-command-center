@@ -45,6 +45,32 @@ def text_input(name: str, nullable: bool) -> dict:
     }
 
 
+def number_input(name: str, nullable: bool) -> dict:
+    return {
+        "name": name,
+        "displayName": name,
+        "type": "number",
+        "value": None,
+        "nullable": nullable,
+        "isList": False,
+        "children": None,
+        "entitySubType": None,
+    }
+
+
+def object_input(name: str, nullable: bool) -> dict:
+    return {
+        "name": name,
+        "displayName": name,
+        "type": "object",
+        "value": None,
+        "nullable": nullable,
+        "isList": False,
+        "children": None,
+        "entitySubType": None,
+    }
+
+
 def result_output() -> dict:
     return {
         "name": "result",
@@ -106,8 +132,49 @@ def main() -> int:
                 text_input("persona", True),
             ],
         ),
+        fn("listScenarios", "List Lakebase Scenarios", []),
+        fn(
+            "createScenario",
+            "Create Lakebase Scenario",
+            [
+                text_input("name", False),
+                text_input("status", True),
+                text_input("createdBy", True),
+                object_input("assumptions", True),
+                object_input("results", True),
+            ],
+        ),
+        fn(
+            "updateScenario",
+            "Update Lakebase Scenario",
+            [
+                number_input("id", False),
+                text_input("name", False),
+                text_input("status", True),
+                text_input("createdBy", True),
+                object_input("assumptions", True),
+                object_input("results", True),
+            ],
+        ),
+        fn("deleteScenario", "Delete Lakebase Scenario", [number_input("id", False)]),
+        fn("listPredictionFeedback", "List Prediction Feedback", []),
+        fn(
+            "savePredictionFeedback",
+            "Save Prediction Feedback",
+            [
+                text_input("predictionId", False),
+                text_input("entityType", False),
+                text_input("entityId", False),
+                text_input("feedback", False),
+                number_input("predictedValue", True),
+                number_input("correctedValue", True),
+                text_input("comment", True),
+                text_input("createdBy", True),
+            ],
+        ),
         fn("runSql", "Run SQL", [text_input("statement", False)], private=True),
         fn("sqlString", "SQL String", [text_input("value", False)], private=True),
+        fn("lakebaseQuery", "Lakebase Query", [text_input("sql", False), text_input("params", True)], private=True),
     ]
 
     payload = {

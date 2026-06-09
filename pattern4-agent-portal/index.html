@@ -59,6 +59,9 @@
       <button class="view-tab" type="button" data-view="lakebase" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Lakebase Ops
       </button>
+      <button class="view-tab" type="button" data-view="readiness" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> AI Readiness
+      </button>
       <button class="view-tab" type="button" data-view="genie" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Genie Workspace
       </button>
@@ -69,44 +72,6 @@
 
     <!-- ============================ FORECAST HOME ============================ -->
     <div id="viewForecast" class="view">
-
-      <!-- Forecast hero -->
-      <section class="panel forecast-hero">
-        <div class="forecast-head">
-          <div class="forecast-titles">
-            <span class="forecast-eyebrow">
-              <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />
-              Databricks-modeled &middot; renewal-risk adjusted
-            </span>
-            <h2>Net Revenue &mdash; Actual vs. Forecast</h2>
-            <p class="forecast-sub" id="forecastSub">Trailing actuals with model forecast and confidence band.</p>
-          </div>
-          <div class="forecast-controls">
-            <div class="seg" id="forecastRange" role="group" aria-label="Range">
-              <button type="button" class="seg-btn" data-range="12">12M</button>
-              <button type="button" class="seg-btn active" data-range="18">18M</button>
-              <button type="button" class="seg-btn" data-range="24">24M</button>
-            </div>
-            <button type="button" class="confidence-toggle active" id="confidenceToggle">
-              <span class="toggle-icon" aria-hidden="true">◉</span> Confidence band
-            </button>
-          </div>
-        </div>
-
-        <div class="forecast-chips" id="forecastChips"></div>
-
-        <div class="forecast-chart-wrap">
-          <div class="forecast-chart" id="forecastChart"></div>
-          <div class="forecast-tooltip" id="forecastTooltip" hidden></div>
-        </div>
-
-        <div class="forecast-legend" id="forecastLegend">
-          <span class="lg-item"><span class="lg-line solid"></span> Actual net revenue</span>
-          <span class="lg-item"><span class="lg-line dashed"></span> Model forecast</span>
-          <span class="lg-item"><span class="lg-band"></span> Confidence band</span>
-          <span class="lg-item"><span class="lg-today"></span> Today</span>
-        </div>
-      </section>
 
       <!-- KPI row -->
       <section class="kpi-row" aria-label="Executive KPIs">
@@ -146,6 +111,44 @@
             <span>incident-linked</span>
           </div>
         </article>
+      </section>
+
+      <!-- Forecast hero -->
+      <section class="panel forecast-hero">
+        <div class="forecast-head">
+          <div class="forecast-titles">
+            <span class="forecast-eyebrow">
+              <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+              Databricks-modeled &middot; renewal-risk adjusted
+            </span>
+            <h2>Net Revenue &mdash; Actual vs. Forecast</h2>
+            <p class="forecast-sub" id="forecastSub">Trailing actuals with model forecast and confidence band.</p>
+          </div>
+          <div class="forecast-controls">
+            <div class="seg" id="forecastRange" role="group" aria-label="Range">
+              <button type="button" class="seg-btn" data-range="12">12M</button>
+              <button type="button" class="seg-btn active" data-range="18">18M</button>
+              <button type="button" class="seg-btn" data-range="24">24M</button>
+            </div>
+            <button type="button" class="confidence-toggle active" id="confidenceToggle">
+              <span class="toggle-icon" aria-hidden="true">◉</span> Confidence band
+            </button>
+          </div>
+        </div>
+
+        <div class="forecast-chips" id="forecastChips"></div>
+
+        <div class="forecast-chart-wrap">
+          <div class="forecast-chart" id="forecastChart"></div>
+          <div class="forecast-tooltip" id="forecastTooltip" hidden></div>
+        </div>
+
+        <div class="forecast-legend" id="forecastLegend">
+          <span class="lg-item"><span class="lg-line solid"></span> Actual net revenue</span>
+          <span class="lg-item"><span class="lg-line dashed"></span> Model forecast</span>
+          <span class="lg-item"><span class="lg-band"></span> Confidence band</span>
+          <span class="lg-item"><span class="lg-today"></span> Today</span>
+        </div>
       </section>
 
       <!-- Main grid -->
@@ -271,11 +274,35 @@
         <div class="panel-head">
           <div>
             <h2>Lakebase Operational State</h2>
-            <p>Low-latency Postgres alongside the lakehouse &mdash; scenario runs and prediction feedback, served through Code Engine.</p>
+            <p>Low-latency Postgres alongside the lakehouse &mdash; scenario runs and prediction feedback copied from the governed Pattern 4 data, served through Code Engine.</p>
           </div>
-          <span class="model-state" id="lakebaseState">Planned</span>
+          <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" id="lakebaseRefreshBtn" type="button">Refresh</button>
+            <button class="btn btn-primary btn-sm" id="lakebaseAddBtn" type="button">+ Add Scenario</button>
+            <span class="model-state" id="lakebaseState">Planned</span>
+          </div>
         </div>
         <div class="ml-meta-grid" id="lakebaseMetaGrid"></div>
+      </section>
+
+      <section class="panel lakebase-form-panel is-hidden" id="lakebaseScenarioFormPanel">
+        <div class="panel-head">
+          <div>
+            <h2 id="lakebaseFormTitle">Add Scenario</h2>
+            <p>Create or edit operational scenario state in Lakebase.</p>
+          </div>
+          <button class="btn btn-secondary btn-sm" id="lakebaseCancelBtn" type="button">Cancel</button>
+        </div>
+        <form class="lakebase-form" id="lakebaseScenarioForm">
+          <label class="ml-field"><span>Scenario name</span><input id="scenarioNameInput" required /></label>
+          <label class="ml-field"><span>Status</span><select id="scenarioStatusInput"><option>draft</option><option>running</option><option>complete</option><option>archived</option></select></label>
+          <label class="ml-field"><span>Created by</span><input id="scenarioOwnerInput" required /></label>
+          <label class="ml-field"><span>Forecast delta</span><input id="scenarioDeltaInput" type="number" step="any" /></label>
+          <label class="ml-field full"><span>Assumptions JSON</span><textarea id="scenarioAssumptionsInput" rows="3"></textarea></label>
+          <div class="form-actions full">
+            <button class="btn btn-primary" type="submit" id="lakebaseSaveBtn">Save scenario</button>
+          </div>
+        </form>
       </section>
 
       <section class="grid">
@@ -285,16 +312,17 @@
               <h2>Scenario Runs</h2>
               <p>What-if forecast scenarios saved to Lakebase.</p>
             </div>
-            <span class="panel-tag">public.p4_scenario_runs</span>
+            <span class="panel-tag" id="scenarioCountTag">public.p4_scenario_runs</span>
           </div>
           <div class="table-wrap">
             <table>
               <thead>
-                <tr><th>Scenario</th><th>Status</th><th>Created by</th><th style="text-align:right;">Δ Forecast</th></tr>
+                <tr><th>Scenario</th><th>Status</th><th>Created by</th><th style="text-align:right;">Δ Forecast</th><th style="text-align:right;">Actions</th></tr>
               </thead>
               <tbody id="scenarioRows"></tbody>
             </table>
           </div>
+          <div class="lakebase-detail" id="scenarioDetail"></div>
         </article>
 
         <article class="panel col-5">
@@ -309,6 +337,26 @@
         </article>
       </section>
     </div><!-- /viewLakebase -->
+
+    <!-- ============================ AI READINESS ============================ -->
+    <div id="viewReadiness" class="view is-hidden">
+      <section class="panel readiness-command">
+        <div class="guide-section-head readiness-head">
+          <div>
+            <h2>AI Readiness Control Plane</h2>
+            <p>Unity Catalog context, tags, and AI-enabled columns mirrored into Domo dataset readiness.</p>
+          </div>
+          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Mark readiness sync</button>
+        </div>
+        <div class="readiness-note" id="readinessNote">
+          Pick a dataset to inspect its governed context, open the Domo AI Readiness page, or jump to the source table in Databricks.
+        </div>
+        <div class="readiness-layout">
+          <div class="readiness-grid" id="readinessGrid"></div>
+          <aside class="readiness-detail" id="readinessDetail"></aside>
+        </div>
+      </section>
+    </div><!-- /viewReadiness -->
 
     <!-- ============================ GENIE WORKSPACE ============================ -->
     <div id="viewGenie" class="view is-hidden">
@@ -383,19 +431,6 @@
         <div class="req-row" id="reqRow"></div>
       </section>
 
-      <section class="panel guide-section">
-        <div class="guide-section-head readiness-head">
-          <div>
-            <h2>AI Readiness Sync &mdash; Unity Catalog as Source of Truth</h2>
-            <p>Comments, tags, context, synonyms, and enabled columns originate in Unity Catalog and are mirrored into Domo AI Readiness.</p>
-          </div>
-          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Update Domo AI Readiness</button>
-        </div>
-        <div class="readiness-note" id="readinessNote">
-          Ready to sync UC comments and tags into Domo dataset context. This demo uses the generated readiness manifest and can be wired to the Domo AI Readiness endpoint when available.
-        </div>
-        <div class="readiness-grid" id="readinessGrid"></div>
-      </section>
     </div><!-- /viewGuide -->
 
     <footer class="app-footer">

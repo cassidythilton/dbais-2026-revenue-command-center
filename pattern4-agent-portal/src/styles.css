@@ -2168,3 +2168,346 @@ td.num.neg { color: var(--status-bad); font-weight: 700; }
   .ml-form { grid-template-columns: 1fr; }
   .forecast-controls { width: 100%; justify-content: space-between; }
 }
+
+/* ============================ REFINEMENTS · 2026-06-09 ============================ */
+
+.forecast-hero {
+  margin-top: 13px;
+}
+
+.pred-gauge {
+  width: 132px;
+  height: 132px;
+  flex-direction: column;
+  gap: 0;
+  background: conic-gradient(#c87909 calc(var(--p) * 1%), #dce4ea 0);
+}
+
+.pred-gauge::before {
+  inset: 18px;
+}
+
+.pred-gauge-val {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  color: #2f363f;
+  z-index: 1;
+}
+
+.pred-gauge-val span {
+  font-size: 15px;
+  margin-left: 1px;
+}
+
+.pred-gauge-cap {
+  display: block;
+  max-width: 76px;
+  margin-top: 3px;
+  text-align: center;
+  line-height: 1.05;
+  color: #65717e;
+  z-index: 1;
+}
+
+.pred-top {
+  align-items: flex-start;
+}
+
+.pred-summary {
+  padding-top: 12px;
+}
+
+.lakebase-status-panel .panel-head {
+  align-items: center;
+}
+
+.lakebase-status-panel .toolbar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lakebase-form-panel {
+  margin-top: 13px;
+}
+
+.lakebase-form {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lakebase-form .full {
+  grid-column: 1 / -1;
+}
+
+.lakebase-form textarea {
+  width: 100%;
+  font: 11.5px/1.45 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--n-700);
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 8px 9px;
+  resize: vertical;
+}
+
+.row-sub {
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--muted);
+}
+
+.selected-row td {
+  background: rgba(153, 204, 238, 0.12);
+}
+
+.lakebase-detail {
+  margin-top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--n-050);
+  padding: 12px;
+}
+
+.scenario-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.scenario-detail-head h3 {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: var(--n-700);
+}
+
+.scenario-json-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.scenario-json-grid b {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.scenario-json-grid pre {
+  margin: 0;
+  max-height: 140px;
+  overflow: auto;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 8px;
+  font: 10.5px/1.45 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--n-700);
+}
+
+.readiness-command {
+  margin-top: 13px;
+}
+
+.readiness-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: 13px;
+  align-items: start;
+}
+
+.readiness-card {
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.readiness-card:hover,
+.readiness-card.active {
+  border-color: var(--domo-blue-deep);
+  box-shadow: 0 0 0 3px rgba(153, 204, 238, 0.3);
+  transform: translateY(-1px);
+}
+
+.readiness-progress {
+  height: 6px;
+  overflow: hidden;
+  background: var(--n-100);
+  border-radius: var(--r-pill);
+  margin: 8px 0 9px;
+}
+
+.readiness-progress span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--domo-blue), var(--domo-blue-deep));
+  border-radius: var(--r-pill);
+}
+
+.readiness-detail {
+  position: sticky;
+  top: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--white);
+  padding: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.readiness-detail h3 {
+  margin: 7px 0 4px;
+  font-size: 16px;
+  color: var(--n-700);
+}
+
+.readiness-detail p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.readiness-score {
+  margin: 12px 0;
+  padding: 11px;
+  border-radius: var(--r-md);
+  background: var(--n-050);
+  border: 1px solid var(--line);
+}
+
+.readiness-score b {
+  display: block;
+  font-size: 24px;
+  color: var(--domo-blue-ink);
+  line-height: 1;
+}
+
+.readiness-score span {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.readiness-kv {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.readiness-kv div {
+  border-top: 1px solid var(--line);
+  padding-top: 8px;
+}
+
+.readiness-kv dt {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.readiness-kv dd {
+  margin: 3px 0 0;
+  font-size: 11px;
+  color: var(--n-700);
+  word-break: break-word;
+}
+
+.readiness-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 13px;
+}
+
+.genie-workspace {
+  max-width: 980px;
+  margin: 18px auto 0;
+}
+
+.genie-workspace .genie {
+  min-height: min(68vh, 620px);
+}
+
+.genie-head {
+  margin-bottom: 14px;
+}
+
+.genie-answer {
+  background: var(--white);
+  border: 1px solid rgba(153, 204, 238, 0.55);
+  border-left: 3px solid var(--domo-blue-deep);
+  border-radius: var(--r-md);
+  padding: 11px 13px;
+  color: var(--n-700);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.genie-answer strong {
+  color: var(--dbx-ink);
+  font-weight: 800;
+}
+
+.bubble.bot:has(.genie-answer) {
+  background: transparent;
+  border: none;
+  padding: 0;
+  max-width: min(100%, 850px);
+}
+
+.bubble.bot:has(.genie-answer) .bubble-model {
+  margin-left: 4px;
+}
+
+.bubble.bot:has(.genie-answer) .inspect {
+  margin-top: 8px;
+  opacity: 0.92;
+}
+
+.genie.is-expanded {
+  inset: 24px auto;
+  left: 50%;
+  width: min(1040px, calc(100vw - 48px));
+  max-height: calc(100vh - 48px);
+  transform: translateX(-50%);
+}
+
+.genie.is-expanded .chat-thread {
+  max-height: none;
+  min-height: 0;
+}
+
+.genie.is-expanded .genie-input {
+  position: sticky;
+  bottom: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+@media (max-width: 1040px) {
+  .readiness-layout,
+  .scenario-json-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .readiness-detail {
+    position: static;
+  }
+
+  .lakebase-form {
+    grid-template-columns: 1fr 1fr;
+  }
+}

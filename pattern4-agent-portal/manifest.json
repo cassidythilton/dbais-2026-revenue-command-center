@@ -125,6 +125,90 @@
         "isList": false,
         "children": null
       }
+    },
+    {
+      "alias": "listScenarios",
+      "parameters": [],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "createScenario",
+      "parameters": [
+        { "alias": "name", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "status", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "assumptions", "type": "object", "nullable": true, "isList": false, "children": null },
+        { "alias": "results", "type": "object", "nullable": true, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "updateScenario",
+      "parameters": [
+        { "alias": "id", "type": "number", "nullable": false, "isList": false, "children": null },
+        { "alias": "name", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "status", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "assumptions", "type": "object", "nullable": true, "isList": false, "children": null },
+        { "alias": "results", "type": "object", "nullable": true, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "deleteScenario",
+      "parameters": [
+        { "alias": "id", "type": "number", "nullable": false, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "listPredictionFeedback",
+      "parameters": [],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "savePredictionFeedback",
+      "parameters": [
+        { "alias": "predictionId", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "entityType", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "entityId", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "feedback", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "predictedValue", "type": "number", "nullable": true, "isList": false, "children": null },
+        { "alias": "correctedValue", "type": "number", "nullable": true, "isList": false, "children": null },
+        { "alias": "comment", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
     }
   ],
   "collectionsMapping": []

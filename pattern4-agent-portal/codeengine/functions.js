@@ -8,6 +8,12 @@
  * Exposed functions (must match manifest.json packageMapping aliases):
  *   - askGenie(question, conversationId, persona, model)
  *   - writeActionStatus(actionId, decision, executionStatus, approvedBy, note, persona)
+ *   - listScenarios()
+ *   - createScenario(name, status, createdBy, assumptions, results)
+ *   - updateScenario(id, name, status, createdBy, assumptions, results)
+ *   - deleteScenario(id)
+ *   - listPredictionFeedback()
+ *   - savePredictionFeedback(predictionId, entityType, entityId, feedback, predictedValue, correctedValue, comment, createdBy)
  *
  * SETUP: paste your Databricks PAT into DATABRICKS_TOKEN below (same token as
  * the local `databricks token` file). Do NOT commit a real token to git.
@@ -15,6 +21,7 @@
  */
 
 var axios = require("axios");
+var pg = require("pg");
 
 var DATABRICKS_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 var DATABRICKS_TOKEN = "REPLACE_WITH_DATABRICKS_TOKEN";
@@ -23,6 +30,11 @@ var WAREHOUSE_ID = "ea829ba58bcae093";
 var CATALOG = "databricks_raptor";
 var SCHEMA = "pattern4_agent_automation";
 var WRITEBACK_TABLE = "agent_action_writeback";
+var LAKEBASE_ENDPOINT = "projects/cobra-v1/branches/production/endpoints/primary";
+var LAKEBASE_HOST = "ep-fancy-mud-d2xv4rcd.database.us-east-1.cloud.databricks.com";
+var LAKEBASE_DATABASE = "databricks_postgres";
+var LAKEBASE_USER = "cassidy.hilton@domo.com";
+var lakebaseTokenCache = { token: "", expiresAt: 0 };
 
 function dbxHeaders() {
   return {
@@ -81,6 +93,110 @@ function sqlString(value) {
     return "NULL";
   }
   return "'" + String(value).replace(/'/g, "''") + "'";
+}
+
+/* ------------------------------ Lakebase PG ------------------------------- */
+
+function getLakebaseToken() {
+  var now = Date.now();
+  if (lakebaseTokenCache.token && lakebaseTokenCache.expiresAt > now + 60000) {
+    return Promise.resolve(lakebaseTokenCache.token);
+  }
+  return axios
+    .post(
+      DATABRICKS_HOST + "/api/2.0/postgres/credentials",
+      { endpoint: LAKEBASE_ENDPOINT },
+      { headers: dbxHeaders() }
+    )
+    .then(function (resp) {
+      var data = resp.data || {};
+      lakebaseTokenCache.token = data.token || "";
+      lakebaseTokenCache.expiresAt = data.expire_time ? Date.parse(data.expire_time) : now + 50 * 60 * 1000;
+      return lakebaseTokenCache.token;
+    });
+}
+
+function lakebaseQuery(sql, params) {
+  console.log("[pattern4ce.lakebaseQuery] start", JSON.stringify({ sqlPreview: String(sql || "").slice(0, 160), paramCount: params ? params.length : 0 }));
+  var client;
+  return getLakebaseToken()
+    .then(function (token) {
+      client = new pg.Client({
+        host: LAKEBASE_HOST,
+        port: 5432,
+        database: LAKEBASE_DATABASE,
+        user: LAKEBASE_USER,
+        password: token,
+        ssl: { rejectUnauthorized: true }
+      });
+      return client.connect();
+    })
+    .then(function () {
+      return client.query(sql, params || []);
+    })
+    .then(function (result) {
+      console.log("[pattern4ce.lakebaseQuery] success", JSON.stringify({ rowCount: result.rowCount || 0 }));
+      return { status: "SUCCEEDED", rows: result.rows || [], rowCount: result.rowCount || 0, fields: result.fields || [] };
+    })
+    .catch(function (err) {
+      var detail = err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.lakebaseQuery] failed", JSON.stringify({ error: detail }));
+      return { status: "FAILED", error: detail, rows: [], rowCount: 0 };
+    })
+    .then(function (out) {
+      if (client) {
+        return client.end().catch(function () {}).then(function () { return out; });
+      }
+      return out;
+    });
+}
+
+function listScenarios() {
+  return lakebaseQuery(
+    "SELECT id, name, created_by, status, assumptions, results, baseline_id, created_at, updated_at FROM public.p4_scenario_runs ORDER BY created_at DESC LIMIT 50",
+    []
+  );
+}
+
+function createScenario(name, status, createdBy, assumptions, results) {
+  return lakebaseQuery(
+    "INSERT INTO public.p4_scenario_runs (name, status, created_by, assumptions, results) VALUES ($1, $2, $3, $4::jsonb, $5::jsonb) RETURNING *",
+    [name, status || "draft", createdBy || "demo.user@domo.com", JSON.stringify(assumptions || {}), JSON.stringify(results || {})]
+  );
+}
+
+function updateScenario(id, name, status, createdBy, assumptions, results) {
+  return lakebaseQuery(
+    "UPDATE public.p4_scenario_runs SET name = $2, status = $3, created_by = $4, assumptions = $5::jsonb, results = $6::jsonb, updated_at = now() WHERE id = $1 RETURNING *",
+    [Number(id), name, status || "draft", createdBy || "demo.user@domo.com", JSON.stringify(assumptions || {}), JSON.stringify(results || {})]
+  );
+}
+
+function deleteScenario(id) {
+  return lakebaseQuery("DELETE FROM public.p4_scenario_runs WHERE id = $1 RETURNING id", [Number(id)]);
+}
+
+function listPredictionFeedback() {
+  return lakebaseQuery(
+    "SELECT id, prediction_id, entity_type, entity_id, feedback, predicted_value, corrected_value, comment, created_by, created_at FROM public.p4_prediction_feedback ORDER BY created_at DESC LIMIT 50",
+    []
+  );
+}
+
+function savePredictionFeedback(predictionId, entityType, entityId, feedback, predictedValue, correctedValue, comment, createdBy) {
+  return lakebaseQuery(
+    "INSERT INTO public.p4_prediction_feedback (prediction_id, entity_type, entity_id, feedback, predicted_value, corrected_value, comment, created_by) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *",
+    [
+      predictionId || "manual",
+      entityType || "account",
+      entityId || "unknown",
+      feedback || "accept",
+      predictedValue === null || predictedValue === undefined ? null : Number(predictedValue),
+      correctedValue === null || correctedValue === undefined ? null : Number(correctedValue),
+      comment || "",
+      createdBy || "demo.user@domo.com"
+    ]
+  );
 }
 
 /* ------------------------------ Genie proxy ------------------------------- */
@@ -311,6 +427,13 @@ function writeActionStatus(actionId, decision, executionStatus, approvedBy, note
 module.exports = {
   askGenie: askGenie,
   writeActionStatus: writeActionStatus,
+  listScenarios: listScenarios,
+  createScenario: createScenario,
+  updateScenario: updateScenario,
+  deleteScenario: deleteScenario,
+  listPredictionFeedback: listPredictionFeedback,
+  savePredictionFeedback: savePredictionFeedback,
   runSql: runSql,
-  sqlString: sqlString
+  sqlString: sqlString,
+  lakebaseQuery: lakebaseQuery
 };

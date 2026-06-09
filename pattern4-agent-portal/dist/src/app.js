@@ -98,15 +98,15 @@ const ML_MODEL = {
 // Mock Lakebase operational state (replaced by live cobra-v1 reads once CE functions are wired).
 const LAKEBASE_MOCK = {
   scenarios: [
-    { name: "West save play — aggressive", status: "complete", created_by: "exec.sponsor@domo.com", delta: 7_400_000 },
-    { name: "Baseline forecast Q3", status: "complete", created_by: "exec.sponsor@domo.com", delta: 0 },
-    { name: "Reliability credits only", status: "running", created_by: "west.manager@domo.com", delta: 3_100_000 },
-    { name: "No-intervention downside", status: "archived", created_by: "west.manager@domo.com", delta: -9_800_000 },
+    { id: 1, name: "West save play — aggressive", status: "complete", created_by: "exec.sponsor@domo.com", delta: 7_400_000, assumptions: { region: "West", intervention: "executive outreach + reliability credit", source_table: "gold_agent_action_queue" }, results: { forecast_delta: 7400000, protected_revenue: 38600000 } },
+    { id: 2, name: "Baseline forecast Q3", status: "complete", created_by: "exec.sponsor@domo.com", delta: 0, assumptions: { region: "All", intervention: "baseline", source_table: "gold_executive_revenue_health" }, results: { forecast_delta: 0 } },
+    { id: 3, name: "Reliability credits only", status: "running", created_by: "west.manager@domo.com", delta: 3_100_000, assumptions: { region: "West", intervention: "reliability credits" }, results: { forecast_delta: 3100000 } },
+    { id: 4, name: "No-intervention downside", status: "archived", created_by: "west.manager@domo.com", delta: -9_800_000, assumptions: { region: "West", intervention: "none" }, results: { forecast_delta: -9800000 } },
   ],
   feedback: [
-    { account: "Asteria Retail Group", feedback: "accept", note: "Matches CSM read on the account.", by: "west.owner@domo.com" },
-    { account: "Northstar Financial", feedback: "adjust", note: "Risk slightly high; renewal already verbally committed.", by: "west.owner@domo.com" },
-    { account: "Helio Manufacturing", feedback: "accept", note: "Workflow load confirms the signal.", by: "west.manager@domo.com" },
+    { id: 1, entity_id: "Asteria Retail Group", feedback: "accept", note: "Matches CSM read on the account.", by: "west.owner@domo.com", predicted_value: 0.86 },
+    { id: 2, entity_id: "Northstar Financial", feedback: "adjust", note: "Risk slightly high; renewal already verbally committed.", by: "west.owner@domo.com", predicted_value: 0.71 },
+    { id: 3, entity_id: "Helio Manufacturing", feedback: "accept", note: "Workflow load confirms the signal.", by: "west.manager@domo.com", predicted_value: 0.63 },
   ],
 };
 
@@ -203,8 +203,17 @@ const state = {
   data: MOCK,
   readiness: [],
   readinessSynced: false,
+  readinessSelected: "executiveRevenueHealth",
   mlServing: false, // flip true once the Model Serving endpoint + runModelInference are live
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
+  lakebase: {
+    scenarios: LAKEBASE_MOCK.scenarios.slice(),
+    feedback: LAKEBASE_MOCK.feedback.slice(),
+    selectedScenarioId: 1,
+    editingScenario: null,
+    saving: false,
+    error: "",
+  },
 };
 
 /* ---------- formatting ---------- */
@@ -872,9 +881,25 @@ async function runInference() {
       <span class="fb-note" id="mlFbNote"></span>
     </div>`;
   host.querySelectorAll(".fb-btn").forEach((b) =>
-    b.addEventListener("click", () => {
+    b.addEventListener("click", async () => {
       const note = document.getElementById("mlFbNote");
-      if (note) note.textContent = state.lakebaseLive ? "saved to Lakebase" : "captured (Lakebase write staged)";
+      if (note) note.textContent = "saving...";
+      try {
+        await savePredictionFeedback({
+          predictionId: `preview-${Date.now()}`,
+          entityType: "account",
+          entityId: `${f.region || "Unknown"} ${f.segment || "Account"}`,
+          feedback: b.getAttribute("data-fb"),
+          predictedValue: r.probability,
+          correctedValue: null,
+          comment: `Prediction ${b.getAttribute("data-fb")} from ML Predictions page`,
+          createdBy: "demo.user@domo.com",
+        });
+        if (note) note.textContent = state.lakebaseLive ? "saved to Lakebase" : "captured locally";
+      } catch (error) {
+        if (note) note.textContent = "save failed";
+        console.warn("Prediction feedback save failed", error);
+      }
     })
   );
 }
@@ -892,6 +917,62 @@ function renderMl() {
 
 /* ---------- Lakebase Ops ---------- */
 
+async function callPattern4ce(fnName, payload) {
+  if (!window.domo || typeof window.domo.post !== "function") {
+    throw new Error("Domo runtime unavailable");
+  }
+  const response = await window.domo.post(`/domo/codeengine/v2/packages/${fnName}`, payload || {});
+  const output = unwrapCodeEngineResponse(response);
+  if (output?.status === "FAILED" || output?.error) {
+    throw new Error(typeof output.error === "string" ? output.error : JSON.stringify(output.error || output));
+  }
+  return output;
+}
+
+function normalizeScenario(row) {
+  const results = typeof row.results === "string" ? safeJson(row.results, {}) : (row.results || {});
+  const assumptions = typeof row.assumptions === "string" ? safeJson(row.assumptions, {}) : (row.assumptions || {});
+  return {
+    ...row,
+    id: Number(row.id),
+    status: row.status || "draft",
+    assumptions,
+    results,
+    delta: Number(row.delta ?? results.forecast_delta ?? results.delta_forecast ?? 0),
+  };
+}
+
+function safeJson(value, fallback) {
+  try {
+    return value ? JSON.parse(value) : fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+
+async function loadLakebaseLive() {
+  try {
+    const [scenarioResult, feedbackResult] = await Promise.all([
+      callPattern4ce("listScenarios", {}),
+      callPattern4ce("listPredictionFeedback", {}),
+    ]);
+    state.lakebase.scenarios = (scenarioResult.rows || []).map(normalizeScenario);
+    state.lakebase.feedback = feedbackResult.rows || [];
+    state.lakebaseLive = true;
+    state.lakebase.error = "";
+  } catch (error) {
+    console.warn("Lakebase live load failed; using preview data", error);
+    state.lakebaseLive = false;
+    state.lakebase.error = error.message || "Lakebase live load failed";
+    state.lakebase.scenarios = LAKEBASE_MOCK.scenarios.slice();
+    state.lakebase.feedback = LAKEBASE_MOCK.feedback.slice();
+  }
+  if (!state.lakebase.selectedScenarioId && state.lakebase.scenarios[0]) {
+    state.lakebase.selectedScenarioId = state.lakebase.scenarios[0].id;
+  }
+  renderLakebase();
+}
+
 function renderLakebase() {
   const stateEl = document.getElementById("lakebaseState");
   if (stateEl) {
@@ -905,33 +986,192 @@ function renderLakebase() {
       ["Database", "databricks_postgres"],
       ["Tables", "p4_scenario_runs · p4_prediction_feedback"],
       ["Access", "pattern4ce → node-postgres (SP M2M)"],
+      ["Mode", state.lakebaseLive ? "Live read/write" : "Preview fallback"],
     ];
     grid.innerHTML = meta.map(([k, v]) => `<div class="ml-meta"><span class="ml-meta-k">${escapeHtml(k)}</span><span class="ml-meta-v">${escapeHtml(v)}</span></div>`).join("");
   }
 
+  const countTag = document.getElementById("scenarioCountTag");
+  if (countTag) countTag.textContent = `${state.lakebase.scenarios.length} scenario rows`;
+
   const rows = document.getElementById("scenarioRows");
   if (rows) {
-    rows.innerHTML = LAKEBASE_MOCK.scenarios
+    if (!state.lakebase.scenarios.length) {
+      rows.innerHTML = `<tr><td colspan="5" class="empty-state">No scenario runs yet — add one to write operational state to Lakebase.</td></tr>`;
+    } else {
+      rows.innerHTML = state.lakebase.scenarios
       .map((s) => `
-        <tr>
-          <td><strong>${escapeHtml(s.name)}</strong></td>
+        <tr class="${state.lakebase.selectedScenarioId === s.id ? "selected-row" : ""}" data-scenario-id="${s.id}">
+          <td><strong>${escapeHtml(s.name)}</strong><div class="row-sub">${escapeHtml(s.created_at ? new Date(s.created_at).toLocaleDateString() : "Lakebase scenario")}</div></td>
           <td><span class="status ${s.status}">${s.status}</span></td>
           <td>${escapeHtml(s.created_by)}</td>
           <td class="num ${s.delta >= 0 ? "pos" : "neg"}">${s.delta >= 0 ? "+" : ""}${fmtCurrency(s.delta)}</td>
+          <td class="num">
+            <button class="btn-icon" type="button" title="Edit" data-scenario-edit="${s.id}">✎</button>
+            <button class="btn-icon btn-icon-danger" type="button" title="Delete" data-scenario-delete="${s.id}">✕</button>
+          </td>
         </tr>`)
       .join("");
+    }
+    rows.querySelectorAll("[data-scenario-id]").forEach((row) => {
+      row.addEventListener("click", (e) => {
+        if (e.target.closest("button")) return;
+        state.lakebase.selectedScenarioId = Number(row.getAttribute("data-scenario-id"));
+        renderLakebase();
+      });
+    });
+    rows.querySelectorAll("[data-scenario-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => showScenarioForm(state.lakebase.scenarios.find((s) => s.id === Number(btn.getAttribute("data-scenario-edit")))));
+    });
+    rows.querySelectorAll("[data-scenario-delete]").forEach((btn) => {
+      btn.addEventListener("click", () => deleteScenario(Number(btn.getAttribute("data-scenario-delete"))));
+    });
   }
+  renderScenarioDetail();
   const fb = document.getElementById("feedbackList");
   if (fb) {
-    fb.innerHTML = LAKEBASE_MOCK.feedback
+    fb.innerHTML = state.lakebase.feedback
       .map((f) => `
         <div class="feedback-item">
-          <div class="fb-top"><span class="fb-acct">${escapeHtml(f.account)}</span><span class="fb-tag ${f.feedback}">${f.feedback}</span></div>
-          <p>${escapeHtml(f.note)}</p>
-          <span class="fb-by">${escapeHtml(f.by)}</span>
+          <div class="fb-top"><span class="fb-acct">${escapeHtml(f.entity_id || f.account || "Prediction")}</span><span class="fb-tag ${f.feedback}">${f.feedback}</span></div>
+          <p>${escapeHtml(f.comment || f.note || "Feedback captured from prediction review.")}</p>
+          <span class="fb-by">${escapeHtml(f.created_by || f.by || "demo.user@domo.com")}${f.predicted_value ? ` · predicted ${Math.round(Number(f.predicted_value) * 100)}%` : ""}</span>
         </div>`)
       .join("");
   }
+  const refresh = document.getElementById("lakebaseRefreshBtn");
+  if (refresh && !refresh.dataset.wired) {
+    refresh.addEventListener("click", loadLakebaseLive);
+    refresh.dataset.wired = "1";
+  }
+  const add = document.getElementById("lakebaseAddBtn");
+  if (add && !add.dataset.wired) {
+    add.addEventListener("click", () => showScenarioForm(null));
+    add.dataset.wired = "1";
+  }
+  const cancel = document.getElementById("lakebaseCancelBtn");
+  if (cancel && !cancel.dataset.wired) {
+    cancel.addEventListener("click", hideScenarioForm);
+    cancel.dataset.wired = "1";
+  }
+  const form = document.getElementById("lakebaseScenarioForm");
+  if (form && !form.dataset.wired) {
+    form.addEventListener("submit", saveScenarioFromForm);
+    form.dataset.wired = "1";
+  }
+}
+
+function renderScenarioDetail() {
+  const detail = document.getElementById("scenarioDetail");
+  if (!detail) return;
+  const scenario = state.lakebase.scenarios.find((s) => s.id === state.lakebase.selectedScenarioId) || state.lakebase.scenarios[0];
+  if (!scenario) {
+    detail.innerHTML = "";
+    return;
+  }
+  const assumptionText = JSON.stringify(scenario.assumptions || {}, null, 2);
+  const resultText = JSON.stringify(scenario.results || {}, null, 2);
+  detail.innerHTML = `
+    <div class="scenario-detail-head">
+      <div><span class="panel-tag">selected run</span><h3>${escapeHtml(scenario.name)}</h3></div>
+      <button class="btn btn-secondary btn-sm" type="button" data-scenario-edit="${scenario.id}">Edit selected</button>
+    </div>
+    <div class="scenario-json-grid">
+      <div><b>Assumptions</b><pre>${escapeHtml(assumptionText)}</pre></div>
+      <div><b>Results</b><pre>${escapeHtml(resultText)}</pre></div>
+    </div>`;
+  detail.querySelector("[data-scenario-edit]")?.addEventListener("click", () => showScenarioForm(scenario));
+}
+
+function showScenarioForm(scenario) {
+  state.lakebase.editingScenario = scenario || null;
+  const panel = document.getElementById("lakebaseScenarioFormPanel");
+  panel?.classList.remove("is-hidden");
+  document.getElementById("lakebaseFormTitle").textContent = scenario ? `Edit Scenario #${scenario.id}` : "Add Scenario";
+  document.getElementById("scenarioNameInput").value = scenario?.name || "";
+  document.getElementById("scenarioStatusInput").value = scenario?.status || "draft";
+  document.getElementById("scenarioOwnerInput").value = scenario?.created_by || "demo.user@domo.com";
+  document.getElementById("scenarioDeltaInput").value = scenario?.delta || 0;
+  document.getElementById("scenarioAssumptionsInput").value = JSON.stringify(scenario?.assumptions || { source: "manual", region: "West" }, null, 2);
+}
+
+function hideScenarioForm() {
+  state.lakebase.editingScenario = null;
+  document.getElementById("lakebaseScenarioFormPanel")?.classList.add("is-hidden");
+}
+
+async function saveScenarioFromForm(event) {
+  event.preventDefault();
+  const editing = state.lakebase.editingScenario;
+  const assumptions = safeJson(document.getElementById("scenarioAssumptionsInput").value, {});
+  const delta = Number(document.getElementById("scenarioDeltaInput").value || 0);
+  const payload = {
+    id: editing?.id,
+    name: document.getElementById("scenarioNameInput").value,
+    status: document.getElementById("scenarioStatusInput").value,
+    createdBy: document.getElementById("scenarioOwnerInput").value,
+    assumptions,
+    results: { forecast_delta: delta, source: "Revenue Command Center" },
+  };
+  const saveBtn = document.getElementById("lakebaseSaveBtn");
+  saveBtn.textContent = "Saving...";
+  saveBtn.disabled = true;
+  try {
+    if (state.lakebaseLive) {
+      const result = await callPattern4ce(editing ? "updateScenario" : "createScenario", payload);
+      const row = normalizeScenario((result.rows && result.rows[0]) || result.row || payload);
+      if (editing) {
+        state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? row : s);
+      } else {
+        state.lakebase.scenarios.unshift(row);
+        state.lakebase.selectedScenarioId = row.id;
+      }
+    } else if (editing) {
+      state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? normalizeScenario({ ...s, ...payload, delta }) : s);
+    } else {
+      const next = normalizeScenario({ ...payload, id: Date.now(), delta });
+      state.lakebase.scenarios.unshift(next);
+      state.lakebase.selectedScenarioId = next.id;
+    }
+    hideScenarioForm();
+    renderLakebase();
+  } catch (error) {
+    state.lakebase.error = error.message || "Unable to save scenario";
+    console.warn("Scenario save failed", error);
+  } finally {
+    saveBtn.textContent = "Save scenario";
+    saveBtn.disabled = false;
+  }
+}
+
+async function deleteScenario(id) {
+  if (!id) return;
+  try {
+    if (state.lakebaseLive) await callPattern4ce("deleteScenario", { id });
+    state.lakebase.scenarios = state.lakebase.scenarios.filter((s) => s.id !== id);
+    state.lakebase.selectedScenarioId = state.lakebase.scenarios[0]?.id || null;
+    renderLakebase();
+  } catch (error) {
+    console.warn("Scenario delete failed", error);
+  }
+}
+
+async function savePredictionFeedback(feedback) {
+  if (state.lakebaseLive) {
+    const result = await callPattern4ce("savePredictionFeedback", feedback);
+    const row = (result.rows && result.rows[0]) || result.row || feedback;
+    state.lakebase.feedback.unshift(row);
+  } else {
+    state.lakebase.feedback.unshift({
+      id: Date.now(),
+      entity_id: feedback.entityId,
+      feedback: feedback.feedback,
+      note: feedback.comment,
+      by: feedback.createdBy,
+      predicted_value: feedback.predictedValue,
+    });
+  }
+  renderLakebase();
 }
 
 /* ---------- How It Works: architecture + user guide ---------- */
@@ -1131,7 +1371,6 @@ function renderGuide() {
   selectStage(FLOW_STAGES[0].id);
   renderGuideSteps();
   renderArchitecture();
-  renderReadiness();
 }
 
 async function loadReadiness() {
@@ -1160,7 +1399,7 @@ function renderReadiness() {
     .map((item) => {
       const pct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
       return `
-        <article class="readiness-card">
+        <article class="readiness-card ${state.readinessSelected === item.alias ? "active" : ""}" data-readiness-alias="${escapeHtml(item.alias)}">
           <div class="readiness-top">
             <div class="readiness-title">${escapeHtml(item.alias)}</div>
             <div class="readiness-status ${state.readinessSynced ? "synced" : ""}">
@@ -1168,6 +1407,7 @@ function renderReadiness() {
             </div>
           </div>
           <p>${escapeHtml(item.context || "Unity Catalog context ready to mirror into Domo AI Readiness.")}</p>
+          <div class="readiness-progress"><span style="width:${pct}%"></span></div>
           <div class="readiness-metrics">
             <div class="readiness-metric"><b>${item.aiEnabledCount}/${item.columnCount}</b><span>AI cols</span></div>
             <div class="readiness-metric"><b>${item.synonymCount}</b><span>synonyms</span></div>
@@ -1177,6 +1417,64 @@ function renderReadiness() {
       `;
     })
     .join("");
+  grid.querySelectorAll("[data-readiness-alias]").forEach((card) => {
+    card.addEventListener("click", () => {
+      state.readinessSelected = card.getAttribute("data-readiness-alias");
+      renderReadiness();
+    });
+  });
+  renderReadinessDetail();
+}
+
+function domoDatasetUrl(item) {
+  return `https://databricks-demo.domo.com/datasources/${item.datasetId}/details/settings/ai-readiness`;
+}
+
+function databricksTableUrl(item) {
+  return `${WORKSPACE_HOST}/explore/data/${encodeURIComponent(item.object || "")}`;
+}
+
+function openExternal(url) {
+  if (!url) return;
+  if (window.domo && typeof window.domo.navigate === "function") {
+    window.domo.navigate(url, true);
+  } else {
+    window.open(url, "_blank", "noopener");
+  }
+}
+
+function renderReadinessDetail() {
+  const detail = document.getElementById("readinessDetail");
+  if (!detail) return;
+  const item = state.readiness.find((r) => r.alias === state.readinessSelected) || state.readiness[0];
+  if (!item) {
+    detail.innerHTML = `<p class="empty-state">No readiness records loaded.</p>`;
+    return;
+  }
+  const pct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
+  detail.innerHTML = `
+    <div class="readiness-detail-top">
+      <span class="panel-tag">selected dataset</span>
+      <h3>${escapeHtml(item.alias)}</h3>
+      <p>${escapeHtml(item.context || "")}</p>
+    </div>
+    <div class="readiness-score">
+      <b>${pct}%</b>
+      <span>AI-enabled columns</span>
+      <div class="readiness-progress"><span style="width:${pct}%"></span></div>
+    </div>
+    <dl class="readiness-kv">
+      <div><dt>Domo dataset</dt><dd>${escapeHtml(item.datasetId || "")}</dd></div>
+      <div><dt>Unity Catalog table</dt><dd>${escapeHtml(item.object || "")}</dd></div>
+      <div><dt>Readiness assets</dt><dd>${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
+    </dl>
+    <div class="readiness-actions">
+      <button class="btn btn-primary btn-sm" type="button" data-open-url="${escapeHtml(domoDatasetUrl(item))}">Open Domo AI Readiness</button>
+      <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open Databricks Table</button>
+    </div>`;
+  detail.querySelectorAll("[data-open-url]").forEach((btn) => {
+    btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
+  });
 }
 
 function syncReadinessDemo() {
@@ -1192,6 +1490,7 @@ const VIEW_IDS = {
   forecast: "viewForecast",
   ml: "viewMl",
   lakebase: "viewLakebase",
+  readiness: "viewReadiness",
   genie: "viewGenie",
   guide: "viewGuide",
 };
@@ -1209,6 +1508,7 @@ function activateView(view) {
   });
   // The forecast SVG needs a measured width; (re)render when its view becomes visible.
   if (view === "forecast") renderForecast(personaView());
+  if (view === "readiness") renderReadiness();
 }
 
 function wireTabs() {
@@ -1378,6 +1678,15 @@ function inspectorHTML(question, entry) {
         </div>
       </div>
     </details>`;
+}
+
+function formatGenieAnswer(htmlOrMarkdown) {
+  const raw = String(htmlOrMarkdown || "");
+  if (/<strong>|<b>|<em>|<br|<p/i.test(raw)) return raw;
+  return escapeHtml(raw)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\n{2,}/g, "</p><p>")
+    .replace(/\n/g, "<br>");
 }
 
 /* ---------- Genie result visualization ---------- */
@@ -1584,7 +1893,7 @@ function appendBot(html, opts = {}) {
   const thread = document.getElementById("genieThread");
   const div = document.createElement("div");
   div.className = "bubble bot";
-  let inner = html;
+  let inner = opts.answer ? `<div class="genie-answer">${formatGenieAnswer(html)}</div>` : html;
   if (opts.chart) inner += opts.chart;
   if (opts.model) inner += `<div class="bubble-model">Answered by ${escapeHtml(opts.model)}</div>`;
   if (opts.inspector) inner += opts.inspector;
@@ -1602,6 +1911,7 @@ async function askGenie(question) {
   const live = await askGenieLive(text);
   const entry = live || answerFor(text);
   appendBot(entry.answer, {
+    answer: true,
     model: live ? "Databricks Genie · live" : genieState.modelLabel,
     chart: genieChartHTML(entry),
     inspector: inspectorHTML(text, entry),
@@ -1902,12 +2212,14 @@ async function init() {
   initGenie();
   await loadReadiness();
   renderGuide();
+  renderReadiness();
   renderMl();
   renderLakebase();
+  loadLakebaseLive();
   await loadData();
   render();
   document.getElementById("readinessSyncBtn")?.addEventListener("click", syncReadinessDemo);
-  const hashView = { "#ml": "ml", "#lakebase": "lakebase", "#genie": "genie", "#guide": "guide" }[window.location.hash];
+  const hashView = { "#ml": "ml", "#lakebase": "lakebase", "#readiness": "readiness", "#genie": "genie", "#guide": "guide" }[window.location.hash];
   if (hashView) activateView(hashView);
   if (window.location.hash === "#genie-demo") {
     activateView("genie");
