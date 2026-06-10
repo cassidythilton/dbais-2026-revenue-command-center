@@ -2172,6 +2172,19 @@ td.num.neg { color: var(--status-bad); font-weight: 700; }
 .fb-tag.reject { color: var(--status-bad); background: var(--status-bad-bg); }
 .feedback-item p { margin: 0 0 5px; font-size: 11.5px; color: var(--muted); line-height: 1.5; }
 .fb-by { font-size: 10.5px; color: var(--muted); font-weight: 600; }
+.feedback-explainer {
+  border-left: 3px solid var(--domo-blue);
+  background: rgba(153, 204, 238, 0.12);
+}
+.feedback-empty {
+  padding: 18px 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.5;
+  background: var(--n-050);
+}
 
 /* ============================ GENIE WORKSPACE ============================ */
 

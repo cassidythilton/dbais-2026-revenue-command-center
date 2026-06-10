@@ -1057,14 +1057,22 @@ function renderLakebase() {
   renderScenarioDetail();
   const fb = document.getElementById("feedbackList");
   if (fb) {
-    fb.innerHTML = state.lakebase.feedback
-      .map((f) => `
+    const intro = `
+      <div class="feedback-item feedback-explainer">
+        <div class="fb-top"><span class="fb-acct">What appears here?</span><span class="fb-tag adjust">ML feedback</span></div>
+        <p>Scenario runs save forecast assumptions. Prediction feedback is separate: it is written when a user accepts, adjusts, or rejects a model prediction on the ML Predictions tab.</p>
+        <span class="fb-by">Stored in public.p4_prediction_feedback</span>
+      </div>`;
+    const rowsHtml = state.lakebase.feedback.length
+      ? state.lakebase.feedback.map((f) => `
         <div class="feedback-item">
           <div class="fb-top"><span class="fb-acct">${escapeHtml(f.entity_id || f.account || "Prediction")}</span><span class="fb-tag ${f.feedback}">${f.feedback}</span></div>
           <p>${escapeHtml(f.comment || f.note || "Feedback captured from prediction review.")}</p>
           <span class="fb-by">${escapeHtml(f.created_by || f.by || "demo.user@domo.com")}${f.predicted_value ? ` · predicted ${Math.round(Number(f.predicted_value) * 100)}%` : ""}</span>
         </div>`)
-      .join("");
+        .join("")
+      : `<div class="feedback-empty">No prediction feedback yet. Open ML Predictions, run a score, then click Accept, Adjust, or Reject.</div>`;
+    fb.innerHTML = intro + rowsHtml;
   }
   const refresh = document.getElementById("lakebaseRefreshBtn");
   if (refresh && !refresh.dataset.wired) {
@@ -1477,10 +1485,21 @@ function databricksTableUrl(item) {
 
 function openExternal(url) {
   if (!url) return;
-  if (window.domo && typeof window.domo.navigate === "function") {
+  var target = String(url);
+  var isDomoUrl = /^https:\/\/databricks-demo\.domo\.com\//i.test(target) || target.startsWith("/page/");
+  if (isDomoUrl && window.domo && typeof window.domo.navigate === "function") {
     window.domo.navigate(url, true);
   } else {
-    window.open(url, "_blank", "noopener");
+    var popup = window.open(target, "_blank", "noopener");
+    if (!popup) {
+      var link = document.createElement("a");
+      link.href = target;
+      link.target = "_blank";
+      link.rel = "noopener";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    }
   }
 }
 
