@@ -87,8 +87,8 @@ const ML_MODEL = {
   name: "pattern4_renewal_risk",
   registry: "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
   endpoint: "pattern4-renewal-risk",
-  version: "3",
-  flavor: "MLflow pyfunc · sklearn HGB classifier",
+  version: "6",
+  flavor: "MLflow pyfunc · sklearn HGB regressor",
   target: "predicted_churn_probability",
   features: [
     { key: "segment", label: "Segment", type: "select", options: ["Enterprise", "Mid-Market", "SMB"], value: "Enterprise" },
@@ -216,6 +216,7 @@ const state = {
   readinessColumnSync: {},
   mlServing: false, // flips true after a successful live Model Serving response
   mlInferenceBridge: true, // CE bridge is staged; mock fallback remains active until endpoint/release are live
+  mlCodeTab: "curl", // active tab in the inference payload code panel
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
     scenarios: LAKEBASE_MOCK.scenarios.slice(),
@@ -791,26 +792,112 @@ function databricksObjectUrl(objectName) {
 
 /* ---------- ML Predictions ---------- */
 
+function mlInvocationsUrl() {
+  return `${WORKSPACE_HOST}/serving-endpoints/${ML_MODEL.endpoint}/invocations`;
+}
+
+function mlEndpointUrl() {
+  return `${WORKSPACE_HOST}/ml/endpoints/${ML_MODEL.endpoint}`;
+}
+
+function mlRegisteredModelUrl() {
+  const parts = ML_MODEL.registry.split(".").map(encodeURIComponent);
+  return `${WORKSPACE_HOST}/explore/data/models/${parts.join("/")}`;
+}
+
 function renderMlStatus() {
   const stateEl = document.getElementById("mlModelState");
   if (stateEl) {
-    stateEl.textContent = state.mlServing ? "Serving · live" : "Bridge staged · fallback";
+    stateEl.textContent = state.mlServing ? `Serving · live v${ML_MODEL.version}` : "Bridge staged · fallback";
     stateEl.classList.toggle("live", !!state.mlServing);
   }
-  const grid = document.getElementById("mlMetaGrid");
-  if (!grid) return;
-  const meta = [
-    ["Model", ML_MODEL.name],
-    ["Flavor", ML_MODEL.flavor],
-    ["UC registry", ML_MODEL.registry],
-    ["UC version", ML_MODEL.version],
-    ["Serving endpoint", ML_MODEL.endpoint],
-    ["Target", ML_MODEL.target],
-    ["Governed by", "Unity Catalog + Domo AI Services"],
-  ];
-  grid.innerHTML = meta
-    .map(([k, v]) => `<div class="ml-meta"><span class="ml-meta-k">${escapeHtml(k)}</span><span class="ml-meta-v">${escapeHtml(v)}</span></div>`)
-    .join("");
+  const line = document.getElementById("mlModelLine");
+  if (line) {
+    const facts = [
+      ML_MODEL.flavor,
+      `UC <b>v${escapeHtml(ML_MODEL.version)}</b>`,
+      `endpoint <code>${escapeHtml(ML_MODEL.endpoint)}</code>`,
+      `target <code>${escapeHtml(ML_MODEL.target)}</code>`,
+      "governed by Unity Catalog + Domo AI Services",
+    ];
+    line.innerHTML = facts.join('<span class="dot-sep">·</span>');
+  }
+  const links = document.getElementById("mlModelLinks");
+  if (links) {
+    links.innerHTML = `
+      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlRegisteredModelUrl())}">Registered model &rarr;</button>
+      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlEndpointUrl())}">Serving endpoint &rarr;</button>`;
+    links.querySelectorAll("[data-open-url]").forEach((b) =>
+      b.addEventListener("click", () => openExternal(b.getAttribute("data-open-url"))));
+  }
+}
+
+/* ---------- Inference payload code panel (cURL / Python / SQL) ---------- */
+
+function mlRecordJson(indent) {
+  const f = collectMlFeatures();
+  const pad = indent || "";
+  const lines = ML_MODEL.features.map((feat) => {
+    const v = f[feat.key];
+    const val = (feat.type === "select") ? `"${String(v)}"` : Number(v);
+    return `${pad}  "${feat.key}": ${val}`;
+  });
+  return `{\n${lines.join(",\n")}\n${pad}}`;
+}
+
+function mlCurlSnippet() {
+  return [
+    `curl -X POST \\`,
+    `  '${mlInvocationsUrl()}' \\`,
+    `  -H "Authorization: Bearer $DATABRICKS_TOKEN" \\`,
+    `  -H 'Content-Type: application/json' \\`,
+    `  -d '{"dataframe_records": [${mlRecordJson("")}]}'`,
+  ].join("\n");
+}
+
+function mlPythonSnippet() {
+  return [
+    `import os, requests`,
+    ``,
+    `url = "${mlInvocationsUrl()}"`,
+    `headers = {`,
+    `    "Authorization": f"Bearer {os.environ['DATABRICKS_TOKEN']}",`,
+    `    "Content-Type": "application/json",`,
+    `}`,
+    `payload = {"dataframe_records": [${mlRecordJson("")}]}`,
+    ``,
+    `resp = requests.post(url, headers=headers, json=payload)`,
+    `resp.raise_for_status()`,
+    `print(resp.json())   # {"predictions": [<churn_probability>]}`,
+  ].join("\n");
+}
+
+function mlSqlSnippet() {
+  const f = collectMlFeatures();
+  const args = ML_MODEL.features.map((feat) => {
+    const v = f[feat.key];
+    const val = (feat.type === "select") ? `'${String(v)}'` : Number(v);
+    return `    '${feat.key}', ${val}`;
+  }).join(",\n");
+  return [
+    `-- Score in-warehouse with Databricks ai_query()`,
+    `SELECT ai_query(`,
+    `  '${ML_MODEL.endpoint}',`,
+    `  named_struct(`,
+    `${args}`,
+    `  )`,
+    `) AS ${ML_MODEL.target};`,
+  ].join("\n");
+}
+
+function renderMlPayload() {
+  const inv = document.getElementById("mlInvUrl");
+  if (inv) inv.textContent = mlInvocationsUrl();
+  const block = document.getElementById("mlCodeBlock");
+  if (!block) return;
+  const tab = state.mlCodeTab || "curl";
+  const snippet = tab === "python" ? mlPythonSnippet() : tab === "sql" ? mlSqlSnippet() : mlCurlSnippet();
+  block.textContent = snippet;
 }
 
 function renderMlForm() {
@@ -836,7 +923,26 @@ function collectMlFeatures() {
   return out;
 }
 
-// Heuristic stand-in for the served model until pattern4ce.runModelInference is wired.
+// Tiers calibrated to the regressor's churn-probability range (~0.10–0.60).
+function riskTier(prob) {
+  if (prob >= 0.45) return { tier: "High", action: "Executive outreach + reliability credit review" };
+  if (prob >= 0.27) return { tier: "Medium", action: "Technical success plan + usage recovery" };
+  return { tier: "Low", action: "Monitor — standard renewal motion" };
+}
+
+// Heuristic factor attribution for the result panel (illustrative, not SHAP).
+function riskDrivers(f) {
+  return [
+    { k: "SLA breaches (90d)", v: (f.sla_breaches_90d || 0) * 0.12 },
+    { k: "Usage-drop days", v: (f.usage_drop_days_90d || 0) * 0.04 },
+    { k: "Support cases (90d)", v: (f.cases_90d || 0) * 0.012 },
+    { k: "Low usage score", v: Math.max(0, 75 - (f.avg_usage_score_90d || 75)) * 0.02 },
+    { k: "Renewal proximity", v: Math.max(0, 90 - (f.days_to_renewal || 90)) * 0.012 },
+    { k: "Region = West", v: f.region === "West" ? 0.5 : 0 },
+  ].filter((d) => d.v > 0).sort((a, b) => b.v - a.v).slice(0, 4);
+}
+
+// Heuristic stand-in for the served model when Code Engine / Model Serving is unavailable.
 function mockPredict(f) {
   let z = -2.4;
   z += (f.sla_breaches_90d || 0) * 0.12;
@@ -846,21 +952,46 @@ function mockPredict(f) {
   z += Math.max(0, 90 - (f.days_to_renewal || 90)) * 0.012;
   if (f.segment === "Enterprise") z += 0.25;
   if (f.region === "West") z += 0.6;
-  const prob = 1 / (1 + Math.exp(-z));
+  // Squash into the model's observed 0.10–0.60 range so preview matches live scale.
+  const prob = 0.1 + 0.5 / (1 + Math.exp(-z));
   const arr = Number(f.annual_recurring_revenue || 0);
-  const drivers = [
-    { k: "SLA breaches (90d)", v: (f.sla_breaches_90d || 0) * 0.12 },
-    { k: "Usage-drop days", v: (f.usage_drop_days_90d || 0) * 0.04 },
-    { k: "Support cases", v: (f.cases_90d || 0) * 0.012 },
-    { k: "Days to renewal", v: Math.max(0, 90 - (f.days_to_renewal || 90)) * 0.012 },
-    { k: "Region = West", v: f.region === "West" ? 0.6 : 0 },
-  ].filter((d) => d.v > 0).sort((a, b) => b.v - a.v).slice(0, 4);
+  const t = riskTier(prob);
   return {
     probability: prob,
     revenueAtRisk: arr * prob,
-    tier: prob >= 0.6 ? "High" : prob >= 0.35 ? "Medium" : "Low",
-    drivers,
-    action: prob >= 0.6 ? "Executive outreach + reliability credit review" : prob >= 0.35 ? "Technical success plan" : "Monitor — standard renewal motion",
+    tier: t.tier,
+    drivers: riskDrivers(f),
+    action: t.action,
+  };
+}
+
+function startRunLog(log, steps) {
+  if (!log) return { finish: function () {} };
+  log.hidden = false;
+  log.classList.add("running");
+  log.innerHTML = `<div class="run-log-rows">${steps
+    .map((s, i) => `<div class="run-step" data-i="${i}"><span class="run-dot"></span><span class="run-text">${escapeHtml(s)}</span></div>`)
+    .join("")}</div>`;
+  const rows = Array.from(log.querySelectorAll(".run-step"));
+  let active = 0;
+  const setActive = (n) => rows.forEach((row, i) => {
+    row.classList.toggle("active", i === n);
+    row.classList.toggle("done", i < n);
+  });
+  setActive(0);
+  const holdAt = Math.max(0, steps.length - 2);
+  const timer = setInterval(() => { if (active < holdAt) { active++; setActive(active); } }, 850);
+  return {
+    finish(msg, ok) {
+      clearInterval(timer);
+      rows.forEach((row) => { row.classList.remove("active"); row.classList.add("done"); });
+      log.classList.remove("running");
+      const done = document.createElement("div");
+      done.className = "run-step done final " + (ok ? "ok" : "warn");
+      done.innerHTML = `<span class="run-dot"></span><span class="run-text">${escapeHtml(msg)}</span>`;
+      const rowsHost = log.querySelector(".run-log-rows");
+      if (rowsHost) rowsHost.appendChild(done);
+    },
   };
 }
 
@@ -868,7 +999,18 @@ async function runInference() {
   const f = collectMlFeatures();
   const tag = document.getElementById("mlResultTag");
   const host = document.getElementById("mlResult");
+  const btn = document.getElementById("mlRunBtn");
+  const log = document.getElementById("mlRunLog");
+  if (btn) { btn.disabled = true; btn.textContent = "Scoring…"; }
   if (tag) tag.textContent = "scoring…";
+  const t0 = (window.performance && performance.now) ? performance.now() : Date.now();
+  const anim = startRunLog(log, [
+    "Building dataframe_records payload",
+    "POST → pattern4ce.runModelInference (Code Engine proxy)",
+    `Databricks Model Serving · ${ML_MODEL.endpoint}`,
+    "Awaiting predictions — scale-to-zero cold start can take ~20–30s",
+    "Parsing predictions[]",
+  ]);
   // Live path (when serving + CE function exist): pattern4ce.runModelInference
   let r = null;
   if (window.domo && typeof window.domo.post === "function" && state.mlInferenceBridge) {
@@ -877,8 +1019,9 @@ async function runInference() {
       if (out && Array.isArray(out.predictions) && out.predictions.length) {
         const prob = Number(out.predictions[0]);
         const arr = Number(f.annual_recurring_revenue || 0);
+        const t = riskTier(prob);
         state.mlServing = true;
-        r = { probability: prob, revenueAtRisk: arr * prob, tier: prob >= 0.6 ? "High" : prob >= 0.35 ? "Medium" : "Low", drivers: [], action: prob >= 0.6 ? "Executive outreach + reliability credit review" : prob >= 0.35 ? "Technical success plan" : "Monitor — standard renewal motion", live: true };
+        r = { probability: prob, revenueAtRisk: arr * prob, tier: t.tier, drivers: riskDrivers(f), action: t.action, live: true };
       }
     } catch (e) {
       console.warn("runModelInference failed; using local model", e);
@@ -886,7 +1029,13 @@ async function runInference() {
     }
   }
   if (!r) r = mockPredict(f);
-  if (tag) tag.textContent = r.live ? "live · Model Serving" : "modeled · preview";
+  const elapsed = Math.round(((window.performance && performance.now) ? performance.now() : Date.now()) - t0);
+  anim.finish(
+    r.live ? `Scored in ${elapsed} ms · live · Model Serving v${ML_MODEL.version}` : `Scored in ${elapsed} ms · preview fallback (Model Serving unavailable)`,
+    !!r.live
+  );
+  if (btn) { btn.disabled = false; btn.textContent = "Run prediction"; }
+  if (tag) tag.textContent = r.live ? `live · Model Serving v${ML_MODEL.version}` : "modeled · preview";
   renderMlStatus();
 
   const pct = (r.probability * 100).toFixed(1);
@@ -941,12 +1090,45 @@ async function runInference() {
 function renderMl() {
   renderMlStatus();
   renderMlForm();
+  renderMlPayload();
   const note = document.getElementById("mlFormNote");
   if (note) note.textContent = state.mlServing
     ? "Calls pattern4ce.runModelInference → Databricks Model Serving."
     : "Live inference bridge is staged; if Code Engine or Model Serving is unavailable, this uses the preview fallback.";
   const btn = document.getElementById("mlRunBtn");
   if (btn && !btn.dataset.wired) { btn.addEventListener("click", runInference); btn.dataset.wired = "1"; }
+  const form = document.getElementById("mlForm");
+  if (form && !form.dataset.wired) {
+    form.addEventListener("input", renderMlPayload);
+    form.addEventListener("change", renderMlPayload);
+    form.dataset.wired = "1";
+  }
+  const tabs = document.getElementById("mlCodeTabs");
+  if (tabs && !tabs.dataset.wired) {
+    tabs.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-codetab]");
+      if (!b) return;
+      state.mlCodeTab = b.getAttribute("data-codetab");
+      tabs.querySelectorAll(".code-tab").forEach((x) => x.classList.toggle("active", x === b));
+      renderMlPayload();
+    });
+    tabs.dataset.wired = "1";
+  }
+  const copy = document.getElementById("mlCodeCopy");
+  if (copy && !copy.dataset.wired) {
+    copy.addEventListener("click", () => {
+      const block = document.getElementById("mlCodeBlock");
+      copyTextToClipboard(block ? block.textContent : "");
+      copy.textContent = "Copied";
+      setTimeout(() => { copy.textContent = "Copy"; }, 1400);
+    });
+    copy.dataset.wired = "1";
+  }
+  const elink = document.getElementById("mlEndpointLink");
+  if (elink && !elink.dataset.wired) {
+    elink.addEventListener("click", () => openExternal(mlEndpointUrl()));
+    elink.dataset.wired = "1";
+  }
 }
 
 /* ---------- Lakebase Ops ---------- */

@@ -1,10 +1,19 @@
 #!/usr/bin/env python3
-"""Train and register the Sprint 7 renewal-risk model.
+"""Train and register the renewal-risk model (regression).
 
-The model is intentionally a classical sklearn pipeline wrapped in MLflow
-pyfunc so Model Serving returns churn probability values for dataframe_records.
-It uses the Databricks CLI profile for data access and MLflow auth; no tokens
-are read from or written to this script.
+The earlier classifier collapsed a deterministic 0/1 threshold of the gold
+``predicted_churn_probability`` column and served saturated ~0.00001 / ~0.99999
+values that ignored the input features. The demo needs a *smooth, reasonable*
+churn probability that tracks the account inputs, so this trains an HGB
+**regressor** on the continuous ``predicted_churn_probability`` (range ~0.10-0.60).
+
+Model Serving therefore returns a 1-D ``{"predictions":[p, ...]}`` array. The
+Code Engine ``runModelInference`` already normalizes both ``[[c0,c1]]`` and
+scalar responses, and the app reads ``predictions[i]`` directly, so no Code
+Engine or app contract change is required.
+
+Uses the Databricks CLI profile for data access and MLflow auth; no tokens are
+read from or written to this script.
 """
 
 from __future__ import annotations
@@ -22,9 +31,9 @@ import numpy as np
 import pandas as pd
 from mlflow.models import infer_signature
 from sklearn.compose import ColumnTransformer
-from sklearn.ensemble import HistGradientBoostingClassifier
+from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.impute import SimpleImputer
-from sklearn.metrics import accuracy_score, average_precision_score, roc_auc_score
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
@@ -113,14 +122,14 @@ def build_pipeline() -> Pipeline:
         ],
         remainder="drop",
     )
-    classifier = HistGradientBoostingClassifier(
-        max_iter=180,
-        learning_rate=0.055,
-        max_leaf_nodes=17,
-        l2_regularization=0.06,
+    regressor = HistGradientBoostingRegressor(
+        max_iter=220,
+        learning_rate=0.06,
+        max_leaf_nodes=23,
+        l2_regularization=0.05,
         random_state=42,
     )
-    return Pipeline([("preprocess", preprocessor), ("classifier", classifier)])
+    return Pipeline([("preprocess", preprocessor), ("regressor", regressor)])
 
 
 def main() -> int:
@@ -149,55 +158,48 @@ def main() -> int:
     if data.empty:
         raise RuntimeError(f"No rows returned from {SOURCE_TABLE}")
 
-    threshold = 0.50
-    y = (data[TARGET_COLUMN].astype(float) >= threshold).astype(int)
-    if y.nunique() < 2:
-        threshold = float(data[TARGET_COLUMN].quantile(0.72))
-        y = (data[TARGET_COLUMN].astype(float) >= threshold).astype(int)
-    if y.nunique() < 2:
-        raise RuntimeError("Training target has one class after fallback thresholding")
+    # Regression target: the smooth, continuous churn probability straight from
+    # the gold table (range ~0.10-0.60). No thresholding — we want the model to
+    # reproduce a nuanced probability that varies with the account inputs.
+    y = data[TARGET_COLUMN].astype(float)
 
     X = data[FEATURES].copy()
     for col in NUMERIC_FEATURES:
         X[col] = X[col].astype(float)
-    stratify = y if y.value_counts().min() >= 2 else None
     X_train, X_test, y_train, y_test = train_test_split(
         X,
         y,
         test_size=0.25,
         random_state=42,
-        stratify=stratify,
     )
 
     pipeline = build_pipeline()
     pipeline.fit(X_train, y_train)
-    probabilities = pipeline.predict_proba(X_test)[:, 1]
-    classes = (probabilities >= 0.5).astype(int)
+    predicted = pipeline.predict(X_test)
     metrics = {
         "row_count": int(len(data)),
-        "positive_rate": float(y.mean()),
-        "target_threshold": float(threshold),
-        "accuracy": float(accuracy_score(y_test, classes)),
-        "roc_auc": float(roc_auc_score(y_test, probabilities)),
-        "average_precision": float(average_precision_score(y_test, probabilities)),
+        "target_min": float(y.min()),
+        "target_mean": float(y.mean()),
+        "target_max": float(y.max()),
+        "r2": float(r2_score(y_test, predicted)),
+        "mae": float(mean_absolute_error(y_test, predicted)),
+        "rmse": float(np.sqrt(mean_squared_error(y_test, predicted))),
     }
 
     input_example = X.head(5).copy()
-    example_probabilities = pipeline.predict_proba(input_example)
-    example_predictions = example_probabilities[:, 1]
-    # The endpoint serves sklearn predict_proba, which returns [class_0, class_1].
-    # Code Engine normalizes class_1 into the app's probability array.
-    signature = infer_signature(input_example, example_probabilities)
+    example_predictions = pipeline.predict(input_example)
+    # The endpoint serves sklearn regressor predict, returning a 1-D probability
+    # per row: {"predictions":[p, ...]}. Code Engine returns predictions[i] as-is.
+    signature = infer_signature(input_example, example_predictions)
 
-    with mlflow.start_run(run_name="pattern4-renewal-risk-sprint7") as run:
+    with mlflow.start_run(run_name="pattern4-renewal-risk-regressor") as run:
         mlflow.log_params(
             {
                 "source_table": SOURCE_TABLE,
                 "target_column": TARGET_COLUMN,
-                "target_threshold": threshold,
-                "model_family": "sklearn_hist_gradient_boosting_classifier",
+                "model_family": "sklearn_hist_gradient_boosting_regressor",
                 "runtime_contract": "dataframe_records_named_columns",
-                "pyfunc_predict_fn": "predict_proba",
+                "pyfunc_predict_fn": "predict",
             }
         )
         for key, value in metrics.items():
@@ -229,12 +231,12 @@ def main() -> int:
             registered_model_name=MODEL_NAME,
             conda_env=conda_env,
             serialization_format="pickle",
-            pyfunc_predict_fn="predict_proba",
+            pyfunc_predict_fn="predict",
             metadata={
                 "source_table": SOURCE_TABLE,
                 "features": ",".join(FEATURES),
                 "target": TARGET_COLUMN,
-                "positive_class_probability_index": "1",
+                "output": "churn_probability_regression",
             },
         )
 
@@ -245,6 +247,7 @@ def main() -> int:
             "run_id": run.info.run_id,
             "experiment": EXPERIMENT,
             "source_table": SOURCE_TABLE,
+            "model_family": "sklearn_hist_gradient_boosting_regressor",
             "features": FEATURES,
             "target_column": TARGET_COLUMN,
             "metrics": metrics,
@@ -252,7 +255,7 @@ def main() -> int:
             "example_predictions": [float(x) for x in example_predictions],
             "serving_contract": {
                 "request": {"dataframe_records": [input_example.iloc[0].to_dict()]},
-                "response": {"predictions": [[float(example_probabilities[0][0]), float(example_probabilities[0][1])]]},
+                "response": {"predictions": [float(example_predictions[0])]},
                 "code_engine_normalized_response": {"predictions": [float(example_predictions[0])]},
             },
         }

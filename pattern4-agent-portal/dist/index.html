@@ -233,15 +233,17 @@
 
     <!-- ============================ ML PREDICTIONS ============================ -->
     <div id="viewMl" class="view is-hidden">
-      <section class="panel ml-status-panel">
-        <div class="panel-head">
-          <div>
-            <h2>Renewal-Risk Model</h2>
-            <p>A Databricks-trained classifier, MLflow/Unity Catalog registered, surfaced in Domo AI Services.</p>
-          </div>
-          <span class="model-state" id="mlModelState">Planned</span>
+      <!-- Model header strip -->
+      <section class="panel ml-model-bar">
+        <div class="ml-model-id">
+          <span class="forecast-eyebrow">
+            <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+            Databricks Model Serving &middot; Unity Catalog registered
+          </span>
+          <h2 class="ml-model-title">Renewal-Risk Model <span class="model-state" id="mlModelState">Planned</span></h2>
+          <p class="ml-model-line" id="mlModelLine"></p>
         </div>
-        <div class="ml-meta-grid" id="mlMetaGrid"></div>
+        <div class="ml-model-links" id="mlModelLinks"></div>
       </section>
 
       <section class="grid">
@@ -255,6 +257,7 @@
           </div>
           <form class="ml-form" id="mlForm"></form>
           <button class="btn btn-primary" id="mlRunBtn" type="button">Run prediction</button>
+          <div class="ml-run-log" id="mlRunLog" hidden></div>
           <p class="ml-form-note" id="mlFormNote"></p>
         </article>
 
@@ -267,6 +270,31 @@
             <span class="panel-tag" id="mlResultTag">awaiting input</span>
           </div>
           <div class="ml-result" id="mlResult"></div>
+        </article>
+
+        <article class="panel col-12 ml-payload-panel">
+          <div class="panel-head">
+            <div>
+              <h2>Inference Payload &amp; Endpoint</h2>
+              <p>The exact request this scoring sends to Databricks Model Serving &mdash; copy as cURL, Python, or SQL.</p>
+            </div>
+            <span class="panel-tag">reproducible · for data scientists</span>
+          </div>
+          <div class="ml-endpoint-line">
+            <span class="ml-method">POST</span>
+            <code id="mlInvUrl"></code>
+            <button type="button" class="link-pill dbx" id="mlEndpointLink">Open endpoint &rarr;</button>
+          </div>
+          <div class="code-tabs">
+            <div class="code-tab-group" id="mlCodeTabs" role="tablist">
+              <button type="button" class="code-tab active" data-codetab="curl">cURL</button>
+              <button type="button" class="code-tab" data-codetab="python">Python</button>
+              <button type="button" class="code-tab" data-codetab="sql">SQL</button>
+            </div>
+            <button type="button" class="code-copy" id="mlCodeCopy">Copy</button>
+          </div>
+          <pre class="code-block"><code id="mlCodeBlock"></code></pre>
+          <p class="ml-payload-foot">In the app, this request is made server-side through the Code Engine proxy <code>pattern4ce.runModelInference</code>, which injects the workspace token and calls the invocations URL above &mdash; so no Databricks token is ever exposed to the browser.</p>
         </article>
       </section>
     </div><!-- /viewMl -->
