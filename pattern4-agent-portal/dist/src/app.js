@@ -1561,7 +1561,7 @@ function renderScenarioDetail() {
       <div><span class="panel-tag">selected run</span><h3>${escapeHtml(scenario.name)}</h3></div>
       <div class="toolbar-right">
         <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_PROJECT_LINK)}">Open Lakebase</button>
-        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksObjectUrl(`databricks_raptor.pattern4_agent_automation.${scenario.assumptions?.source_table || "gold_agent_action_queue"}`))}">Open source table</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_TABLES_LINK)}">Open source table</button>
         <button class="btn btn-secondary btn-sm" type="button" data-scenario-edit="${scenario.id}">Edit selected</button>
       </div>
     </div>
@@ -2536,6 +2536,7 @@ const WORKSPACE_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 const GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 const GENIE_DEEPLINK = GENIE_SPACE_ID ? `${WORKSPACE_HOST}/genie/rooms/${GENIE_SPACE_ID}` : `${WORKSPACE_HOST}/genie`;
 const LAKEBASE_PROJECT_LINK = `${WORKSPACE_HOST}/lakebase/projects/2829411b-5a16-4d4f-931c-bf4860ed7749`;
+const LAKEBASE_TABLES_LINK = `${LAKEBASE_PROJECT_LINK}/branches/br-lingering-cell-d2zmepjn/tables`;
 // Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
 // table; shows the downstream Domo Pattern 4 external-lineage node.
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
