@@ -2058,22 +2058,24 @@ td.num {
 }
 
 .uc-drawer {
-  position: fixed;
-  top: 0;
-  right: 0;
+  position: absolute;
+  top: 80px;
+  right: 16px;
   z-index: 61;
   width: min(420px, 92vw);
-  height: 100vh;
+  max-height: 620px;
   overflow-y: auto;
   background: var(--white);
-  border-left: 1px solid var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
   box-shadow: var(--shadow-lg);
-  padding: 18px 18px 28px;
-  transform: translateX(100%);
-  transition: transform 0.22s ease;
+  padding: 18px 18px 22px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
-.uc-drawer.open { transform: translateX(0); }
+.uc-drawer.open { opacity: 1; transform: translateY(0); }
 
 .uc-drawer-head {
   display: flex;
@@ -2227,9 +2229,6 @@ td.num {
   position: fixed;
   inset: 0;
   z-index: 90;
-  display: grid;
-  place-items: center;
-  padding: 20px;
   background: rgba(31, 49, 57, 0.34);
   backdrop-filter: blur(1px);
   opacity: 0;
@@ -2239,7 +2238,11 @@ td.num {
 .link-modal-backdrop.show { opacity: 1; }
 
 .link-modal {
-  width: min(520px, 96vw);
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 92vw);
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);

@@ -2215,6 +2215,9 @@ function showLinkModal(url) {
       '</div>' +
     '</div>';
   document.body.appendChild(backdrop);
+  // Anchor near the click (the iframe has no real viewport to center against).
+  var modalEl = backdrop.querySelector(".link-modal");
+  if (modalEl) modalEl.style.top = Math.max(12, (LAST_CLICK.clientY || 120) - 28) + "px";
   requestAnimationFrame(function () { backdrop.classList.add("show"); });
   var urlEl = backdrop.querySelector("#linkModalUrl");
   urlEl.addEventListener("click", function () { selectElementText(urlEl); });
@@ -2437,6 +2440,11 @@ function openUcDrawer(item, columnName) {
       <button class="link-pill dbx" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open in Databricks &rarr;</button>
     </div>
     <div class="uc-edit-note" id="ucEditNote"></div>`;
+  // Move to body so absolute positioning is document-relative, and anchor near the click
+  // (the iframe renders at full content height, so a fixed full-height drawer lands off-screen).
+  document.body.appendChild(backdrop);
+  document.body.appendChild(drawer);
+  drawer.style.top = Math.max(12, (LAST_CLICK.pageY || 120) - 16) + "px";
   backdrop.classList.remove("is-hidden");
   drawer.classList.remove("is-hidden");
   drawer.classList.add("open");
@@ -3247,7 +3255,18 @@ function wireEvents() {
   );
 }
 
+// Track the last pointer position so click-triggered overlays can anchor to where the user
+// clicked. In the Domo App Studio iframe the app renders at full content height (no internal
+// scroll), so position:fixed centering lands far down the page; anchoring to the click keeps
+// modals/drawers in view.
+var LAST_CLICK = { clientY: 120, pageY: 120 };
+function trackPointer(e) {
+  if (typeof e.clientY === "number") LAST_CLICK = { clientY: e.clientY, pageY: e.pageY != null ? e.pageY : e.clientY };
+}
+
 async function init() {
+  document.addEventListener("pointerdown", trackPointer, true);
+  document.addEventListener("click", trackPointer, true);
   wireEvents();
   wireTabs();
   wireForecastControls();
