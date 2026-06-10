@@ -16,9 +16,9 @@
  *   - savePredictionFeedback(predictionId, entityType, entityId, feedback, predictedValue, correctedValue, comment, createdBy)
  *   - runModelInference(records)
  *   - getUcReadinessState(tableName)
- *   - getDomoAiReadiness(datasetId)
- *   - syncDomoAiReadiness(datasetId, desiredState, columns)
- *   - wipeDomoAiReadiness(datasetId, columns)
+ *   - getDomoAiReadiness(datasetId, domo_account)
+ *   - syncDomoAiReadiness(datasetId, desiredState, columns, domo_account)
+ *   - wipeDomoAiReadiness(datasetId, columns, domo_account)
  *   - updateUcColumnContext(tableName, columnName, context, synonyms, aiEnabled, updatedBy)
  *
  * SETUP: paste your Databricks PAT into DATABRICKS_TOKEN below (same token as
@@ -28,11 +28,11 @@
 
 var axios = require("axios");
 var pg = require("pg");
+var codeengine = require("codeengine");
 
 var DATABRICKS_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 var DATABRICKS_TOKEN = "REPLACE_WITH_DATABRICKS_TOKEN";
 var DOMO_INSTANCE = "https://databricks-demo.domo.com";
-var DOMO_DEVELOPER_TOKEN = "REPLACE_WITH_DOMO_DEVELOPER_TOKEN";
 var GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 var WAREHOUSE_ID = "ea829ba58bcae093";
 var CATALOG = "databricks_raptor";
@@ -140,26 +140,44 @@ function runSqlChecked(statement) {
   });
 }
 
-function domoHeaders() {
+function resolveDomoDeveloperToken(domoAccount) {
+  if (!domoAccount || !domoAccount.id) {
+    return Promise.reject("Domo AI Readiness account input `domo_account` is not configured");
+  }
+  return codeengine.getAccount(domoAccount.id).then(function (account) {
+    var props = account && account.properties ? account.properties : {};
+    var token =
+      props.domoAccessToken ||
+      props.developerToken ||
+      props.accessToken ||
+      props.token ||
+      "";
+    if (!token) {
+      return Promise.reject("Domo account is missing domoAccessToken/developerToken");
+    }
+    return token;
+  });
+}
+
+function domoHeaders(domoToken) {
   return {
-    "X-DOMO-Developer-Token": DOMO_DEVELOPER_TOKEN,
+    "X-DOMO-Developer-Token": domoToken,
     "Content-Type": "application/json;charset=utf-8",
     "accept": "application/json, text/plain, */*"
   };
 }
 
-function domoApi(method, path, body) {
-  if (!DOMO_DEVELOPER_TOKEN || DOMO_DEVELOPER_TOKEN.indexOf("REPLACE_WITH") === 0) {
-    return Promise.reject("DOMO_DEVELOPER_TOKEN is not configured in Code Engine");
-  }
-  return axios({
-    method: method,
-    url: DOMO_INSTANCE + path,
-    headers: domoHeaders(),
-    data: body || undefined,
-    timeout: 30000
-  }).then(function (resp) {
-    return resp.data;
+function domoApi(method, path, body, domoAccount) {
+  return resolveDomoDeveloperToken(domoAccount).then(function (domoToken) {
+    return axios({
+      method: method,
+      url: DOMO_INSTANCE + path,
+      headers: domoHeaders(domoToken),
+      data: body || undefined,
+      timeout: 30000
+    }).then(function (resp) {
+      return resp.data;
+    });
   });
 }
 
@@ -190,16 +208,16 @@ function normalizeDomoReadiness(raw) {
   };
 }
 
-function getDomoDatasetInfo(datasetId) {
-  return domoApi("GET", "/api/data/v3/datasources/" + datasetId);
+function getDomoDatasetInfo(datasetId, domoAccount) {
+  return domoApi("GET", "/api/data/v3/datasources/" + datasetId, null, domoAccount);
 }
 
-function getDomoDatasetSchema(datasetId) {
-  return domoApi("GET", "/api/query/v1/datasources/" + datasetId + "/schema/indexed?includeHidden=true");
+function getDomoDatasetSchema(datasetId, domoAccount) {
+  return domoApi("GET", "/api/query/v1/datasources/" + datasetId + "/schema/indexed?includeHidden=true", null, domoAccount);
 }
 
-function getDomoAiReadiness(datasetId) {
-  return domoApi("GET", "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId)
+function getDomoAiReadiness(datasetId, domo_account) {
+  return domoApi("GET", "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, null, domo_account)
     .then(function (data) {
       return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(data) };
     })
@@ -415,20 +433,20 @@ function getUcReadinessState(tableName) {
     });
 }
 
-function syncDomoAiReadiness(datasetId, desiredState, columns) {
+function syncDomoAiReadiness(datasetId, desiredState, columns, domo_account) {
   var desired = parseMaybeJson(desiredState, {});
   var selected = selectedColumnSet(columns);
   var existing;
   var datasetInfo;
   var schemaInfo;
-  return getDomoAiReadiness(datasetId)
+  return getDomoAiReadiness(datasetId, domo_account)
     .then(function (readinessResp) {
       existing = readinessResp.readiness || { columns: [] };
-      return getDomoDatasetInfo(datasetId);
+      return getDomoDatasetInfo(datasetId, domo_account);
     })
     .then(function (info) {
       datasetInfo = info || {};
-      return getDomoDatasetSchema(datasetId);
+      return getDomoDatasetSchema(datasetId, domo_account);
     })
     .then(function (schema) {
       schemaInfo = schema || {};
@@ -454,7 +472,7 @@ function syncDomoAiReadiness(datasetId, desiredState, columns) {
         return col;
       });
       var method = baseline.id ? "PUT" : "POST";
-      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline);
+      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline, domo_account);
     })
     .then(function (result) {
       return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
@@ -466,19 +484,19 @@ function syncDomoAiReadiness(datasetId, desiredState, columns) {
     });
 }
 
-function wipeDomoAiReadiness(datasetId, columns) {
+function wipeDomoAiReadiness(datasetId, columns, domo_account) {
   var selected = selectedColumnSet(columns);
   var existing;
   var datasetInfo;
   var schemaInfo;
-  return getDomoAiReadiness(datasetId)
+  return getDomoAiReadiness(datasetId, domo_account)
     .then(function (readinessResp) {
       existing = readinessResp.readiness || { columns: [] };
-      return getDomoDatasetInfo(datasetId);
+      return getDomoDatasetInfo(datasetId, domo_account);
     })
     .then(function (info) {
       datasetInfo = info || {};
-      return getDomoDatasetSchema(datasetId);
+      return getDomoDatasetSchema(datasetId, domo_account);
     })
     .then(function (schema) {
       schemaInfo = schema || {};
@@ -500,7 +518,7 @@ function wipeDomoAiReadiness(datasetId, columns) {
         return col;
       });
       var method = baseline.id ? "PUT" : "POST";
-      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline);
+      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline, domo_account);
     })
     .then(function (result) {
       return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
