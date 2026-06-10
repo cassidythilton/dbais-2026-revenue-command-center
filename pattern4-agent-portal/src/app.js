@@ -1575,6 +1575,7 @@ const VIEW_IDS = {
   lakebase: "viewLakebase",
   readiness: "viewReadiness",
   genie: "viewGenie",
+  genieEmbed: "viewGenieEmbed",
   guide: "viewGuide",
 };
 
@@ -2303,7 +2304,7 @@ async function init() {
   await loadData();
   render();
   document.getElementById("readinessSyncBtn")?.addEventListener("click", syncReadinessDemo);
-  const hashView = { "#ml": "ml", "#lakebase": "lakebase", "#readiness": "readiness", "#genie": "genie", "#guide": "guide" }[window.location.hash];
+  const hashView = { "#ml": "ml", "#lakebase": "lakebase", "#readiness": "readiness", "#genie": "genie", "#genie-embed": "genieEmbed", "#guide": "guide" }[window.location.hash];
   if (hashView) activateView(hashView);
   if (window.location.hash === "#genie-demo") {
     activateView("genie");

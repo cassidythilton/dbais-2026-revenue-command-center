@@ -65,6 +65,9 @@
       <button class="view-tab" type="button" data-view="genie" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Genie Workspace
       </button>
+      <button class="view-tab" type="button" data-view="genieEmbed" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> Genie Embed Alpha
+      </button>
       <button class="view-tab" type="button" data-view="guide" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> How It Works
       </button>
@@ -403,6 +406,34 @@
         </article>
       </section>
     </div><!-- /viewGenie -->
+
+    <!-- ============================ GENIE EMBED ALPHA ============================ -->
+    <div id="viewGenieEmbed" class="view is-hidden">
+      <section class="panel genie-embed-panel">
+        <div class="panel-head">
+          <div>
+            <h2>Native Databricks Genie Embed &mdash; Alpha</h2>
+            <p>Side-by-side test of Databricks' native Genie room experience inside the Domo app. If iframe policies block it, use the open-in-Databricks link below.</p>
+          </div>
+          <a class="icon-link" href="https://dbc-0516e56c-ba3e.cloud.databricks.com/genie/rooms/01f1642295b61d6b8849e106f52fc781" target="_blank" rel="noopener">
+            <img src="./public/databricks-logo.png" alt="" aria-hidden="true" />
+            Open in Databricks
+          </a>
+        </div>
+        <div class="embed-note">
+          Alpha comparison: the native embed can show Databricks-rendered result tables and plots when the platform allows embedding. The custom Genie Workspace remains the controlled app-native path for Code Engine routing, inspector metadata, and Domo-side chart reconstruction from returned rows.
+        </div>
+        <iframe
+          class="genie-embed-frame"
+          src="https://dbc-0516e56c-ba3e.cloud.databricks.com/embed/genie/rooms/01f1642295b61d6b8849e106f52fc781?o=8127410670216233"
+          width="100%"
+          height="640"
+          frameborder="0"
+          allow="clipboard-write"
+          title="Databricks Genie room embed alpha"
+        ></iframe>
+      </section>
+    </div><!-- /viewGenieEmbed -->
 
     <!-- ============================ HOW IT WORKS ============================ -->
     <div id="viewGuide" class="view is-hidden">
