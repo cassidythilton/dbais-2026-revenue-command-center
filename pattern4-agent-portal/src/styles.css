@@ -24,6 +24,15 @@
   --dbx-red: #ff3621;
   --dbx-ink: #1b3139;
 
+  /* AI Readiness "Unity Catalog source of truth" accent — softened blood red.
+     Sits between Databricks red and a deep blood red so it reads governed,
+     not alarming. Used for UC-prepared meters, pills, tags, and the UC drawer. */
+  --uc: #b8443c;
+  --uc-deep: #8f2e2a;
+  --uc-soft: #d68a83;
+  --uc-tint: rgba(184, 68, 60, 0.1);
+  --uc-tint-mid: rgba(184, 68, 60, 0.22);
+
   --status-good: #3f8f6b;
   --status-good-bg: #eaf4ee;
   --status-warn: #b9700f;
@@ -1385,8 +1394,8 @@ td.num {
 
 .readiness-source-tag {
   gap: 5px;
-  color: var(--dbx-ink);
-  background: rgba(255, 54, 33, 0.08);
+  color: var(--uc-deep);
+  background: var(--uc-tint);
 }
 
 /* Portfolio rollup meters */
@@ -1417,11 +1426,11 @@ td.num {
 
 .portfolio-meter-head b {
   font-size: 15px;
-  color: var(--domo-blue-ink);
+  color: var(--uc-deep);
   font-variant-numeric: tabular-nums;
 }
 
-.portfolio-meter.domo .portfolio-meter-head b { color: var(--n-700); }
+.portfolio-meter.domo .portfolio-meter-head b { color: var(--domo-blue-ink); }
 
 .readiness-portfolio small {
   display: block;
@@ -1460,12 +1469,12 @@ td.num {
   display: block;
   height: 100%;
   border-radius: var(--r-pill);
-  background: linear-gradient(90deg, var(--dbx-red), #c0392b);
+  background: linear-gradient(90deg, var(--uc-deep), var(--uc));
   transition: width 0.3s ease;
 }
 
 .readiness-progress.uc span {
-  background: linear-gradient(90deg, var(--dbx-red), #ff6f5e);
+  background: linear-gradient(90deg, var(--uc-deep), var(--uc-soft));
 }
 
 .readiness-progress.domo span {
@@ -1546,7 +1555,7 @@ td.num {
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--dbx-red);
+  color: var(--uc);
 }
 
 .rail-meter-tag.domo { color: var(--domo-blue-ink); }
@@ -1564,7 +1573,7 @@ td.num {
   border-radius: var(--r-pill);
 }
 
-.rail-bar span.uc { background: var(--dbx-red); }
+.rail-bar span.uc { background: var(--uc); }
 .rail-bar span.domo { background: var(--domo-blue-deep); }
 
 .rail-meter-val {
@@ -1675,7 +1684,7 @@ td.num {
 .readiness-score-head b {
   font-size: 20px;
   line-height: 1;
-  color: var(--dbx-ink);
+  color: var(--uc-deep);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1739,11 +1748,11 @@ td.num {
 .pill-btn.ghost:hover { border-color: var(--line-strong); color: var(--n-700); }
 
 .pill-btn.inspect {
-  color: var(--dbx-ink);
-  border-color: rgba(255, 54, 33, 0.28);
+  color: var(--uc-deep);
+  border-color: var(--uc-tint-mid);
 }
 
-.pill-btn.inspect:hover { border-color: var(--dbx-red); background: rgba(255, 54, 33, 0.06); }
+.pill-btn.inspect:hover { border-color: var(--uc); background: var(--uc-tint); }
 
 .pill-btn.danger {
   color: var(--status-bad);
@@ -1817,7 +1826,7 @@ td.num {
   background: currentColor;
 }
 
-.state-pill.uc { color: var(--dbx-red); background: rgba(255, 54, 33, 0.09); }
+.state-pill.uc { color: var(--uc); background: var(--uc-tint); }
 .state-pill.synced { color: var(--status-good); background: var(--status-good-bg); }
 .state-pill.muted {
   color: var(--muted);
@@ -1871,8 +1880,8 @@ td.num {
   font-weight: 800;
   letter-spacing: 0.03em;
   text-transform: uppercase;
-  color: var(--dbx-ink);
-  background: rgba(255, 54, 33, 0.09);
+  color: var(--uc-deep);
+  background: var(--uc-tint);
 }
 
 .uc-drawer-close {
@@ -1918,10 +1927,10 @@ td.num {
 }
 
 .uc-drawer-warn {
-  border: 1px solid rgba(255, 54, 33, 0.22);
-  border-left: 3px solid var(--dbx-red);
+  border: 1px solid var(--uc-tint-mid);
+  border-left: 3px solid var(--uc);
   border-radius: var(--r-sm);
-  background: rgba(255, 54, 33, 0.05);
+  background: var(--uc-tint);
   color: var(--n-700);
   font-size: 11px;
   line-height: 1.5;
@@ -1981,7 +1990,7 @@ td.num {
   cursor: pointer;
 }
 
-.uc-toggle input { width: 15px; height: 15px; accent-color: var(--dbx-red); }
+.uc-toggle input { width: 15px; height: 15px; accent-color: var(--uc); }
 
 .uc-drawer-actions {
   display: flex;
@@ -1999,6 +2008,81 @@ td.num {
 
 .uc-edit-note.done { color: var(--status-good); }
 .uc-edit-note.warn { color: var(--status-warn); }
+
+/* External-link toast (sandboxed iframe can't open new tabs) */
+.link-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  z-index: 80;
+  width: min(440px, 92vw);
+  transform: translate(-50%, 14px);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.link-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.link-toast-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--domo-blue-deep);
+  border-radius: var(--r-md);
+  background: var(--white);
+  box-shadow: var(--shadow-lg);
+}
+
+.link-toast-icon {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(153, 204, 238, 0.22);
+  color: var(--domo-blue-ink);
+  font-weight: 800;
+  font-size: 12px;
+}
+
+.link-toast-body { display: grid; gap: 3px; min-width: 0; }
+.link-toast-body b { font-size: 12px; color: var(--n-700); }
+.link-toast-body span { font-size: 11px; line-height: 1.45; color: var(--muted); }
+.link-toast-body em { font-style: normal; font-weight: 700; color: var(--domo-blue-ink); }
+
+.link-toast-body code {
+  margin-top: 3px;
+  font: 10px/1.4 "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  color: var(--dbx-ink);
+  background: var(--n-050);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 4px 6px;
+  word-break: break-all;
+  -webkit-user-select: all;
+  user-select: all;
+}
+
+.link-toast-close {
+  flex: none;
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.link-toast-close:hover { color: var(--n-700); }
 
 @media (max-width: 1040px) {
   .arch-grid { grid-template-columns: 1fr; }

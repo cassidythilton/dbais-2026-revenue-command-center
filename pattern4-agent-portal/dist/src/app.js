@@ -1689,20 +1689,77 @@ function openExternal(url) {
   if (!url) return;
   var target = String(url);
   var isDomoUrl = /^https:\/\/databricks-demo\.domo\.com\//i.test(target) || target.startsWith("/page/");
+  // Domo in-platform URLs: domo.navigate is honored by the parent frame.
   if (isDomoUrl && window.domo && typeof window.domo.navigate === "function") {
-    window.domo.navigate(url, true);
-  } else {
-    var popup = window.open(target, "_blank", "noopener");
-    if (!popup) {
-      var link = document.createElement("a");
-      link.href = target;
-      link.target = "_blank";
-      link.rel = "noopener";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-    }
+    window.domo.navigate(target, true);
+    return;
   }
+  // External URLs (Databricks / Lakebase). In the App Studio runtime the app iframe is
+  // sandboxed without `allow-popups`, so window.open is blocked; the Domo parent also
+  // rejects external domains via navigate. Try a normal new-tab open first (works in
+  // local preview / unsandboxed contexts); if blocked, copy the link and surface a toast
+  // so the link is always reachable.
+  var opened = null;
+  try {
+    opened = window.open(target, "_blank", "noopener");
+  } catch (_) {
+    opened = null;
+  }
+  if (opened) return;
+  copyTextToClipboard(target);
+  showLinkToast(target);
+}
+
+function copyTextToClipboard(text) {
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(text).catch(function () { legacyCopy(text); });
+      return;
+    }
+  } catch (_) {}
+  legacyCopy(text);
+}
+
+function legacyCopy(text) {
+  try {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-1000px";
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    ta.remove();
+  } catch (_) {}
+}
+
+function showLinkToast(url) {
+  var existing = document.getElementById("linkToast");
+  if (existing) existing.remove();
+  var host = String(url).replace(/^https?:\/\//, "").split("/")[0];
+  var toast = document.createElement("div");
+  toast.id = "linkToast";
+  toast.className = "link-toast";
+  toast.innerHTML =
+    '<div class="link-toast-row">' +
+    '<span class="link-toast-icon" aria-hidden="true">\u2197</span>' +
+    '<div class="link-toast-body">' +
+    '<b>Link copied to your clipboard</b>' +
+    '<span>The embedded app can\u2019t open external tabs \u2014 paste into a new browser tab to open <em>' + escapeHtml(host) + '</em>.</span>' +
+    '<code>' + escapeHtml(String(url)) + '</code>' +
+    '</div>' +
+    '<button type="button" class="link-toast-close" aria-label="Dismiss">\u00d7</button>' +
+    '</div>';
+  document.body.appendChild(toast);
+  requestAnimationFrame(function () { toast.classList.add("show"); });
+  var timer = setTimeout(dismiss, 9000);
+  function dismiss() {
+    clearTimeout(timer);
+    toast.classList.remove("show");
+    setTimeout(function () { toast.remove(); }, 240);
+  }
+  toast.querySelector(".link-toast-close").addEventListener("click", dismiss);
 }
 
 function renderReadinessDetail() {
