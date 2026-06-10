@@ -1,0 +1,16 @@
+{
+  "model_id": "6cbd5ecb-1036-410a-b188-60a49820d264",
+  "queue_id": "55c37364-de76-47a3-8ba6-b5415e063e58",
+  "form_id": "d03bde1c-757f-4f4f-948b-e1391b752c6f",
+  "form_field_ids": {
+    "Account": "02b8adb0-94dc-40b8-a129-5677ee16215e",
+    "Recommendation": "c601b2b4-04a7-400f-a263-090392470c3a",
+    "Protected_Revenue": "dcff089e-0583-4428-914d-ce264b1c4d23",
+    "Source_Question": "7e502bb7-e666-4fc9-8f06-a0ec4bce6aeb",
+    "Decision": "5d349eea-6790-407d-9f09-298db3324880"
+  },
+  "version": "1.0.0",
+  "start_message_name": "Start Pattern 4 - Renewal Risk Retention",
+  "start_endpoint": "/api/workflow/v1/instances/message",
+  "assignee_user_id": "1433178023"
+}

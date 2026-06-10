@@ -219,6 +219,9 @@ const state = {
   mlCodeTab: "curl", // active tab in the inference payload code panel
   executedActionIds: {}, // actionId -> protected amount, for optimistic approve→execute UI
   protectedBump: 0, // running protected-revenue added by approvals this session
+  workflowRuns: {}, // actionId -> { instanceId, status: PENDING|APPROVED|REJECTED, checking, error, local }
+  rejectedActionIds: {}, // actionId -> true once a workflow approval was rejected
+  actionRationale: null, // { actionId, account, loading|content|error, usage } from the AI Gateway reasoning endpoint
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
     scenarios: LAKEBASE_MOCK.scenarios.slice(),
@@ -706,11 +709,20 @@ function renderIncident(incident) {
 }
 
 function effectiveAction(a) {
-  // Apply optimistic approve→execute state captured this session.
+  const run = state.workflowRuns[a.actionId];
+  // Approved (via live workflow approval or optimistic/local approve→execute).
   if (Object.prototype.hasOwnProperty.call(state.executedActionIds, a.actionId)) {
-    return Object.assign({}, a, { approval: "Approved", execution: "Executed", justActioned: true });
+    return Object.assign({}, a, { approval: "Approved", execution: "Executed", justActioned: true, run });
   }
-  return a;
+  // Rejected via a live workflow approval decision.
+  if (state.rejectedActionIds[a.actionId]) {
+    return Object.assign({}, a, { approval: "Rejected", execution: "Cancelled", run });
+  }
+  // Workflow started, awaiting human approval in Domo Tasks.
+  if (run && run.status === "PENDING") {
+    return Object.assign({}, a, { approval: "Pending", execution: "In workflow", run });
+  }
+  return Object.assign({}, a, { run });
 }
 
 function renderActions(actions) {
@@ -723,16 +735,37 @@ function renderActions(actions) {
     .map(effectiveAction)
     .map(
       (a) => {
-        const pending = a.execution === "Waiting" || a.approval === "Pending";
+        const run = a.run;
+        const pending = !run && (a.execution === "Waiting" || a.approval === "Pending");
+        const shortId = run && run.instanceId ? String(run.instanceId).slice(0, 8) : "";
+        let actionCell = "";
+        if (pending) {
+          actionCell = `<button class="action-btn" type="button"
+            data-action-id="${escapeHtml(a.actionId)}"
+            data-protected="${Number(a.protected) || 0}"
+            data-account="${escapeHtml(a.account || "")}"
+            data-recommendation="${escapeHtml(a.recommendation || "")}">Approve &amp; execute</button>
+            <button class="action-btn wf-explain" type="button"
+            data-explain="${escapeHtml(a.actionId)}"
+            data-account="${escapeHtml(a.account || "")}"
+            data-recommendation="${escapeHtml(a.recommendation || "")}">AI rationale ↗</button>`;
+        } else if (run && run.status === "PENDING") {
+          actionCell = `
+            <span class="wf-chip" title="Live Domo Workflow instance">▶ workflow ${run.local ? "(local)" : escapeHtml(shortId)}</span>
+            <button class="action-btn wf-check" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh status"}</button>
+            <a class="wf-link" href="#" data-wf-task="1">Open approval task ↗</a>
+            ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">trigger fallback</span>` : ""}`;
+        } else if (a.justActioned) {
+          actionCell = `<span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>`;
+        }
         return `
         <tr class="${a.justActioned ? "row-actioned" : ""}">
           <td><strong>${escapeHtml(a.account)}</strong></td>
           <td>${escapeHtml(a.recommendation)}</td>
           <td><span class="status ${a.approval.toLowerCase()}">${a.approval}</span></td>
           <td>
-            <span class="status ${a.execution.toLowerCase()}">${a.execution}</span>
-            ${pending ? `<button class="action-btn" type="button" data-action-id="${escapeHtml(a.actionId)}" data-protected="${Number(a.protected) || 0}">Approve &amp; execute</button>` : ""}
-            ${a.justActioned ? `<span class="action-writeback" title="Written to gold_agent_action_queue writeback">✓ writeback</span>` : ""}
+            <span class="status ${a.execution.toLowerCase().replace(/\s+/g, "-")}">${a.execution}</span>
+            ${actionCell}
           </td>
           <td class="num">${fmtCurrency(a.protected)}</td>
         </tr>
@@ -743,30 +776,171 @@ function renderActions(actions) {
   document.querySelectorAll(".action-btn[data-action-id]").forEach((button) => {
     button.addEventListener("click", () => executeAction(button));
   });
+  document.querySelectorAll("[data-wf-check]").forEach((button) => {
+    button.addEventListener("click", () => checkWorkflow(button.getAttribute("data-wf-check")));
+  });
+  document.querySelectorAll("[data-wf-task]").forEach((link) => {
+    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(WORKFLOW_TASKS_URL); });
+  });
+  document.querySelectorAll("[data-explain]").forEach((button) => {
+    button.addEventListener("click", () => explainAction(
+      button.getAttribute("data-explain"),
+      button.getAttribute("data-account") || "",
+      button.getAttribute("data-recommendation") || ""
+    ));
+  });
+  renderActionRationale();
+}
+
+function renderActionRationale() {
+  const el = document.getElementById("actionRationale");
+  if (!el) return;
+  const r = state.actionRationale;
+  if (!r) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const badge = `<span class="gw-badge" title="Governed by Unity AI Gateway: usage tracking, rate limits, guardrails (input safety + PII block · output safety + PII mask), inference-table audit">⛨ Unity AI Gateway · guardrails on</span>`;
+  if (r.loading) {
+    el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale</strong> ${badge}</div><div class="rationale-body muted">Scoring through the governed reasoning endpoint…</div>`;
+    return;
+  }
+  if (r.error) {
+    el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale</strong> ${badge}</div><div class="rationale-body err">Governed reasoning unavailable in this context (${escapeHtml(String(r.error)).slice(0, 160)}).</div>`;
+    return;
+  }
+  el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale — ${escapeHtml(r.account)}</strong> ${badge}</div>
+    <div class="rationale-body">${escapeHtml(r.content)}</div>
+    <div class="rationale-foot">via <code>pattern4ce.askReasoningModel</code> → serving endpoint <code>pattern4-reasoning-gateway</code>${r.usage ? ` · ${r.usage.total_tokens || "?"} tokens` : ""}</div>`;
+}
+
+async function explainAction(actionId, account, recommendation) {
+  state.actionRationale = { actionId, account, loading: true };
+  renderActionRationale();
+  const prompt = `Account "${account}" has elevated renewal risk tied to incident INC-0001 (West enterprise; SLA breaches up, usage down). The recommended retention action is "${recommendation}". In 2-3 sentences, explain why this action fits and what to watch after executing it.`;
+  let result = null;
+  try {
+    result = await askReasoningModel(prompt, state.persona);
+  } catch (error) {
+    result = { status: "FAILED", error: String(error) };
+  }
+  if (result && result.status === "SUCCEEDED") {
+    state.actionRationale = { actionId, account, content: result.content || "", usage: result.usage || null };
+  } else {
+    state.actionRationale = { actionId, account, error: (result && result.error) || "unavailable" };
+  }
+  renderActionRationale();
+}
+
+async function askReasoningModel(prompt, persona) {
+  if (!window.domo || typeof window.domo.post !== "function") {
+    return { status: "FAILED", error: "Domo runtime unavailable" };
+  }
+  const response = await window.domo.post("/domo/codeengine/v2/packages/askReasoningModel", {
+    prompt,
+    persona: persona || "",
+  });
+  return unwrapCodeEngineResponse(response);
 }
 
 async function executeAction(button) {
   const actionId = button.getAttribute("data-action-id");
   const protectedAmt = Number(button.getAttribute("data-protected")) || 0;
-  button.textContent = "Writing…";
+  const account = button.getAttribute("data-account") || "";
+  const recommendation = button.getAttribute("data-recommendation") || "";
+  button.textContent = "Starting workflow…";
   button.disabled = true;
+
+  // Primary path (Shape A): start the live, governed Domo Workflow server-side.
+  try {
+    const result = await startRetentionWorkflow(actionId, {
+      account,
+      recommendation,
+      protectedRevenue: protectedAmt,
+      sourceQuestion: "Why did renewal risk increase for West enterprise accounts this month?",
+    });
+    if (result?.status === "SUCCEEDED" && result.instanceId) {
+      state.workflowRuns[actionId] = { instanceId: result.instanceId, status: "PENDING", protectedAmt };
+      render();
+      return;
+    }
+    throw new Error(result?.error ? JSON.stringify(result.error) : "workflow start unavailable");
+  } catch (error) {
+    console.warn("Workflow trigger unavailable in this context; using local approve→execute fallback", error);
+  }
+
+  // Fallback path: optimistic approve→execute via the released writeActionStatus writeback.
   let live = false;
   try {
-    const result = await writeActionStatus(actionId);
-    if (result?.status === "SUCCEEDED") {
-      live = true;
-    } else {
-      throw new Error(result?.error ? JSON.stringify(result.error) : "writeback failed");
-    }
+    const wb = await writeActionStatus(actionId);
+    live = wb?.status === "SUCCEEDED";
   } catch (error) {
-    console.warn("Action writeback unavailable in this context; reflecting approved state locally", error);
+    console.warn("Fallback writeback also unavailable; reflecting approved state locally", error);
   }
-  // Optimistic approve→execute: update status pills and bump protected revenue.
   state.executedActionIds[actionId] = protectedAmt;
-  if (!live) state.executedActionIds[actionId + ":local"] = true;
+  state.workflowRuns[actionId] = { instanceId: null, status: "APPROVED", local: !live };
   state.protectedBump = (state.protectedBump || 0) + protectedAmt;
   render();
   flashKpiProtected();
+}
+
+async function checkWorkflow(actionId) {
+  const run = state.workflowRuns[actionId];
+  if (!run) return;
+  run.checking = true;
+  render();
+  let result = null;
+  try {
+    result = await getRetentionWorkflowResult(run.instanceId, actionId);
+  } catch (error) {
+    run.error = String(error);
+  }
+  run.checking = false;
+  if (result && result.status === "SUCCEEDED" && result.decided) {
+    const decision = String(result.decision || "").toLowerCase();
+    if (decision === "approved") {
+      const amt = Number(run.protectedAmt) || 0;
+      state.executedActionIds[actionId] = amt;
+      state.protectedBump = (state.protectedBump || 0) + amt;
+      delete state.workflowRuns[actionId];
+      render();
+      flashKpiProtected();
+      return;
+    }
+    if (decision === "rejected") {
+      state.rejectedActionIds[actionId] = true;
+      delete state.workflowRuns[actionId];
+      render();
+      return;
+    }
+  }
+  // Still in progress (or no decision yet) — keep the pending chip.
+  render();
+}
+
+async function startRetentionWorkflow(actionId, ctx) {
+  if (!window.domo || typeof window.domo.post !== "function") {
+    return { status: "FAILED", error: "Domo runtime unavailable" };
+  }
+  const response = await window.domo.post("/domo/codeengine/v2/packages/startRetentionWorkflow", {
+    actionId,
+    account: ctx.account || "",
+    recommendation: ctx.recommendation || "",
+    persona: state.persona,
+    predicted: null,
+    protectedRevenue: Number(ctx.protectedRevenue) || 0,
+    sourceQuestion: ctx.sourceQuestion || "",
+  });
+  return unwrapCodeEngineResponse(response);
+}
+
+async function getRetentionWorkflowResult(instanceId, actionId) {
+  if (!window.domo || typeof window.domo.post !== "function") {
+    return { status: "FAILED", error: "Domo runtime unavailable" };
+  }
+  const response = await window.domo.post("/domo/codeengine/v2/packages/getRetentionWorkflowResult", {
+    instanceId: instanceId || "",
+    actionId,
+  });
+  return unwrapCodeEngineResponse(response);
 }
 
 function flashKpiProtected() {
@@ -1184,7 +1358,12 @@ async function callPattern4ce(fnName, payload) {
   if (!window.domo || typeof window.domo.post !== "function") {
     throw new Error("Domo runtime unavailable");
   }
-  const response = await window.domo.post(`/domo/codeengine/v2/packages/${fnName}`, payload || {});
+  // Domo's Code Engine proxy rejects an empty request body ("Required request body is
+  // missing") for no-parameter functions (e.g. listScenarios / listPredictionFeedback),
+  // which surfaces as a bare 400. Always send a non-empty body; undeclared keys are
+  // ignored by the proxy's parameter mapping, so this is safe for every function.
+  const body = payload && Object.keys(payload).length ? payload : { _ping: 1 };
+  const response = await window.domo.post(`/domo/codeengine/v2/packages/${fnName}`, body);
   const output = unwrapCodeEngineResponse(response);
   if (output?.status === "FAILED" || output?.error) {
     throw new Error(typeof output.error === "string" ? output.error : JSON.stringify(output.error || output));
@@ -1216,8 +1395,8 @@ function safeJson(value, fallback) {
 async function loadLakebaseLive() {
   try {
     const [scenarioResult, feedbackResult] = await Promise.all([
-      callPattern4ce("listScenarios", {}),
-      callPattern4ce("listPredictionFeedback", {}),
+      callPattern4ce("listScenarios", { limit: 50 }),
+      callPattern4ce("listPredictionFeedback", { limit: 50 }),
     ]);
     state.lakebase.scenarios = (scenarioResult.rows || []).map(normalizeScenario);
     state.lakebase.feedback = feedbackResult.rows || [];
@@ -1316,7 +1495,7 @@ function renderLakebase() {
       ["Database", "databricks_postgres"],
       ["Tables", "p4_scenario_runs · p4_prediction_feedback"],
       ["Access", "pattern4ce → node-postgres (SP M2M)"],
-      ["Mode", state.lakebaseLive ? "Live read/write" : "Preview fallback"],
+      ["Mode", state.lakebaseLive ? "Live read/write" : "Preview fallback — re-add card to go live"],
     ];
     grid.innerHTML = meta.map(([k, v]) => `<div class="ml-meta"><span class="ml-meta-k">${escapeHtml(k)}</span><span class="ml-meta-v">${escapeHtml(v)}</span></div>`).join("");
   }
@@ -1344,7 +1523,14 @@ function renderLakebase() {
 
   const refresh = document.getElementById("lakebaseRefreshBtn");
   if (refresh && !refresh.dataset.wired) {
-    refresh.addEventListener("click", loadLakebaseLive);
+    refresh.addEventListener("click", async () => {
+      await loadLakebaseLive();
+      if (state.lakebaseLive) {
+        lakebaseBanner("success", "Refreshed live from Lakebase.");
+      } else {
+        lakebaseBanner("warn", "Still in preview fallback — re-instantiate the App Studio card to bind the live Code Engine context." + (state.lakebase.error ? " (" + state.lakebase.error + ")" : ""));
+      }
+    });
     refresh.dataset.wired = "1";
   }
   const add = document.getElementById("lakebaseAddBtn");
@@ -1515,7 +1701,11 @@ async function saveLakebaseRow(event) {
         state.lakebase.scenarios.unshift(next);
         state.lakebase.selectedScenarioId = next.id;
       }
-      lakebaseBanner("success", editing ? "Scenario updated in Lakebase." : "Scenario written to Lakebase.");
+      if (state.lakebaseLive) {
+        lakebaseBanner("success", editing ? "Scenario updated in Lakebase." : "Scenario written to Lakebase.");
+      } else {
+        lakebaseBanner("warn", "Preview only — NOT written to Lakebase. The app is in preview fallback; re-instantiate the App Studio card to enable live writes.");
+      }
     } else {
       const payload = {
         predictionId: `manual-${Date.now()}`,
@@ -1536,7 +1726,12 @@ async function saveLakebaseRow(event) {
           comment: payload.comment, created_by: payload.createdBy,
         });
       }
-      lakebaseBanner("success", "Prediction feedback written to Lakebase.");
+      lakebaseBanner(
+        state.lakebaseLive ? "success" : "warn",
+        state.lakebaseLive
+          ? "Prediction feedback written to Lakebase."
+          : "Preview only — NOT written to Lakebase. The app is in preview fallback; re-instantiate the App Studio card to enable live writes.",
+      );
     }
     state.lakebase.formOpen = false;
     state.lakebase.editingRow = null;
@@ -1585,7 +1780,10 @@ async function deleteScenario(id) {
     if (state.lakebaseLive) await callPattern4ce("deleteScenario", { id });
     state.lakebase.scenarios = state.lakebase.scenarios.filter((s) => s.id !== id);
     state.lakebase.selectedScenarioId = state.lakebase.scenarios[0]?.id || null;
-    lakebaseBanner("success", "Scenario deleted from Lakebase.");
+    lakebaseBanner(
+      state.lakebaseLive ? "success" : "warn",
+      state.lakebaseLive ? "Scenario deleted from Lakebase." : "Preview only — change not persisted (preview fallback).",
+    );
     renderLakebase();
   } catch (error) {
     console.warn("Scenario delete failed", error);
@@ -1726,17 +1924,17 @@ const FLOW_STAGES = [
     governed: "Lakebase roles + service principal",
   },
   {
-    id: "gw", name: "Unity AI Gateway + MCP", sub: "Governed agent handoff", plane: "both", icon: "gateway",
-    lead: "The agent-to-agent boundary. Code Engine provides the governed server-side bridge today; the roadmap serves Databricks Agent Bricks over MCP with on-behalf-of identity and full audit.",
-    bullets: ["On-behalf-of (OBO) identity", "Rate limits + prompt-injection / content filters", "Dual audit trail across both planes"],
-    input: "Agent tool calls (MCP)",
-    output: "Governed, audited responses",
-    governed: "Unity AI Gateway — OBO, policy, audit",
+    id: "gw", name: "Unity AI Gateway", sub: "Governed model + LLM calls", plane: "both", icon: "gateway",
+    lead: "The governance boundary for AI calls. Unity AI Gateway is live on the renewal-risk model endpoint (usage tracking + rate limits + inference-table audit) and on a guardrailed LLM reasoning endpoint (pattern4-reasoning-gateway) with input/output safety + PII filters. The app's AI rationale is generated through it.",
+    bullets: ["Live on pattern4-renewal-risk: usage tracking, 120/min rate limit, payload inference table", "Live on pattern4-reasoning-gateway: guardrails (input safety + PII block · output safety + PII mask), usage + audit", "OBO note: calls run as a governed service principal today; per-user OBO needs Databricks U2M OAuth / token federation (the embedded Domo app carries a Domo identity, not a Databricks one)"],
+    input: "Model + LLM tool calls",
+    output: "Governed, audited, guardrailed responses",
+    governed: "Unity AI Gateway — usage, rate limits, guardrails, inference tables",
   },
   {
-    id: "act", name: "Agent Action + Writeback", sub: "Human-approved action", plane: "domo", icon: "action",
-    lead: "Domo acts. The Agent Action Queue turns Genie reasoning + model scores into recommendations; a human approves, and status writes back so Protected Revenue updates in the portal.",
-    bullets: ["Recommendation → human approval → execution", "pattern4ce.writeActionStatus writes back to the lakehouse", "Protected Revenue updates live; rejected actions stay auditable"],
+    id: "act", name: "Agent Action + Workflow", sub: "Governed Domo Workflow", plane: "domo", icon: "action",
+    lead: "Domo acts. Approve & execute starts a live, governed Domo Workflow (Renewal Risk Retention): it routes a human-approval task to the approver's Domo Tasks, then a service task writes status back to the lakehouse so the portal reflects reality.",
+    bullets: ["Approve & execute → pattern4ce.startRetentionWorkflow starts the workflow server-side (run id captured)", "Human approval task → writeActionStatus writes Approved/Executed or Rejected to agent_action_writeback (Delta)", "Pending → Approved/Executed → Rejected states are visible + auditable; Code Engine writeback is the fallback path"],
     input: "Genie reasoning + model scores",
     output: "Approved action + status writeback",
     governed: "Domo RBAC + approval gates",
@@ -2540,6 +2738,12 @@ const LAKEBASE_TABLES_LINK = `${LAKEBASE_PROJECT_LINK}/branches/br-lingering-cel
 // Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
 // table; shows the downstream Domo Pattern 4 external-lineage node.
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
+// Live Domo Workflow (Renewal Risk Retention). Approve & execute starts this governed
+// workflow server-side via pattern4ce.startRetentionWorkflow; the human approval task
+// routes to the demo user's Domo Tasks, then writeActionStatus writes status back.
+const DOMO_INSTANCE_URL = "https://databricks-demo.domo.com";
+const WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
+const WORKFLOW_TASKS_URL = `${DOMO_INSTANCE_URL}/workflows/${WORKFLOW_MODEL_ID}`;
 
 const GENIE_MODELS = [
   { value: "genie-default", label: "Genie (default)", sub: "AI/BI" },

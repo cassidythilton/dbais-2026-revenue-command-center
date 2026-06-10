@@ -31,7 +31,9 @@ account → human-approved agent action with writeback → governed AI Readiness
 | Catalog / schema | `databricks_raptor.pattern4_agent_automation` |
 | SQL warehouse | `ea829ba58bcae093` |
 | Genie space | `01f1642295b61d6b8849e106f52fc781` |
-| ML model / endpoint | UC `pattern4_renewal_risk` **v6 (regressor)** → endpoint `pattern4-renewal-risk` |
+| ML model / endpoint | UC `pattern4_renewal_risk` **v6 (regressor)** → endpoint `pattern4-renewal-risk` (AI Gateway: usage + 120/min + inference table) |
+| Live Domo Workflow | `Pattern 4 - Renewal Risk Retention` (`6cbd5ecb-1036-410a-b188-60a49820d264`, v1.0.0); approval queue `Renewal Risk Approvals`; assignee `cassidy.hilton@domo.com` |
+| AI Gateway LLM endpoint | `pattern4-reasoning-gateway` (external-model over `databricks-claude-sonnet-4-5`; guardrails + usage + inference table); secret `{{secrets/pattern4/dbx_pat}}` |
 | Lakebase | project `cobra-v1`, tables `public.p4_scenario_runs`, `public.p4_prediction_feedback` |
 | External lineage object | `domo_pattern4_revenue_command_center` (`ff15743d-…`) |
 | GitHub | `https://github.com/cassidythilton/dbais-2026-revenue-command-center` |
@@ -65,7 +67,7 @@ account → human-approved agent action with writeback → governed AI Readiness
 | 2 | **Insight Rail** → *Ask Genie why* | "The model flags the West dip is tied to incident INC-0001. Let's ask the lakehouse." |
 | 3 | **Genie Workspace** | Click *Why did renewal risk increase for West enterprise accounts?* Open **Inspect** to show the governed API call + generated SQL. "Same Unity Catalog metrics, answered in natural language, on-behalf-of me." |
 | 4 | **ML Predictions** | "Now score a specific account." Run prediction on the default West Enterprise account → ~33% churn (Medium). Show the **run log** (it's calling Databricks Model Serving via Code Engine), then open the **Inference Payload** panel → cURL / Python / SQL. "This is the exact governed request; data scientists can reproduce it. Token never touches the browser." Bump SLA breaches up and re-run to show it move. |
-| 5 | **Forecast Home → Agent Action Queue** | "Genie explained, the model scored — now Domo acts." Click **Approve & execute** on the pending action. Watch **Protected Revenue** tick up with the writeback chip. "Human-in-the-loop approval; status writes back to the lakehouse." |
+| 5 | **Forecast Home → Agent Action Queue** | "Genie explained, the model scored — now Domo acts." (Optional) click **AI rationale ↗** to show a guardrailed, Unity AI Gateway-governed recommendation. Click **Approve & execute** → it starts a live, governed **Domo Workflow** (run id captured) and routes a human-approval task to your Domo Tasks. Approve it there, then click **Refresh status** → status writes back to the lakehouse and **Protected Revenue** ticks up. "Human-in-the-loop approval as a real workflow; status is auditable in `agent_action_writeback`." (If the workflow isn't deployed yet, the app falls back to the Code Engine writeback automatically.) |
 | 6 | **Lakebase Ops** | "Operational state — saved what-if scenarios and prediction feedback — lives in Lakebase Postgres next to the lakehouse, not in a spreadsheet." |
 | 7 | **AI Readiness** | "Governance: Unity Catalog is the source of truth. We sync prepared column metadata into Domo AI Readiness — Domo never edits the source. Editing UC context is a separate, governed action (the Inspect drawer)." |
 | 8 | **How It Works** | Land here to recap the agent-to-agent architecture, the user guide, and the component bill across Databricks / Interop / Domo. |
@@ -93,8 +95,9 @@ account → human-approved agent action with writeback → governed AI Readiness
 | Model Serving cold start | Scale-to-zero adds ~20–30s on the first score. | Warm it in the pre-demo checklist; the run-log animation keeps the audience engaged. |
 | Genie / Code Engine | Live answers require the published app context (not local preview). | Local preview shows representative sample answers; the published app answers live. |
 | Domo AI Services registry | `/api/ml/v1/models` returned 404 this session. | Runtime inference uses **direct Databricks Model Serving** via Code Engine; AI Services is the governance/catalog layer. |
-| Agent Catalyst / Domo Workflows (live) | Not provisioned as live Domo Workflow objects in this build. | The app demonstrates the equivalent contract: recommendation → human approval → `writeActionStatus` Code Engine writeback to the lakehouse. Stand up a live Workflow/Agent Catalyst later using the same contract. |
-| Unity AI Gateway / OBO | Not yet enforced; documented in the architecture. | Code Engine provides the governed server-side bridge today. |
+| Domo Workflow deploy | The workflow model `Pattern 4 - Renewal Risk Retention` (`6cbd5ecb-…`, v1.0.0) is authored + validated (0 errors) via REST, but the **Deploy** step is UI-only (the API lacks deploy/publish permission, like `domo publish`). Until deployed, `startRetentionWorkflow` returns "No trigger found" and the app falls back to the Code Engine writeback. | One-click: open the workflow in Domo → **Deploy** (registers the start trigger). `pattern4ce` **v1.0.14** (with `startRetentionWorkflow`/`getRetentionWorkflowResult`) is already released. |
+| Agent Catalyst (live agent) | A live Agent Catalyst triage agent that *generates* the recommendation is deferred (Shape C). | The recommendation comes from `gold_agent_action_queue`; the governed action object is the live Domo Workflow. Optional: add an Agent Catalyst agent later. |
+| Unity AI Gateway / OBO | **Live** on `pattern4-renewal-risk` (usage + rate limits + inference table) and `pattern4-reasoning-gateway` (guardrails + usage + audit). Per-user **OBO** is not wired — the embedded app carries a Domo identity, not a Databricks one. | Calls are governed/audited as a single service identity today; documented supported route = Databricks U2M OAuth / token federation (`pattern-4-ai-gateway-and-obo.md`). |
 
 ---
 

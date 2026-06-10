@@ -900,6 +900,75 @@ td.num {
   color: var(--status-good);
 }
 
+/* Live Domo Workflow run affordances */
+.status.in-workflow { color: var(--status-info); background: var(--status-info-bg); }
+
+.wf-chip {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 3px 8px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--status-info);
+  background: var(--status-info-bg);
+  border-radius: var(--r-pill);
+}
+
+.wf-link {
+  margin-left: 7px;
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--domo-blue-ink);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.wf-link:hover { text-decoration: underline; }
+
+.wf-err {
+  margin-left: 7px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--status-warn);
+}
+
+.action-btn.wf-explain { color: var(--uc, #b8443c); }
+.action-btn.wf-explain:hover { background: rgba(184, 68, 60, 0.08); border-color: var(--uc, #b8443c); }
+
+/* Unity AI Gateway-governed reasoning panel */
+.action-rationale {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--uc, #b8443c);
+  border-radius: var(--r-md, 10px);
+  background: var(--n-050, #f7f8fa);
+}
+.rationale-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.rationale-body { font-size: 12.5px; line-height: 1.5; color: var(--ink, #1a1f29); }
+.rationale-body.muted { color: var(--muted); }
+.rationale-body.err { color: var(--status-warn); }
+.rationale-foot { margin-top: 7px; font-size: 10px; color: var(--muted); }
+.rationale-foot code { font-size: 10px; }
+.gw-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--uc, #b8443c);
+  background: rgba(184, 68, 60, 0.08);
+  border: 1px solid rgba(184, 68, 60, 0.25);
+  border-radius: var(--r-pill);
+}
+
 .row-actioned td { background: rgba(63, 143, 107, 0.07); }
 .row-actioned { animation: row-actioned-in 0.5s ease; }
 @keyframes row-actioned-in {
@@ -3202,6 +3271,7 @@ td.num.neg { color: var(--status-bad); font-weight: 700; }
 }
 .lb-banner.success { border-left: 3px solid var(--status-good); color: var(--status-good); background: var(--status-good-bg); }
 .lb-banner.error { border-left: 3px solid var(--status-bad); color: var(--status-bad); background: var(--status-bad-bg); }
+.lb-banner.warn { border-left: 3px solid #b26a00; color: #8a5200; background: rgba(255, 153, 34, 0.12); }
 .lb-banner button { border: none; background: none; font-size: 16px; line-height: 1; color: inherit; cursor: pointer; }
 
 .explorer-toolbar {

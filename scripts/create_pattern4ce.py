@@ -187,6 +187,35 @@ def main() -> int:
                 text_input("persona", True),
             ],
         ),
+        fn(
+            "askReasoningModel",
+            "Ask Reasoning Model (AI Gateway)",
+            [
+                text_input("prompt", False),
+                text_input("persona", True),
+            ],
+        ),
+        fn(
+            "startRetentionWorkflow",
+            "Start Retention Workflow",
+            [
+                text_input("actionId", False),
+                text_input("account", True),
+                text_input("recommendation", True),
+                text_input("persona", True),
+                number_input("predicted", True),
+                number_input("protectedRevenue", True),
+                text_input("sourceQuestion", True),
+            ],
+        ),
+        fn(
+            "getRetentionWorkflowResult",
+            "Get Retention Workflow Result",
+            [
+                text_input("instanceId", True),
+                text_input("actionId", False),
+            ],
+        ),
         fn("listScenarios", "List Lakebase Scenarios", []),
         fn(
             "createScenario",

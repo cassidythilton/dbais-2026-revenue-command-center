@@ -1,0 +1,1146 @@
+{
+  "version": 2,
+  "designElements": [
+    {
+      "id": "rootNode",
+      "position": {
+        "x": 50,
+        "y": 30
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "Start Pattern 4 - Renewal Risk Retention",
+        "description": "",
+        "type": "Start",
+        "_designNode": "rootNode",
+        "isFormStart": false,
+        "formId": null,
+        "input": [
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "actionId",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "CfDMRQG0DCyxReA",
+            "isList": false,
+            "mappedTo": "var_mcHS31g7FoX",
+            "paramName": "actionId",
+            "required": true,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "account",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "Vh6QkFcL6zsNsCq",
+            "isList": false,
+            "mappedTo": "var_4BXlRAnqYE8",
+            "paramName": "account",
+            "required": false,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "recommendation",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "esc342duDfLvS0c",
+            "isList": false,
+            "mappedTo": "var_VRjGLnVweJR",
+            "paramName": "recommendation",
+            "required": false,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "persona",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "TGex6vcczi14Hxp",
+            "isList": false,
+            "mappedTo": "var_kLeXCeeAoz4",
+            "paramName": "persona",
+            "required": false,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "decimal",
+            "displayName": "predicted",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "NeMIiX1dFl9e0xG",
+            "isList": false,
+            "mappedTo": "var_jyMWFOO3HGt",
+            "paramName": "predicted",
+            "required": false,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "decimal",
+            "displayName": "protectedRevenue",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "qaw3nE8vSVUrfhj",
+            "isList": false,
+            "mappedTo": "var_yGXNFtEuXvJ",
+            "paramName": "protectedRevenue",
+            "required": false,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "sourceQuestion",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "rSyqrq0NAkM6h8o",
+            "isList": false,
+            "mappedTo": "var_zD1yCcGsITY",
+            "paramName": "sourceQuestion",
+            "required": false,
+            "value": null,
+            "visible": true
+          }
+        ]
+      },
+      "style": {
+        "zIndex": 3,
+        "outline": "none"
+      },
+      "index": 0,
+      "type": "rootNode"
+    },
+    {
+      "id": "3WTF0tUOn80ywue",
+      "position": {
+        "x": 50,
+        "y": 190
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "",
+        "description": "",
+        "_designNode": "userTaskNode",
+        "configType": "form",
+        "selectedUserTaskTitle": "Approve renewal-risk retention",
+        "selectedUserTaskDescription": "",
+        "input": [
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Account",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "input",
+            "formFieldId": "02b8adb0-94dc-40b8-a129-5677ee16215e",
+            "formFieldType": "SHORT_ANSWER",
+            "id": "wJlTONr6euo8TEb",
+            "isList": false,
+            "mappedTo": "var_4BXlRAnqYE8",
+            "paramName": "Account",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "forms",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Recommended action",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "input",
+            "formFieldId": "c601b2b4-04a7-400f-a263-090392470c3a",
+            "formFieldType": "PARAGRAPH",
+            "id": "LL0lVgzqM21iAzj",
+            "isList": false,
+            "mappedTo": "var_VRjGLnVweJR",
+            "paramName": "Recommendation",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "forms",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "decimal",
+            "datasetMapping": null,
+            "displayName": "Protected revenue ($)",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "input",
+            "formFieldId": "dcff089e-0583-4428-914d-ce264b1c4d23",
+            "formFieldType": "SHORT_ANSWER",
+            "id": "ll6KOlWalSzmytd",
+            "isList": false,
+            "mappedTo": "var_yGXNFtEuXvJ",
+            "paramName": "Protected_Revenue",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "forms",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Source question / context",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "input",
+            "formFieldId": "7e502bb7-e666-4fc9-8f06-a0ec4bce6aeb",
+            "formFieldType": "PARAGRAPH",
+            "id": "8v7gHYO3wTb72Lj",
+            "isList": false,
+            "mappedTo": "var_zD1yCcGsITY",
+            "paramName": "Source_Question",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "forms",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Decision",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "input",
+            "formFieldId": "5d349eea-6790-407d-9f09-298db3324880",
+            "formFieldType": "SINGLE_CHOICE",
+            "id": "GoVL8fz50A502ZC",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "Decision",
+            "required": true,
+            "value": "Rejected",
+            "visible": true,
+            "configType": "forms",
+            "useExternalValues": false
+          }
+        ],
+        "output": [
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Account",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "output",
+            "formFieldId": "02b8adb0-94dc-40b8-a129-5677ee16215e",
+            "formFieldType": "SHORT_ANSWER",
+            "id": "BshzT6jtBmQFvIn",
+            "isList": false,
+            "mappedTo": "var_4BXlRAnqYE8",
+            "paramName": "Account",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "form",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Recommended action",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "output",
+            "formFieldId": "c601b2b4-04a7-400f-a263-090392470c3a",
+            "formFieldType": "PARAGRAPH",
+            "id": "QXJuRCGoLg1rC1z",
+            "isList": false,
+            "mappedTo": "var_VRjGLnVweJR",
+            "paramName": "Recommendation",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "form",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "decimal",
+            "datasetMapping": null,
+            "displayName": "Protected revenue ($)",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "output",
+            "formFieldId": "dcff089e-0583-4428-914d-ce264b1c4d23",
+            "formFieldType": "SHORT_ANSWER",
+            "id": "zpXeRBTPfaWZ7R7",
+            "isList": false,
+            "mappedTo": "var_yGXNFtEuXvJ",
+            "paramName": "Protected_Revenue",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "form",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Source question / context",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "output",
+            "formFieldId": "7e502bb7-e666-4fc9-8f06-a0ec4bce6aeb",
+            "formFieldType": "PARAGRAPH",
+            "id": "v7FciZdH5Z4rDJA",
+            "isList": false,
+            "mappedTo": "var_zD1yCcGsITY",
+            "paramName": "Source_Question",
+            "required": false,
+            "value": null,
+            "visible": true,
+            "configType": "form",
+            "useExternalValues": false
+          },
+          {
+            "acceptsInput": true,
+            "children": [],
+            "customMappingType": "form",
+            "dataType": "text",
+            "datasetMapping": null,
+            "displayName": "Decision",
+            "entitySubType": null,
+            "fieldOptionsMappedTo": null,
+            "fieldOptionsValue": null,
+            "flag": "output",
+            "formFieldId": "5d349eea-6790-407d-9f09-298db3324880",
+            "formFieldType": "SINGLE_CHOICE",
+            "id": "GsfPxxdd1ZXsQum",
+            "isList": false,
+            "mappedTo": "var_gsGfLAMIH7J",
+            "paramName": "Decision",
+            "required": true,
+            "value": null,
+            "visible": true,
+            "configType": "form",
+            "useExternalValues": false
+          }
+        ],
+        "fieldOptions": [],
+        "formId": "d03bde1c-757f-4f4f-948b-e1391b752c6f",
+        "selectedQueue": "55c37364-de76-47a3-8ba6-b5415e063e58",
+        "assignedTo": {
+          "aiDescription": null,
+          "children": [],
+          "configType": null,
+          "customMappingType": null,
+          "dataType": "person",
+          "displayName": "Assigned To",
+          "entitySubType": null,
+          "flag": "input",
+          "id": "OAmBQq7OP8IQusg",
+          "isList": false,
+          "mappedTo": null,
+          "paramName": "DOMO_ASSIGNED_TO_",
+          "required": true,
+          "value": "1433178023",
+          "visible": true
+        }
+      },
+      "style": {
+        "zIndex": 4,
+        "outline": "none"
+      },
+      "index": 1,
+      "type": "userTaskNode"
+    },
+    {
+      "id": "p6en5z3qMRNps1d",
+      "position": {
+        "x": 50,
+        "y": 350
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "Approved?",
+        "description": "Route on the approval decision.",
+        "_designNode": "conditionalGatewayNode",
+        "inclusive": false
+      },
+      "style": {
+        "zIndex": 3,
+        "outline": "none"
+      },
+      "index": 2,
+      "type": "conditionalGatewayNode"
+    },
+    {
+      "id": "DYXViPHByOpKXUx",
+      "position": {
+        "x": 50,
+        "y": 510
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "Write Approved status",
+        "description": "",
+        "_designNode": "serviceTaskNode",
+        "input": [
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "actionId",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "mzYsPLf0fTvFTya",
+            "isList": false,
+            "mappedTo": "var_mcHS31g7FoX",
+            "paramName": "actionId",
+            "required": true,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "decision",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "D1tr5hrQFGNqLkZ",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "decision",
+            "required": false,
+            "value": "Approved",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "executionStatus",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "jucaLatVZRapVsM",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "executionStatus",
+            "required": false,
+            "value": "Executed",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "approvedBy",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "nCQFoWwGn54pAD3",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "approvedBy",
+            "required": false,
+            "value": "cassidy.hilton@domo.com",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "note",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "vbYfDr842YYD3qd",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "note",
+            "required": false,
+            "value": "Approved via Domo Workflow",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "persona",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "RqVYkHWwWqNwM3T",
+            "isList": false,
+            "mappedTo": "var_kLeXCeeAoz4",
+            "paramName": "persona",
+            "required": false,
+            "value": null,
+            "visible": true
+          }
+        ],
+        "output": [],
+        "taskType": "nebulaFunction",
+        "metadata": {
+          "version": "1.0.12",
+          "settings": {},
+          "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
+          "packageName": "pattern4ce",
+          "functionName": "writeActionStatus"
+        },
+        "usesStructuredOutputs": false,
+        "selectedTaskTitle": "writeActionStatus",
+        "selectedTaskDescription": "Write Action Status"
+      },
+      "style": {
+        "zIndex": 3,
+        "outline": "none"
+      },
+      "index": 3,
+      "type": "serviceTaskNode"
+    },
+    {
+      "id": "kBBZFU8ReMoatVa",
+      "position": {
+        "x": 360,
+        "y": 510
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "Write Rejected status",
+        "description": "",
+        "_designNode": "serviceTaskNode",
+        "input": [
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "actionId",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "MSkpokmzIYC7RNc",
+            "isList": false,
+            "mappedTo": "var_mcHS31g7FoX",
+            "paramName": "actionId",
+            "required": true,
+            "value": null,
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "decision",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "uRtBzAfgWBR60Uv",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "decision",
+            "required": false,
+            "value": "Rejected",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "executionStatus",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "RZt3AQJL1wfb1G5",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "executionStatus",
+            "required": false,
+            "value": "Rejected",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "approvedBy",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "UUlWSg2sFYa8DdI",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "approvedBy",
+            "required": false,
+            "value": "cassidy.hilton@domo.com",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "note",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "Wmpt55IhwlnJIOB",
+            "isList": false,
+            "mappedTo": null,
+            "paramName": "note",
+            "required": false,
+            "value": "Rejected via Domo Workflow",
+            "visible": true
+          },
+          {
+            "aiDescription": null,
+            "children": [],
+            "configType": null,
+            "customMappingType": null,
+            "dataType": "text",
+            "displayName": "persona",
+            "entitySubType": null,
+            "flag": "input",
+            "id": "hvplEAFS1poQPmh",
+            "isList": false,
+            "mappedTo": "var_kLeXCeeAoz4",
+            "paramName": "persona",
+            "required": false,
+            "value": null,
+            "visible": true
+          }
+        ],
+        "output": [],
+        "taskType": "nebulaFunction",
+        "metadata": {
+          "version": "1.0.12",
+          "settings": {},
+          "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
+          "packageName": "pattern4ce",
+          "functionName": "writeActionStatus"
+        },
+        "usesStructuredOutputs": false,
+        "selectedTaskTitle": "writeActionStatus",
+        "selectedTaskDescription": "Write Action Status"
+      },
+      "style": {
+        "zIndex": 3,
+        "outline": "none"
+      },
+      "index": 4,
+      "type": "serviceTaskNode"
+    },
+    {
+      "id": "4HIY6KgNj0XaGzw",
+      "position": {
+        "x": 50,
+        "y": 670
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "",
+        "description": "",
+        "_designNode": "endNode",
+        "terminating": false
+      },
+      "style": {
+        "zIndex": 4,
+        "outline": "none"
+      },
+      "index": 5,
+      "type": "endNode"
+    },
+    {
+      "id": "f77cDxQGJxMeaym",
+      "position": {
+        "x": 360,
+        "y": 670
+      },
+      "data": {
+        "dimensions": {
+          "width": 200,
+          "height": 60
+        },
+        "title": "",
+        "description": "",
+        "_designNode": "endNode",
+        "terminating": false
+      },
+      "style": {
+        "zIndex": 4,
+        "outline": "none"
+      },
+      "index": 6,
+      "type": "endNode"
+    },
+    {
+      "id": "edge-rootNode-3WTF0tUOn80ywue-skiPSt9QeZ5",
+      "source": "rootNode",
+      "target": "3WTF0tUOn80ywue",
+      "data": {
+        "sourcePosition": "bottom",
+        "targetPosition": "top",
+        "path": [
+          [
+            150,
+            90
+          ],
+          [
+            150,
+            189
+          ]
+        ],
+        "title": ""
+      },
+      "style": {
+        "zIndex": 5
+      },
+      "index": 7,
+      "arrowHeadType": "arrow",
+      "type": "defaultEdge"
+    },
+    {
+      "id": "edge-3WTF0tUOn80ywue-p6en5z3qMRNps1d-7Sefi53rggB",
+      "source": "3WTF0tUOn80ywue",
+      "target": "p6en5z3qMRNps1d",
+      "data": {
+        "sourcePosition": "bottom",
+        "targetPosition": "top",
+        "path": [
+          [
+            150,
+            250
+          ],
+          [
+            150,
+            349
+          ]
+        ],
+        "title": ""
+      },
+      "style": {
+        "zIndex": 5
+      },
+      "index": 8,
+      "arrowHeadType": "arrow",
+      "type": "defaultEdge"
+    },
+    {
+      "id": "edge-p6en5z3qMRNps1d-DYXViPHByOpKXUx-QKWMOj0Mnp9",
+      "source": "p6en5z3qMRNps1d",
+      "target": "DYXViPHByOpKXUx",
+      "data": {
+        "sourcePosition": "bottom",
+        "targetPosition": "top",
+        "path": [
+          [
+            150,
+            410
+          ],
+          [
+            150,
+            509
+          ]
+        ],
+        "entryPosition": "top",
+        "exitPosition": "bottom",
+        "description": "",
+        "title": "Approved",
+        "type": "Basic",
+        "nodeId": "EhZBth4L0J1ZCKg",
+        "position": {
+          "x": 50,
+          "y": 430
+        },
+        "dimensions": {
+          "width": 200,
+          "height": 40
+        },
+        "splitIndex": 2,
+        "_designNode": "condition",
+        "rules": [
+          [
+            {
+              "variable": {
+                "id": "var_gsGfLAMIH7J",
+                "paramName": "decision",
+                "dataType": "text",
+                "isList": false,
+                "children": [],
+                "showChildren": false,
+                "entitySubType": null,
+                "value": null,
+                "isOutput": true
+              },
+              "operator": "Equals",
+              "valueType": "Custom",
+              "value": "Approved"
+            }
+          ]
+        ]
+      },
+      "style": {},
+      "index": 9,
+      "arrowHeadType": "arrow",
+      "type": "conditionEdge"
+    },
+    {
+      "id": "edge-p6en5z3qMRNps1d-kBBZFU8ReMoatVa-Rl15Y8pXvRa",
+      "source": "p6en5z3qMRNps1d",
+      "target": "kBBZFU8ReMoatVa",
+      "data": {
+        "sourcePosition": "right",
+        "targetPosition": "top",
+        "path": [
+          [
+            250,
+            380
+          ],
+          [
+            460,
+            380
+          ],
+          [
+            460,
+            509
+          ]
+        ],
+        "entryPosition": "top",
+        "exitPosition": "right",
+        "description": "",
+        "title": "Rejected",
+        "type": "Default",
+        "nodeId": "jcUowVnibujZSxk",
+        "position": {
+          "x": 50,
+          "y": 430
+        },
+        "dimensions": {
+          "width": 200,
+          "height": 40
+        },
+        "splitIndex": 2,
+        "_designNode": "condition"
+      },
+      "style": {},
+      "index": 10,
+      "arrowHeadType": "arrow",
+      "type": "conditionEdge"
+    },
+    {
+      "id": "edge-DYXViPHByOpKXUx-4HIY6KgNj0XaGzw-H0yhxZLMdVU",
+      "source": "DYXViPHByOpKXUx",
+      "target": "4HIY6KgNj0XaGzw",
+      "data": {
+        "sourcePosition": "bottom",
+        "targetPosition": "top",
+        "path": [
+          [
+            150,
+            570
+          ],
+          [
+            150,
+            669
+          ]
+        ],
+        "title": ""
+      },
+      "style": {
+        "zIndex": 5
+      },
+      "index": 11,
+      "arrowHeadType": "arrow",
+      "type": "defaultEdge"
+    },
+    {
+      "id": "edge-kBBZFU8ReMoatVa-f77cDxQGJxMeaym-TAhdJNJNL8U",
+      "source": "kBBZFU8ReMoatVa",
+      "target": "f77cDxQGJxMeaym",
+      "data": {
+        "sourcePosition": "bottom",
+        "targetPosition": "top",
+        "path": [
+          [
+            460,
+            570
+          ],
+          [
+            460,
+            669
+          ]
+        ],
+        "title": ""
+      },
+      "style": {
+        "zIndex": 5
+      },
+      "index": 12,
+      "arrowHeadType": "arrow",
+      "type": "defaultEdge"
+    }
+  ],
+  "dataList": [
+    {
+      "id": "var_mcHS31g7FoX",
+      "paramName": "actionId",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_4BXlRAnqYE8",
+      "paramName": "account",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_VRjGLnVweJR",
+      "paramName": "recommendation",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_kLeXCeeAoz4",
+      "paramName": "persona",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_jyMWFOO3HGt",
+      "paramName": "predicted",
+      "dataType": "decimal",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_yGXNFtEuXvJ",
+      "paramName": "protectedRevenue",
+      "dataType": "decimal",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_zD1yCcGsITY",
+      "paramName": "sourceQuestion",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": null,
+      "isOutput": false
+    },
+    {
+      "id": "var_gsGfLAMIH7J",
+      "paramName": "decision",
+      "dataType": "text",
+      "isList": false,
+      "children": [],
+      "showChildren": false,
+      "entitySubType": null,
+      "value": "Rejected",
+      "isOutput": true
+    }
+  ],
+  "schema": {
+    "inputs": {
+      "CfDMRQG0DCyxReA": {
+        "name": "actionId",
+        "type": "text",
+        "subType": null,
+        "isList": false,
+        "isNullable": false,
+        "id": "CfDMRQG0DCyxReA",
+        "parent": null,
+        "isChild": false
+      },
+      "Vh6QkFcL6zsNsCq": {
+        "name": "account",
+        "type": "text",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "Vh6QkFcL6zsNsCq",
+        "parent": null,
+        "isChild": false
+      },
+      "esc342duDfLvS0c": {
+        "name": "recommendation",
+        "type": "text",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "esc342duDfLvS0c",
+        "parent": null,
+        "isChild": false
+      },
+      "TGex6vcczi14Hxp": {
+        "name": "persona",
+        "type": "text",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "TGex6vcczi14Hxp",
+        "parent": null,
+        "isChild": false
+      },
+      "NeMIiX1dFl9e0xG": {
+        "name": "predicted",
+        "type": "decimal",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "NeMIiX1dFl9e0xG",
+        "parent": null,
+        "isChild": false
+      },
+      "qaw3nE8vSVUrfhj": {
+        "name": "protectedRevenue",
+        "type": "decimal",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "qaw3nE8vSVUrfhj",
+        "parent": null,
+        "isChild": false
+      },
+      "rSyqrq0NAkM6h8o": {
+        "name": "sourceQuestion",
+        "type": "text",
+        "subType": null,
+        "isList": false,
+        "isNullable": true,
+        "id": "rSyqrq0NAkM6h8o",
+        "parent": null,
+        "isChild": false
+      }
+    },
+    "outputs": {}
+  }
+}

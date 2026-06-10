@@ -42,6 +42,16 @@ var CATALOG = "databricks_raptor";
 var SCHEMA = "pattern4_agent_automation";
 var WRITEBACK_TABLE = "agent_action_writeback";
 var MODEL_SERVING_ENDPOINT = "pattern4-renewal-risk";
+/* Unity AI Gateway-governed LLM reasoning endpoint (external-model wrapper over a
+ * foundation model). AI Gateway enforces usage tracking, rate limits, guardrails
+ * (input safety + PII BLOCK / output safety + PII MASK), and inference-table audit. */
+var REASONING_ENDPOINT = "pattern4-reasoning-gateway";
+/* Live Domo Workflow (Renewal Risk Retention). Shape A: the app starts this
+ * governed workflow server-side via the product API; the workflow routes a human
+ * approval, then its service task calls writeActionStatus to write status back. */
+var WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
+var WORKFLOW_VERSION = "1.0.0";
+var WORKFLOW_START_MESSAGE = "Start Pattern 4 - Renewal Risk Retention";
 /* Lakebase connectivity (host/db/endpoint/M2M auth) is fully self-contained
  * inside the bundled lakebaseQuery() implementation below. */
 
@@ -338,9 +348,13 @@ function lakebaseQuery(sql, params) {
   return Promise.resolve(_lakebaseImpl(sql, params));
 }
 
-function listScenarios() {
+function listScenarios(limit) {
+  // `limit` is required so Domo registers a proxy route (zero-parameter functions are
+  // not routed and 404). Validated to a safe integer, so concatenation cannot inject.
+  var lim = Number(limit);
+  if (!(lim > 0 && lim <= 500)) lim = 50;
   return lakebaseQuery(
-    "SELECT id, name, created_by, status, assumptions, results, baseline_id, created_at, updated_at FROM public.p4_scenario_runs ORDER BY created_at DESC LIMIT 50",
+    "SELECT id, name, created_by, status, assumptions, results, baseline_id, created_at, updated_at FROM public.p4_scenario_runs ORDER BY created_at DESC LIMIT " + lim,
     []
   );
 }
@@ -363,9 +377,13 @@ function deleteScenario(id) {
   return lakebaseQuery("DELETE FROM public.p4_scenario_runs WHERE id = $1 RETURNING id", [Number(id)]);
 }
 
-function listPredictionFeedback() {
+function listPredictionFeedback(limit) {
+  // `limit` is required so Domo registers a proxy route (zero-parameter functions are
+  // not routed and 404). Validated to a safe integer, so concatenation cannot inject.
+  var lim = Number(limit);
+  if (!(lim > 0 && lim <= 500)) lim = 50;
   return lakebaseQuery(
-    "SELECT id, prediction_id, entity_type, entity_id, feedback, predicted_value, corrected_value, comment, created_by, created_at FROM public.p4_prediction_feedback ORDER BY created_at DESC LIMIT 50",
+    "SELECT id, prediction_id, entity_type, entity_id, feedback, predicted_value, corrected_value, comment, created_by, created_at FROM public.p4_prediction_feedback ORDER BY created_at DESC LIMIT " + lim,
     []
   );
 }
@@ -926,9 +944,171 @@ function writeActionStatus(actionId, decision, executionStatus, approvedBy, note
     });
 }
 
+/* -------------- Unity AI Gateway-governed LLM reasoning (OBO-ready) -------------- */
+
+function askReasoningModel(prompt, persona) {
+  console.log("[pattern4ce.askReasoningModel] start", JSON.stringify({ persona: persona || "", promptPreview: String(prompt || "").slice(0, 120) }));
+  var url = DATABRICKS_HOST + "/serving-endpoints/" + REASONING_ENDPOINT + "/invocations";
+  var body = {
+    messages: [
+      { role: "system", content: "You are a renewal-risk retention triage analyst for a B2B revenue command center. Be concise, specific, and action-oriented. Persona: " + (persona || "Executive Sponsor") + "." },
+      { role: "user", content: String(prompt || "") }
+    ],
+    max_tokens: 220,
+    temperature: 0.2
+  };
+  return axios.post(url, body, { headers: dbxHeaders(), timeout: 60000 })
+    .then(function (resp) {
+      var data = resp.data || {};
+      var choices = data.choices || [];
+      var content = choices.length && choices[0].message ? choices[0].message.content : "";
+      console.log("[pattern4ce.askReasoningModel] success", JSON.stringify({ usage: data.usage || null }));
+      return {
+        status: "SUCCEEDED",
+        content: content,
+        usage: data.usage || null,
+        endpoint: REASONING_ENDPOINT,
+        governedBy: "Unity AI Gateway",
+        guardrails: "input: safety + PII block · output: safety + PII mask"
+      };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.askReasoningModel] failed", JSON.stringify({ error: detail }));
+      return { status: "FAILED", error: detail, endpoint: REASONING_ENDPOINT, governedBy: "Unity AI Gateway" };
+    });
+}
+
+/* ----------------------- Live Domo Workflow trigger ----------------------- */
+
+function startRetentionWorkflow(actionId, account, recommendation, persona, predicted, protectedRevenue, sourceQuestion) {
+  console.log("[pattern4ce.startRetentionWorkflow] start", JSON.stringify({
+    actionId: actionId, persona: persona || ""
+  }));
+  var predictedNum = predicted === null || predicted === undefined || predicted === "" ? null : Number(predicted);
+  var protectedNum = protectedRevenue === null || protectedRevenue === undefined || protectedRevenue === "" ? null : Number(protectedRevenue);
+  var startBody = {
+    messageName: WORKFLOW_START_MESSAGE,
+    version: WORKFLOW_VERSION,
+    modelId: WORKFLOW_MODEL_ID,
+    data: {
+      actionId: actionId,
+      account: account || "",
+      recommendation: recommendation || "",
+      persona: persona || "",
+      predicted: predictedNum,
+      protectedRevenue: protectedNum,
+      sourceQuestion: sourceQuestion || ""
+    }
+  };
+  // Server-side start via the product API (developer token) — no app context /
+  // workflowMapping, so it is immune to the App Studio stale-context failure mode.
+  return domoApi("POST", "/api/workflow/v1/instances/message", startBody)
+    .then(function (instance) {
+      var instanceId = instance && instance.id ? instance.id : "";
+      console.log("[pattern4ce.startRetentionWorkflow] workflow started", JSON.stringify({
+        actionId: actionId, instanceId: instanceId, status: instance ? instance.status : null
+      }));
+      // Write the Pending audit/trace row (joined to the decision row by action_id).
+      return writeTraceRow(actionId, persona, recommendation, sourceQuestion, predictedNum, protectedNum, instanceId)
+        .then(function () {
+          return {
+            status: "SUCCEEDED",
+            instanceId: instanceId,
+            modelId: WORKFLOW_MODEL_ID,
+            version: WORKFLOW_VERSION,
+            workflowStatus: instance ? instance.status : null
+          };
+        })
+        .catch(function (traceErr) {
+          // The workflow started; a trace-row failure should not fail the trigger.
+          console.error("[pattern4ce.startRetentionWorkflow] trace write failed", JSON.stringify({ error: String(traceErr) }));
+          return { status: "SUCCEEDED", instanceId: instanceId, modelId: WORKFLOW_MODEL_ID, version: WORKFLOW_VERSION, traceWritten: false };
+        });
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.startRetentionWorkflow] failed", JSON.stringify({ actionId: actionId, error: detail }));
+      return { status: "FAILED", error: detail };
+    });
+}
+
+function writeTraceRow(actionId, persona, recommendation, sourceQuestion, predicted, protectedRevenue, instanceId) {
+  var cols = [
+    "writeback_id", "action_id", "decision", "execution_status", "approved_by",
+    "note", "persona", "source_app", "created_ts",
+    "workflow_instance_id", "workflow_model_id", "source_question", "recommendation",
+    "predicted_value", "protected_value", "approval_state", "trigger_source"
+  ];
+  var vals = [
+    "uuid()",
+    sqlString(actionId),
+    sqlString("Pending"),
+    sqlString("Pending"),
+    sqlString(""),
+    sqlString("Workflow started; awaiting human approval"),
+    sqlString(persona || ""),
+    sqlString("Pattern 4 Agent Portal"),
+    "current_timestamp()",
+    sqlString(instanceId || ""),
+    sqlString(WORKFLOW_MODEL_ID),
+    sqlString(sourceQuestion || ""),
+    sqlString(recommendation || ""),
+    predicted === null || predicted === undefined ? "NULL" : Number(predicted),
+    protectedRevenue === null || protectedRevenue === undefined ? "NULL" : Number(protectedRevenue),
+    sqlString("Pending"),
+    sqlString("workflow")
+  ];
+  var stmt = "INSERT INTO " + CATALOG + "." + SCHEMA + "." + WRITEBACK_TABLE +
+    " (" + cols.join(", ") + ") VALUES (" + vals.join(", ") + ")";
+  return runSqlChecked(stmt);
+}
+
+function getRetentionWorkflowResult(instanceId, actionId) {
+  console.log("[pattern4ce.getRetentionWorkflowResult] start", JSON.stringify({ instanceId: instanceId, actionId: actionId }));
+  var workflowStatus = null;
+  var statusP = instanceId
+    ? domoApi("GET", "/api/workflow/v1/instances/" + encodeURIComponent(instanceId))
+        .then(function (inst) { workflowStatus = inst && inst.status ? inst.status : null; })
+        .catch(function () { workflowStatus = null; })
+    : Promise.resolve();
+  // Latest decision row for this action (writeActionStatus writes decision <> 'Pending').
+  var stmt =
+    "SELECT decision, execution_status, approved_by, created_ts FROM " +
+    CATALOG + "." + SCHEMA + "." + WRITEBACK_TABLE +
+    " WHERE action_id = " + sqlString(actionId) +
+    " AND decision IS NOT NULL AND decision <> 'Pending'" +
+    " ORDER BY created_ts DESC LIMIT 1";
+  return statusP
+    .then(function () { return runSqlChecked(stmt); })
+    .then(function (data) {
+      var rows = data && data.result && data.result.data_array ? data.result.data_array : [];
+      var row = rows.length ? rows[0] : null;
+      var out = {
+        status: "SUCCEEDED",
+        workflowStatus: workflowStatus,
+        decision: row ? row[0] : null,
+        executionStatus: row ? row[1] : null,
+        approvedBy: row ? row[2] : null,
+        decidedTs: row ? row[3] : null,
+        decided: !!row
+      };
+      console.log("[pattern4ce.getRetentionWorkflowResult] result", JSON.stringify(out));
+      return out;
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.getRetentionWorkflowResult] failed", JSON.stringify({ error: detail }));
+      return { status: "FAILED", error: detail, workflowStatus: workflowStatus };
+    });
+}
+
 module.exports = {
   askGenie: askGenie,
+  askReasoningModel: askReasoningModel,
   writeActionStatus: writeActionStatus,
+  startRetentionWorkflow: startRetentionWorkflow,
+  getRetentionWorkflowResult: getRetentionWorkflowResult,
   listScenarios: listScenarios,
   createScenario: createScenario,
   updateScenario: updateScenario,

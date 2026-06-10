@@ -74,6 +74,31 @@
       }
     },
     {
+      "alias": "askReasoningModel",
+      "parameters": [
+        {
+          "alias": "prompt",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "persona",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
       "alias": "writeActionStatus",
       "parameters": [
         {
@@ -127,8 +152,95 @@
       }
     },
     {
+      "alias": "startRetentionWorkflow",
+      "parameters": [
+        {
+          "alias": "actionId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "account",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "recommendation",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "persona",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "predicted",
+          "type": "number",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "protectedRevenue",
+          "type": "number",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "sourceQuestion",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "getRetentionWorkflowResult",
+      "parameters": [
+        {
+          "alias": "instanceId",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "actionId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
       "alias": "listScenarios",
-      "parameters": [],
+      "parameters": [
+        { "alias": "limit", "type": "number", "nullable": true, "isList": false, "children": null }
+      ],
       "output": {
         "alias": "result",
         "type": "object",
@@ -183,7 +295,9 @@
     },
     {
       "alias": "listPredictionFeedback",
-      "parameters": [],
+      "parameters": [
+        { "alias": "limit", "type": "number", "nullable": true, "isList": false, "children": null }
+      ],
       "output": {
         "alias": "result",
         "type": "object",
