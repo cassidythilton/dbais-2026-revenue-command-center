@@ -1,0 +1,123 @@
+# Pattern 4 — Revenue Command Center: Demo Runbook
+
+Sprint 6 packaging. Everything a presenter needs to run, reset, and explain the demo,
+plus known limitations and fallbacks. This is the **demo-day source of truth**; the build
+plan (`pattern-4-agent-to-agent-automation-scope-build-plan.md`) remains the
+engineering/scope source of truth.
+
+---
+
+## 1. What this demo proves
+
+> Databricks is the governed intelligence plane; Domo is the business delivery + action
+> plane. One identity, one governed metric layer, surfaced as an executive command center
+> that **predicts** (ML), **explains** (Genie), and **acts** (agent actions + writeback).
+
+The five-act story: forecast headwind → Genie root-cause → ML scoring of an at-risk
+account → human-approved agent action with writeback → governed AI Readiness + lineage.
+
+---
+
+## 2. Environment & IDs (quick reference)
+
+| Thing | Value |
+| --- | --- |
+| Domo instance | `https://databricks-demo.domo.com/` |
+| App Studio app / view | `105910661` / `1913185115` |
+| App design id | `e8a0b5da-d20b-450d-8790-de7ef1634ea7` |
+| Live app instance | `793a830f-db93-468d-98a9-5447d3847bdb` |
+| Code Engine package | `pattern4ce` (`36a18258-0fb7-407a-b268-4a326c5b73c3`), released **v1.0.12** |
+| Databricks workspace | `https://dbc-0516e56c-ba3e.cloud.databricks.com` (CLI profile `pattern4`) |
+| Catalog / schema | `databricks_raptor.pattern4_agent_automation` |
+| SQL warehouse | `ea829ba58bcae093` |
+| Genie space | `01f1642295b61d6b8849e106f52fc781` |
+| ML model / endpoint | UC `pattern4_renewal_risk` **v6 (regressor)** → endpoint `pattern4-renewal-risk` |
+| Lakebase | project `cobra-v1`, tables `public.p4_scenario_runs`, `public.p4_prediction_feedback` |
+| External lineage object | `domo_pattern4_revenue_command_center` (`ff15743d-…`) |
+| GitHub | `https://github.com/cassidythilton/dbais-2026-revenue-command-center` |
+
+---
+
+## 3. Pre-demo checklist (do this ~15 min before)
+
+1. **Publish the latest app** (presenter/owner action — agents build/validate `dist` only):
+   from `pattern4-agent-portal/dist`, run `domo publish`.
+2. **Re-instantiate the App Studio card** if Code Engine bindings changed (remove + re-add
+   the pro-code app to view `1913185115`) so a fresh context picks up the current
+   `packageMapping`. This clears any stale `listScenarios` / `runModelInference` 400s.
+3. **Warm the model endpoint** (scale-to-zero cold start is ~20–30s): score once ahead of
+   time so the live demo is fast:
+   ```bash
+   ~/bin/databricks serving-endpoints query pattern4-renewal-risk -p pattern4 \
+     --json '{"dataframe_records":[{"segment":"Enterprise","region":"West","industry":"Manufacturing","annual_recurring_revenue":1330000,"cases_90d":41,"sla_breaches_90d":12,"negative_cases_90d":9,"avg_usage_score_90d":58,"usage_drop_days_90d":22,"days_to_renewal":47}]}'
+   # expect a single smooth probability, e.g. {"predictions":[0.33]}
+   ```
+4. **Confirm Genie** answers in the published app (Genie Workspace → click a chip).
+5. Open the app full-screen; persona = **Executive Sponsor**.
+
+---
+
+## 4. Talk track (≈6–8 min)
+
+| # | Tab / action | Say this |
+| --- | --- | --- |
+| 1 | **Forecast Home** | "One governed cockpit. KPIs and this Actual-vs-Forecast hero are Databricks gold views, live-federated into Domo through Cloud Amplifier — no copies." Point at Revenue at Risk + the West hotspot bar. |
+| 2 | **Insight Rail** → *Ask Genie why* | "The model flags the West dip is tied to incident INC-0001. Let's ask the lakehouse." |
+| 3 | **Genie Workspace** | Click *Why did renewal risk increase for West enterprise accounts?* Open **Inspect** to show the governed API call + generated SQL. "Same Unity Catalog metrics, answered in natural language, on-behalf-of me." |
+| 4 | **ML Predictions** | "Now score a specific account." Run prediction on the default West Enterprise account → ~33% churn (Medium). Show the **run log** (it's calling Databricks Model Serving via Code Engine), then open the **Inference Payload** panel → cURL / Python / SQL. "This is the exact governed request; data scientists can reproduce it. Token never touches the browser." Bump SLA breaches up and re-run to show it move. |
+| 5 | **Forecast Home → Agent Action Queue** | "Genie explained, the model scored — now Domo acts." Click **Approve & execute** on the pending action. Watch **Protected Revenue** tick up with the writeback chip. "Human-in-the-loop approval; status writes back to the lakehouse." |
+| 6 | **Lakebase Ops** | "Operational state — saved what-if scenarios and prediction feedback — lives in Lakebase Postgres next to the lakehouse, not in a spreadsheet." |
+| 7 | **AI Readiness** | "Governance: Unity Catalog is the source of truth. We sync prepared column metadata into Domo AI Readiness — Domo never edits the source. Editing UC context is a separate, governed action (the Inspect drawer)." |
+| 8 | **How It Works** | Land here to recap the agent-to-agent architecture, the user guide, and the component bill across Databricks / Interop / Domo. |
+
+---
+
+## 5. Reset procedure (between runs)
+
+- **Agent actions / Protected Revenue:** the approve→execute bump is session-local — just
+  **reload the app** to reset KPIs and the action queue to baseline.
+- **ML form:** reload resets the form to the default West Enterprise account.
+- **Lakebase scenarios:** if a presenter added/edited scenarios live and you want the
+  canonical 4 scenarios / 6 feedback rows back, re-run `scripts/seed_pattern4_lakebase.py`.
+- **AI Readiness:** Sync/Wipe write to Domo AI Readiness live; to reset to "nothing synced",
+  use **Wipe all from Domo** per dataset.
+- **Genie:** stateless per question; nothing to reset.
+
+---
+
+## 6. Known limitations & fallbacks
+
+| Area | Limitation | Fallback |
+| --- | --- | --- |
+| External tab links (Databricks/Lakebase) | The App Studio iframe is sandboxed without `allow-popups`, and the Domo parent rejects external domains via `navigate`, so the app can't auto-open a new tab. | The app copies the URL to the clipboard and shows a toast; paste into a new tab. (Domo-internal links open normally.) |
+| Model Serving cold start | Scale-to-zero adds ~20–30s on the first score. | Warm it in the pre-demo checklist; the run-log animation keeps the audience engaged. |
+| Genie / Code Engine | Live answers require the published app context (not local preview). | Local preview shows representative sample answers; the published app answers live. |
+| Domo AI Services registry | `/api/ml/v1/models` returned 404 this session. | Runtime inference uses **direct Databricks Model Serving** via Code Engine; AI Services is the governance/catalog layer. |
+| Agent Catalyst / Domo Workflows (live) | Not provisioned as live Domo Workflow objects in this build. | The app demonstrates the equivalent contract: recommendation → human approval → `writeActionStatus` Code Engine writeback to the lakehouse. Stand up a live Workflow/Agent Catalyst later using the same contract. |
+| Unity AI Gateway / OBO | Not yet enforced; documented in the architecture. | Code Engine provides the governed server-side bridge today. |
+
+---
+
+## 7. Validation checklist (engineering)
+
+Run before publishing a new `dist`:
+
+- `node --check pattern4-agent-portal/src/app.js` (and `dist/src/app.js`).
+- `dist` mirrors `src` (`index.html`, `src/app.js`, `src/styles.css`).
+- `manifest.json` and `dist/manifest.json` `packageMapping` aliases match (14 functions).
+- Headless render each tab: `#forecast #ml #lakebase #readiness #genie #genieEmbed #guide`.
+- Live endpoint smoke test returns a smooth probability (Section 3, step 3).
+- No secrets staged (`databricks token`, `scripts/lakebase_pg_bundle.b64` stay gitignored).
+
+---
+
+## 8. Component inventory (one-liner per plane)
+
+- **Databricks:** Unity Catalog gold views + metric definitions, Genie Space, MLflow model
+  `pattern4_renewal_risk` v6 + Model Serving endpoint, Lakebase Postgres, external lineage.
+- **Interop:** Cloud Amplifier (`Databricks Raptor AWS`) live federation, Code Engine
+  `pattern4ce` (Genie / writeback / Lakebase / readiness / inference), shared identity, a
+  single entitlement model (Domo PDP ↔ UC filters).
+- **Domo:** the pro-code App Studio portal (Forecast, ML Predictions, Lakebase Ops, AI
+  Readiness, Genie Workspace, How It Works), action queue + approval + writeback,
+  AI Readiness control plane.

@@ -88,7 +88,7 @@ window.PATTERN_4_PLAN_MODEL = {
       ]
     },
     {
-      done: false,
+      done: true,
       key: "Sprint 4",
       title: "Agent Catalyst and Workflow Automation",
       goals: [
@@ -110,7 +110,7 @@ window.PATTERN_4_PLAN_MODEL = {
       ]
     },
     {
-      done: false,
+      done: true,
       key: "Sprint 5",
       title: "Agent-to-Agent Mesh",
       goals: [
@@ -131,7 +131,7 @@ window.PATTERN_4_PLAN_MODEL = {
       ]
     },
     {
-      done: false,
+      done: true,
       key: "Sprint 6",
       title: "Hardening, Demo Packaging, and Executive Polish",
       goals: [
@@ -152,7 +152,7 @@ window.PATTERN_4_PLAN_MODEL = {
       ]
     },
     {
-      done: false,
+      done: true,
       key: "Sprint 7",
       title: "ML Model, Domo AI Services, and Ad Hoc Inference",
       goals: [
@@ -175,7 +175,7 @@ window.PATTERN_4_PLAN_MODEL = {
       ]
     },
     {
-      done: false,
+      done: true,
       key: "Sprint 8",
       title: "Lakebase Operations and Predictive UX Redesign",
       goals: [
@@ -266,6 +266,7 @@ window.PATTERN_4_PLAN_MODEL = {
     "2026-06-10: External lineage is now created and verified. Databricks external metadata object `domo_pattern4_revenue_command_center` (`ff15743d-0c1e-4e3e-beb2-1d4c4acfa6db`) exists, and downstream external lineage relationships from all six `gold_*` tables to that Domo/Pattern 4 app object returned 200 and verified as visible from each table's downstream lineage listing.",
     "2026-06-10: Added Domo branding metadata to Databricks external metadata object `domo_pattern4_revenue_command_center`: `brand=Domo`, `brand_logo_provider=Brandfetch`, `brand_logo_theme=dark`, and the provided Brandfetch SVG URL in `brand_logo_url`. Databricks lineage graph still renders the node icon from `system_type` / `entity_type`, but the logo URL is now attached for details/properties/future rendering.",
     "2026-06-10: AI Readiness tab redesigned (Shape C, shaped first then built). Shaped 3 options in `pattern-4-ai-readiness-redesign-shaping.md` with a fit check; user picked Shape C. Built front-end-only against the frozen CE contract (no CE change): a 'Unity Catalog · source of truth' control plane with a portfolio rollup (UC-prepared % vs Domo-synced %), a slim dataset rail with dual UC/Domo meters + status dots, a focused panel (compare meters, deep links to Domo /details/ai-readiness + Databricks table, dataset-level Sync-all/Wipe-all pills), a single scannable column-by-column table with minimalist Sync/Wipe + state pills, and a dedicated UC inspector drawer that makes editing UC source context a deliberate, confirm-gated, governed path (replaces window.prompt). Theme encodes direction (Databricks-red = UC source of truth, Domo-blue = Domo synced). Validated locally (node --check, ID presence, headless Chrome render of the control plane + drawer, no lints); dist mirrors src. No publish.",
+    "2026-06-10: Project plan run to completion (autonomous pass). Sprints 4-8 marked complete (demo-grade). (1) Agent Action Queue now runs recommendation→approval→execution with the live writeActionStatus Code Engine writeback, optimistic status pills + writeback chip, and a Protected Revenue KPI bump/flash — closing the DoD insight→approval→protected-revenue loop in-app (live Agent Catalyst/Workflow objects are a documented Domo-platform follow-on). (2) Sprint 6 packaging: added pattern-4-demo-runbook.md (talk track, pre-demo checklist, reset procedure, known limitations + fallbacks, validation checklist, component inventory). (3) Fixed two regressions from the ML header rework: restored .ml-meta* styles used by the Lakebase status strip; refreshed the stale Genie greeting. (4) How It Works tab refreshed to reflect ML regressor v6, ad hoc inference + payload panel, Lakebase Ops, the AI Readiness control plane, and the agent loop. Validated locally (node --check, no lints, headless renders of every tab incl. agent-execute); dist mirrors src. No publish.",
     "2026-06-10: ML Predictions tab reworked + model fixed. Diagnosed the 0% propensity: served model v5 was a classifier on a deterministic 0/1 threshold of predicted_churn_probability and had saturated — returning a constant [[0.99998,0.0000134]] for every input (two very different accounts gave byte-identical output). Retrained scripts/train_pattern4_renewal_risk_model.py as an HGB regressor on the continuous predicted_churn_probability (range ~0.10-0.60; R2~0.60, MAE~0.053), registered UC v6, and repointed the existing pattern4-renewal-risk endpoint to v6 (no new endpoint cost). Serving now returns 1-D {\"predictions\":[p]}; released runModelInference v1.0.12 already normalizes scalar responses, so no CE release / app contract change. Live tests: West Enterprise hero 0.329, healthy SMB 0.211, extreme high-risk 0.597 — varied and reasonable. Reworked the tab: one-line model header + Registered-model/Serving-endpoint deep links (was a 7-box grid), staged run-log/progress animation during scoring, full-width Inference Payload & Endpoint panel (live cURL/Python/SQL + invocations URL + Open-endpoint), tiers recalibrated to 0.10-0.60. Validated locally; dist mirrors src. No publish.",
     "2026-06-10: AI Readiness polish after live review. (1) Softened the UC accent from bright Databricks red (#ff3621) to a governed blood red (--uc #b8443c / --uc-deep #8f2e2a / --uc-soft #d68a83 + tints) across UC-prepared meters, rail bars, Prepared pills, UC% numbers, the Inspect pill, and the UC drawer; Domo blue still marks the Domo-synced side, and the actual Databricks-table brand link keeps true --dbx-red. (2) Fixed external deep links (Databricks/Lakebase) that failed in the sandboxed App Studio iframe (window.open blocked because allow-popups isn't set; Domo parent rejects external domains via navigate). openExternal now tries a normal new-tab open (works in local preview) and, when blocked, copies the URL to clipboard and shows a dismissible toast with the full link selectable for pasting — reachable from both the AI Readiness and Lakebase tabs. Validated locally (node --check, no lints, headless renders of the softened palette + toast path); dist mirrors src.",
     "2026-06-10: ML + Lakebase CE bindings verified in the app config (Task 2). Both manifest.json and dist/manifest.json declare all 14 packageMapping aliases incl. runModelInference, listScenarios, listPredictionFeedback, deleteScenario, savePredictionFeedback (proxyId pattern4ce routes by package name to released 1.0.12; no version pin). App wiring confirmed: runModelInference live path enabled (state.mlInferenceBridge=true) and reads churn prob from predictions[0] (index-1, matches serving contract); Lakebase tab calls listScenarios/listPredictionFeedback on load and flips lakebaseLive on success. Remaining is the user's live action: publish dist, re-instantiate the App Studio card so a fresh context picks up the current packageMapping, hard-refresh, then click-test live inference + confirm the listScenarios 400 clears.",
