@@ -1422,7 +1422,7 @@ function renderGuide() {
 
 async function loadReadiness() {
   try {
-    const res = await fetch("./public/ai-readiness-summary.json", { cache: "no-store" });
+    const res = await fetch("./public/ai-readiness-detail.json", { cache: "no-store" });
     if (!res.ok) throw new Error("missing readiness summary");
     state.readiness = await res.json();
   } catch (error) {
@@ -1435,8 +1435,51 @@ async function loadReadiness() {
       aiEnabledCount: 0,
       columnCount: 0,
       tagCount: 0,
+      domoReadinessEnabled: false,
+      domoSyncedColumns: [],
+      columns: [],
     }));
   }
+  loadReadinessLocalState();
+}
+
+function readinessStorageKey() {
+  return "pattern4.aiReadiness.columnSync.v1";
+}
+
+function loadReadinessLocalState() {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(readinessStorageKey()) || "{}");
+    state.readinessColumnSync = stored && typeof stored === "object" ? stored : {};
+  } catch (_) {
+    state.readinessColumnSync = {};
+  }
+}
+
+function persistReadinessLocalState() {
+  try {
+    window.localStorage.setItem(readinessStorageKey(), JSON.stringify(state.readinessColumnSync));
+  } catch (_) {}
+}
+
+function getReadinessColumns(item) {
+  return Array.isArray(item?.columns) ? item.columns : [];
+}
+
+function getUcReadyColumns(item) {
+  return getReadinessColumns(item).filter((c) => c.aiEnabled).map((c) => c.name);
+}
+
+function getDomoSyncedColumns(item) {
+  const local = state.readinessColumnSync[item.alias];
+  const source = Array.isArray(local) ? local : (item.domoSyncedColumns || []);
+  return new Set(source);
+}
+
+function setDomoSyncedColumns(alias, columns) {
+  state.readinessColumnSync[alias] = Array.from(new Set(columns)).sort();
+  state.readinessSynced = Object.values(state.readinessColumnSync).some((cols) => Array.isArray(cols) && cols.length > 0);
+  persistReadinessLocalState();
 }
 
 function renderReadiness() {
@@ -1444,21 +1487,23 @@ function renderReadiness() {
   if (!grid) return;
   grid.innerHTML = state.readiness
     .map((item) => {
-      const ucPct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
-      const domoSynced = state.readinessColumnSync[item.alias] || 0;
-      const domoPct = item.columnCount ? Math.round((domoSynced / item.columnCount) * 100) : 0;
+      const columns = getReadinessColumns(item);
+      const ucReady = getUcReadyColumns(item);
+      const domoSynced = getDomoSyncedColumns(item);
+      const ucPct = columns.length ? Math.round((ucReady.length / columns.length) * 100) : 0;
+      const domoPct = columns.length ? Math.round((domoSynced.size / columns.length) * 100) : 0;
       return `
         <article class="readiness-card ${state.readinessSelected === item.alias ? "active" : ""}" data-readiness-alias="${escapeHtml(item.alias)}">
           <div class="readiness-top">
             <div class="readiness-title">${escapeHtml(item.alias)}</div>
             <div class="readiness-status ${state.readinessSynced ? "synced" : ""}">
-              ${domoSynced ? "Staged" : "Domo off"}
+              ${domoSynced.size ? "Staged" : "Domo off"}
             </div>
           </div>
           <p>${escapeHtml(item.context || "Unity Catalog context ready to mirror into Domo AI Readiness.")}</p>
           <div class="readiness-progress"><span style="width:${ucPct}%"></span></div>
           <div class="readiness-metrics">
-            <div class="readiness-metric"><b>${item.aiEnabledCount}/${item.columnCount}</b><span>UC cols ready</span></div>
+            <div class="readiness-metric"><b>${ucReady.length}/${columns.length}</b><span>UC cols ready</span></div>
             <div class="readiness-metric"><b>${domoPct}%</b><span>Domo synced</span></div>
             <div class="readiness-metric"><b>${item.tagCount}</b><span>UC tags</span></div>
           </div>
@@ -1511,9 +1556,25 @@ function renderReadinessDetail() {
     detail.innerHTML = `<p class="empty-state">No readiness records loaded.</p>`;
     return;
   }
-  const ucPct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
-  const domoSynced = state.readinessColumnSync[item.alias] || 0;
-  const domoPct = item.columnCount ? Math.round((domoSynced / item.columnCount) * 100) : 0;
+  const columns = getReadinessColumns(item);
+  const ucReady = getUcReadyColumns(item);
+  const domoSynced = getDomoSyncedColumns(item);
+  const ucPct = columns.length ? Math.round((ucReady.length / columns.length) * 100) : 0;
+  const domoPct = columns.length ? Math.round((domoSynced.size / columns.length) * 100) : 0;
+  const columnRows = columns.map((col) => {
+    const synced = domoSynced.has(col.name);
+    return `
+      <tr>
+        <td><strong>${escapeHtml(col.name)}</strong><span>${escapeHtml(col.type || "")}</span></td>
+        <td><span class="readiness-pill ${col.aiEnabled ? "ready" : "off"}">${col.aiEnabled ? "Prepared" : "Not prepared"}</span></td>
+        <td><span class="readiness-pill ${synced ? "synced" : "off"}">${synced ? "Staged" : "Not synced"}</span></td>
+        <td>${escapeHtml(col.context || "No column context staged in Unity Catalog.")}</td>
+        <td>
+          <button class="mini-btn" type="button" data-sync-column="${escapeHtml(col.name)}" ${!col.aiEnabled ? "disabled" : ""}>Sync</button>
+          <button class="mini-btn ghost" type="button" data-wipe-column="${escapeHtml(col.name)}" ${!synced ? "disabled" : ""}>Wipe</button>
+        </td>
+      </tr>`;
+  }).join("");
   detail.innerHTML = `
     <div class="readiness-detail-top">
       <span class="panel-tag">selected dataset</span>
@@ -1535,25 +1596,58 @@ function renderReadinessDetail() {
     <dl class="readiness-kv">
       <div><dt>Domo dataset</dt><dd>${escapeHtml(item.datasetId || "")}</dd></div>
       <div><dt>Unity Catalog table</dt><dd>${escapeHtml(item.object || "")}</dd></div>
-      <div><dt>Unity Catalog assets ready</dt><dd>${item.aiEnabledCount || 0}/${item.columnCount || 0} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
+      <div><dt>Unity Catalog assets ready</dt><dd>${ucReady.length}/${columns.length} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
     </dl>
     <div class="readiness-actions">
-      <button class="btn btn-primary btn-sm" type="button" data-readiness-sync="${escapeHtml(item.alias)}">Sync selected columns</button>
+      <button class="mini-btn primary" type="button" data-readiness-sync="${escapeHtml(item.alias)}">Sync all prepared columns</button>
+      <button class="mini-btn danger" type="button" data-readiness-wipe="${escapeHtml(item.alias)}">Wipe Domo readiness config</button>
       <button class="btn btn-primary btn-sm" type="button" data-open-url="${escapeHtml(domoDatasetUrl(item))}">Open Domo AI Readiness</button>
       <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open Databricks Table</button>
+    </div>
+    <div class="readiness-column-compare">
+      <div class="readiness-column-head">
+        <h4>Column-by-column comparison</h4>
+        <span>${domoSynced.size}/${columns.length} staged in Domo</span>
+      </div>
+      <div class="table-wrap">
+        <table class="readiness-column-table">
+          <thead><tr><th>Column</th><th>Unity Catalog</th><th>Domo AI Readiness</th><th>Context</th><th>Action</th></tr></thead>
+          <tbody>${columnRows}</tbody>
+        </table>
+      </div>
     </div>`;
   detail.querySelectorAll("[data-open-url]").forEach((btn) => {
     btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
   });
   detail.querySelector("[data-readiness-sync]")?.addEventListener("click", () => {
-    state.readinessColumnSync[item.alias] = item.aiEnabledCount || 0;
-    state.readinessSynced = true;
+    setDomoSyncedColumns(item.alias, ucReady);
     const note = document.getElementById("readinessNote");
     if (note) {
       note.classList.add("done");
-      note.textContent = `Column-level sync staged for ${item.alias}: Unity Catalog context is ready to mirror into Domo AI Readiness, but Domo must have AI Readiness enabled to persist these settings.`;
+      note.textContent = `Column-level sync staged for ${item.alias}. Real Domo persistence is TBD until AI Readiness write access is confirmed.`;
     }
     renderReadiness();
+  });
+  detail.querySelector("[data-readiness-wipe]")?.addEventListener("click", () => {
+    setDomoSyncedColumns(item.alias, []);
+    const note = document.getElementById("readinessNote");
+    if (note) {
+      note.classList.add("done");
+      note.textContent = `Domo readiness staging wiped for ${item.alias}. Unity Catalog metadata remains unchanged.`;
+    }
+    renderReadiness();
+  });
+  detail.querySelectorAll("[data-sync-column]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setDomoSyncedColumns(item.alias, Array.from(domoSynced).concat(btn.getAttribute("data-sync-column")));
+      renderReadiness();
+    });
+  });
+  detail.querySelectorAll("[data-wipe-column]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setDomoSyncedColumns(item.alias, Array.from(domoSynced).filter((name) => name !== btn.getAttribute("data-wipe-column")));
+      renderReadiness();
+    });
   });
 }
 
@@ -1562,9 +1656,9 @@ function syncReadinessDemo() {
   const note = document.getElementById("readinessNote");
   note.classList.add("done");
   note.textContent =
-    "Unity Catalog readiness metadata is staged for column-level sync. Domo AI Readiness is not enabled yet, so this page shows prepared UC context separately from Domo's persisted readiness state.";
+    "All prepared Unity Catalog columns have been staged for Domo AI Readiness sync. Real Domo persistence is TBD until AI Readiness write access is confirmed.";
   state.readiness.forEach((item) => {
-    state.readinessColumnSync[item.alias] = item.aiEnabledCount || 0;
+    setDomoSyncedColumns(item.alias, getUcReadyColumns(item));
   });
   renderReadiness();
 }

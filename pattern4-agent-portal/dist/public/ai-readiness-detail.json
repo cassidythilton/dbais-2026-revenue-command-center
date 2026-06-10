@@ -1,0 +1,693 @@
+[
+  {
+    "alias": "executiveRevenueHealth",
+    "datasetId": "1b0f9391-a9e3-4aa8-8d12-65cbb1c6b313",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_executive_revenue_health",
+    "context": "Executive revenue health dataset for Pattern 4. Use for questions about net revenue, gross margin, expansion ARR, churned ARR, revenue at risk, fiscal periods, region, segment, and tenant.",
+    "datasetSynonyms": [
+      "revenue health",
+      "executive KPIs",
+      "ARR",
+      "risk exposure",
+      "margin",
+      "regional revenue"
+    ],
+    "synonymCount": 16,
+    "aiEnabledCount": 12,
+    "columnCount": 12,
+    "tagCount": 4,
+    "domoReadinessEnabled": false,
+    "domoSyncedColumns": [],
+    "columns": [
+      {
+        "name": "date",
+        "type": "DATE",
+        "aiEnabled": true,
+        "context": "date column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "fiscal_year",
+        "type": "INT",
+        "aiEnabled": true,
+        "context": "fiscal_year column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "quarter",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "quarter column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "fiscal_period",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "fiscal_period column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "tenant_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "tenant_id column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "region",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "region column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "geo",
+          "territory"
+        ]
+      },
+      {
+        "name": "segment",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "segment column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "net_revenue",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "net_revenue column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "revenue",
+          "sales",
+          "net sales"
+        ]
+      },
+      {
+        "name": "gross_margin",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "gross_margin column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "margin",
+          "profit margin"
+        ]
+      },
+      {
+        "name": "expansion_arr",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "expansion_arr column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "churned_arr",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "churned_arr column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "revenue_at_risk",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "revenue_at_risk column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "risk exposure",
+          "ARR at risk",
+          "renewal exposure"
+        ]
+      }
+    ]
+  },
+  {
+    "alias": "customerRenewalRisk",
+    "datasetId": "8982cede-5feb-4401-89eb-83937ef8a971",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+    "context": "Customer renewal risk dataset for Pattern 4. Use for account triage, risk tiers, renewal risk scores, top risk drivers, support pressure, usage drops, and recommended retention actions.",
+    "datasetSynonyms": [
+      "renewal risk",
+      "churn risk",
+      "account health",
+      "risk driver",
+      "customer health",
+      "retention action"
+    ],
+    "synonymCount": 17,
+    "aiEnabledCount": 15,
+    "columnCount": 21,
+    "tagCount": 4,
+    "domoReadinessEnabled": false,
+    "domoSyncedColumns": [],
+    "columns": [
+      {
+        "name": "account_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_id column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "account_name",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_name column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "customer",
+          "account"
+        ]
+      },
+      {
+        "name": "tenant_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "tenant_id column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "region",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "region column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "segment",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "segment column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "industry",
+        "type": "STRING",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "account_owner_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_owner_id column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "account_owner_name",
+        "type": "STRING",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "annual_recurring_revenue",
+        "type": "DOUBLE",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "renewal_date",
+        "type": "DATE",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "renewal_risk_score",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "renewal_risk_score column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "risk score",
+          "renewal risk",
+          "churn risk"
+        ]
+      },
+      {
+        "name": "risk_tier",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "risk_tier column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "top_risk_driver",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "top_risk_driver column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "risk reason",
+          "driver",
+          "cause"
+        ]
+      },
+      {
+        "name": "predicted_churn_probability",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "predicted_churn_probability column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "revenue_at_risk",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "revenue_at_risk column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "recommended_action",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "recommended_action column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "next best action",
+          "recommendation",
+          "retention play"
+        ]
+      },
+      {
+        "name": "cases_90d",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "cases_90d column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "sla_breaches_90d",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "sla_breaches_90d column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "negative_cases_90d",
+        "type": "LONG",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "avg_usage_score_90d",
+        "type": "DOUBLE",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "usage_drop_days_90d",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "usage_drop_days_90d column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      }
+    ]
+  },
+  {
+    "alias": "incidentRevenueImpact",
+    "datasetId": "98abca9c-59dc-4e4c-9e51-c242ba2ce17f",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_incident_revenue_impact",
+    "context": "Incident revenue impact dataset for Pattern 4. Use for root-cause analysis of incidents, affected accounts, SLA breaches, support case spikes, customer impact, and renewal revenue at risk.",
+    "datasetSynonyms": [
+      "incident impact",
+      "root cause",
+      "SLA breach",
+      "support spike",
+      "reliability incident",
+      "SEV-1"
+    ],
+    "synonymCount": 17,
+    "aiEnabledCount": 13,
+    "columnCount": 14,
+    "tagCount": 4,
+    "domoReadinessEnabled": false,
+    "domoSyncedColumns": [],
+    "columns": [
+      {
+        "name": "incident_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "incident_id column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "incident_date",
+        "type": "DATE",
+        "aiEnabled": true,
+        "context": "incident_date column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "product_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "product_id column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "region",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "region column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "severity",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "severity column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "incident_category",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "incident_category column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "root_cause",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "root_cause column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "why",
+          "cause",
+          "reason"
+        ]
+      },
+      {
+        "name": "customer_impact_level",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "customer_impact_level column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "estimated_revenue_impact",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "estimated_revenue_impact column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "affected_account_count",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "affected_account_count column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "support_case_count",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "support_case_count column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "tickets",
+          "cases",
+          "support volume"
+        ]
+      },
+      {
+        "name": "sla_breach_count",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "sla_breach_count column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "SLA breaches",
+          "breaches",
+          "missed SLA"
+        ]
+      },
+      {
+        "name": "negative_case_count",
+        "type": "LONG",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "renewal_revenue_at_risk",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "renewal_revenue_at_risk column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "incident risk",
+          "risk from incident"
+        ]
+      }
+    ]
+  },
+  {
+    "alias": "agentActionQueue",
+    "datasetId": "91de18fe-e88a-4ffd-90b6-acc4038a6882",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_agent_action_queue",
+    "context": "Agent action queue dataset for Pattern 4. Use for questions about recommended actions, approvals, execution status, workflows, protected revenue, and agent-to-agent business execution.",
+    "datasetSynonyms": [
+      "agent actions",
+      "workflow queue",
+      "approval status",
+      "execution status",
+      "protected revenue",
+      "human approval"
+    ],
+    "synonymCount": 17,
+    "aiEnabledCount": 18,
+    "columnCount": 19,
+    "tagCount": 4,
+    "domoReadinessEnabled": false,
+    "domoSyncedColumns": [],
+    "columns": [
+      {
+        "name": "action_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "action_id column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "created_ts",
+        "type": "TIMESTAMP",
+        "aiEnabled": true,
+        "context": "created_ts column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "date",
+        "type": "DATE",
+        "aiEnabled": true,
+        "context": "date column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "tenant_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "tenant_id column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "account_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_id column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "region",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "region column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "segment",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "segment column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "account_owner_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_owner_id column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "source_agent",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "source_agent column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "source_question",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "source_question column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "recommendation",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "recommendation column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "action",
+          "next step",
+          "play"
+        ]
+      },
+      {
+        "name": "approval_status",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "approval_status column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "approval",
+          "human signoff",
+          "review status"
+        ]
+      },
+      {
+        "name": "execution_status",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "execution_status column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "workflow status",
+          "execution",
+          "run status"
+        ]
+      },
+      {
+        "name": "workflow_name",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "workflow_name column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "approved_by",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "approved_by column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "completed_ts",
+        "type": "TIMESTAMP",
+        "aiEnabled": false,
+        "context": "",
+        "synonyms": []
+      },
+      {
+        "name": "expected_revenue_protected",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "expected_revenue_protected column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "actual_revenue_protected",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "actual_revenue_protected column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "protected revenue",
+          "saved revenue"
+        ]
+      },
+      {
+        "name": "workflow_cycle_days",
+        "type": "INT",
+        "aiEnabled": true,
+        "context": "workflow_cycle_days column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      }
+    ]
+  },
+  {
+    "alias": "portalUserScope",
+    "datasetId": "363d087d-02f3-4856-aedd-15c79f07c0c4",
+    "object": "databricks_raptor.pattern4_agent_automation.gold_portal_user_scope",
+    "context": "Portal user scope dataset for Pattern 4. Use for persona scoping, tenant access, region access, account-owner access, and alignment between Unity Catalog row filters and Domo PDP.",
+    "datasetSynonyms": [
+      "persona",
+      "entitlement",
+      "user scope",
+      "PDP",
+      "row filter",
+      "access level"
+    ],
+    "synonymCount": 14,
+    "aiEnabledCount": 7,
+    "columnCount": 7,
+    "tagCount": 4,
+    "domoReadinessEnabled": false,
+    "domoSyncedColumns": [],
+    "columns": [
+      {
+        "name": "user_key",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "user_key column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "email",
+          "user"
+        ]
+      },
+      {
+        "name": "display_name",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "display_name column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "persona",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "persona column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "role",
+          "user type",
+          "viewer"
+        ]
+      },
+      {
+        "name": "tenant_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "tenant_id column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "region",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "region column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "account_owner_id",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "account_owner_id column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "access_level",
+        "type": "STRING",
+        "aiEnabled": true,
+        "context": "access_level column from gold_portal_user_scope. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": [
+          "scope",
+          "entitlement",
+          "permission"
+        ]
+      }
+    ]
+  }
+]
