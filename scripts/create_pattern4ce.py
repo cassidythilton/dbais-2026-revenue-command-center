@@ -196,6 +196,13 @@ def main() -> int:
             ],
         ),
         fn(
+            "askRetentionAgent",
+            "Ask Retention Supervisor Agent (Databricks MAS)",
+            [
+                text_input("prompt", False),
+            ],
+        ),
+        fn(
             "startRetentionWorkflow",
             "Start Retention Workflow",
             [

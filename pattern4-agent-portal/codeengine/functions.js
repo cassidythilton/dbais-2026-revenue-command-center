@@ -46,6 +46,12 @@ var MODEL_SERVING_ENDPOINT = "pattern4-renewal-risk";
  * foundation model). AI Gateway enforces usage tracking, rate limits, guardrails
  * (input safety + PII BLOCK / output safety + PII MASK), and inference-table audit. */
 var REASONING_ENDPOINT = "pattern4-reasoning-gateway";
+/* Databricks Agent Bricks Supervisor Agent (MAS) — "Pattern 4 Retention Supervisor".
+ * Orchestrates the Pattern 4 Genie Space (governed NL->SQL over the gold views) to
+ * reason about an at-risk account and recommend a retention action. Served at an
+ * agent/v1/responses endpoint. This is the Databricks-side agent that the Domo
+ * workflow AI agent tile calls (agent-to-agent). */
+var RETENTION_AGENT_ENDPOINT = "mas-77bd204b-endpoint";
 /* Live Domo Workflow (Renewal Risk Retention). Shape A: the app starts this
  * governed workflow server-side via the product API; the workflow routes a human
  * approval, then its service task calls writeActionStatus to write status back. */
@@ -979,6 +985,61 @@ function askReasoningModel(prompt, persona) {
     });
 }
 
+/* --------- Databricks Supervisor Agent (MAS) — agent-to-agent bridge --------- */
+
+function extractResponsesText(data) {
+  // Parse the OpenAI Responses API shape returned by an agent/v1/responses endpoint.
+  var out = data && data.output ? data.output : null;
+  var text = "";
+  if (Array.isArray(out)) {
+    for (var i = 0; i < out.length; i++) {
+      var item = out[i] || {};
+      var content = item.content;
+      if (Array.isArray(content)) {
+        for (var j = 0; j < content.length; j++) {
+          var seg = content[j] || {};
+          if (typeof seg.text === "string") {
+            text += (text ? "\n" : "") + seg.text;
+          }
+        }
+      } else if (typeof content === "string") {
+        text += (text ? "\n" : "") + content;
+      }
+    }
+  }
+  if (!text && data && typeof data.output_text === "string") {
+    text = data.output_text;
+  }
+  return text;
+}
+
+function askRetentionAgent(prompt) {
+  console.log("[pattern4ce.askRetentionAgent] start", JSON.stringify({ promptPreview: String(prompt || "").slice(0, 140) }));
+  var url = DATABRICKS_HOST + "/serving-endpoints/" + RETENTION_AGENT_ENDPOINT + "/invocations";
+  var body = { input: [{ role: "user", content: String(prompt || "") }] };
+  // The MAS calls Genie as a tool, which can take 30-120s on a cold path; allow time.
+  return axios.post(url, body, { headers: dbxHeaders(), timeout: 220000 })
+    .then(function (resp) {
+      var data = resp.data || {};
+      var recommendation = extractResponsesText(data);
+      console.log("[pattern4ce.askRetentionAgent] success", JSON.stringify({ status: data.status || null, usage: data.usage || null, chars: recommendation.length }));
+      return {
+        status: "SUCCEEDED",
+        recommendation: recommendation,
+        agentStatus: data.status || null,
+        usage: data.usage || null,
+        endpoint: RETENTION_AGENT_ENDPOINT,
+        agent: "Pattern 4 Retention Supervisor (Databricks Agent Bricks)",
+        governedBy: "Unity Catalog + Genie + Model Serving"
+      };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.askRetentionAgent] failed", JSON.stringify({ error: detail }));
+      return { status: "FAILED", error: detail, endpoint: RETENTION_AGENT_ENDPOINT };
+    });
+}
+
 /* ----------------------- Live Domo Workflow trigger ----------------------- */
 
 function startRetentionWorkflow(actionId, account, recommendation, persona, predicted, protectedRevenue, sourceQuestion) {
@@ -1106,6 +1167,7 @@ function getRetentionWorkflowResult(instanceId, actionId) {
 module.exports = {
   askGenie: askGenie,
   askReasoningModel: askReasoningModel,
+  askRetentionAgent: askRetentionAgent,
   writeActionStatus: writeActionStatus,
   startRetentionWorkflow: startRetentionWorkflow,
   getRetentionWorkflowResult: getRetentionWorkflowResult,

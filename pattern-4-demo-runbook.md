@@ -34,6 +34,7 @@ account → human-approved agent action with writeback → governed AI Readiness
 | ML model / endpoint | UC `pattern4_renewal_risk` **v6 (regressor)** → endpoint `pattern4-renewal-risk` (AI Gateway: usage + 120/min + inference table) |
 | Live Domo Workflow | `Pattern 4 - Renewal Risk Retention` (`6cbd5ecb-1036-410a-b188-60a49820d264`, v1.0.0); approval queue `Renewal Risk Approvals`; assignee `cassidy.hilton@domo.com` |
 | AI Gateway LLM endpoint | `pattern4-reasoning-gateway` (external-model over `databricks-claude-sonnet-4-5`; guardrails + usage + inference table); secret `{{secrets/pattern4/dbx_pat}}` |
+| Databricks agent (MAS) | `Pattern 4 Retention Supervisor` (`mas-77bd204b-endpoint`, `agent/v1/responses`); tool = Pattern 4 Genie Space. Called by the Domo workflow AI agent tile via `pattern4ce.askRetentionAgent`. |
 | Lakebase | project `cobra-v1`, tables `public.p4_scenario_runs`, `public.p4_prediction_feedback` |
 | External lineage object | `domo_pattern4_revenue_command_center` (`ff15743d-…`) |
 | GitHub | `https://github.com/cassidythilton/dbais-2026-revenue-command-center` |

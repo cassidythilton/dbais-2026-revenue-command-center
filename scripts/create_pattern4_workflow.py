@@ -29,7 +29,9 @@ ASSIGNEE_USER_ID = "1433178023"          # Cassidy Hilton (Admin)
 CE_PACKAGE_ID = "36a18258-0fb7-407a-b268-4a326c5b73c3"
 CE_PACKAGE_NAME = "pattern4ce"
 CE_FUNCTION = "writeActionStatus"
-CE_VERSION = "1.0.12"
+CE_VERSION = "1.0.14"            # released package version the workflow binds to
+AGENT_TOOL_FUNCTION = "askRetentionAgent"   # Domo AI agent's tool -> Databricks MAS
+FORM_VERSION = 2                 # bump to force the approval form to be recreated
 
 # Workflow inputs (supplied by the app via startRetentionWorkflow start API).
 INPUTS = [
@@ -97,6 +99,7 @@ def ensure_queue(c, state) -> str:
 FORM_FIELDS = [
     ("Account", "SHORT_ANSWER", "text", "Account", None),
     ("Recommended action", "PARAGRAPH", "text", "Recommendation", None),
+    ("AI agent recommendation (Databricks)", "PARAGRAPH", "text", "Agent_Recommendation", None),
     ("Protected revenue ($)", "SHORT_ANSWER", "decimal", "Protected_Revenue", None),
     ("Source question / context", "PARAGRAPH", "text", "Source_Question", None),
     ("Decision", "SINGLE_CHOICE", "text", "Decision", ["Approved", "Rejected"]),
@@ -104,7 +107,7 @@ FORM_FIELDS = [
 
 
 def ensure_form(c, state, model_id) -> dict:
-    if state.get("form_id") and state.get("form_field_ids"):
+    if state.get("form_id") and state.get("form_field_ids") and state.get("form_version") == FORM_VERSION:
         return {"id": state["form_id"], "fields": state["form_field_ids"]}
     field_ids = {alias: str(uuid.uuid4()) for (_, _, _, alias, _) in FORM_FIELDS}
     fields = []
@@ -145,6 +148,7 @@ def ensure_form(c, state, model_id) -> dict:
     r = c.request("POST", "/forms/v2", json_body=body)
     state["form_id"] = r["id"]
     state["form_field_ids"] = field_ids
+    state["form_version"] = FORM_VERSION
     save_state(state)
     return {"id": r["id"], "fields": field_ids}
 
@@ -200,22 +204,37 @@ def build_definition(model_id, form, queue_id) -> dict:
         "style": {"zIndex": 3, "outline": "none"}, "index": 0, "type": "rootNode",
     }
 
+    # Object var that captures the Domo AI agent's structured result (recommendation).
+    var_agent = f"var_{rid(11)}"
+    var_agent_rec = var_agent + ".recommendation"
+    data_list.append({
+        "id": var_agent, "paramName": "agentRecommendation", "dataType": "object", "isList": False,
+        "children": [{
+            "id": var_agent_rec, "paramName": "recommendation", "dataType": "text", "isList": False,
+            "children": [], "showChildren": False, "entitySubType": None, "value": None, "isOutput": True,
+        }],
+        "showChildren": True, "entitySubType": None, "value": None, "isOutput": True,
+    })
+
     # userTaskNode: display fields (input) + Decision (output)
+    # src "__agentrec__" maps to the AI agent's object-child var (dotted path).
     display = [
         ("Account", "Account", "text", "SHORT_ANSWER", "account"),
         ("Recommendation", "Recommended action", "text", "PARAGRAPH", "recommendation"),
+        ("Agent_Recommendation", "AI agent recommendation (Databricks)", "text", "PARAGRAPH", "__agentrec__"),
         ("Protected_Revenue", "Protected revenue ($)", "decimal", "SHORT_ANSWER", "protectedRevenue"),
         ("Source_Question", "Source question / context", "text", "PARAGRAPH", "sourceQuestion"),
     ]
     ut_input = []
     ut_output = []
     for (alias, label, t, ftype, src) in display:
+        mapped = var_agent_rec if src == "__agentrec__" else var[src]
         ent = {
             "acceptsInput": True, "children": [], "customMappingType": "form", "dataType": t,
             "datasetMapping": None, "displayName": label, "entitySubType": None,
             "fieldOptionsMappedTo": None, "fieldOptionsValue": None, "flag": "input",
             "formFieldId": ff[alias], "formFieldType": ftype, "id": rid(), "isList": False,
-            "mappedTo": var[src], "paramName": alias, "required": False, "value": None,
+            "mappedTo": mapped, "paramName": alias, "required": False, "value": None,
             "visible": True, "configType": "forms", "useExternalValues": False,
         }
         ut_input.append(ent)
@@ -255,18 +274,95 @@ def build_definition(model_id, form, queue_id) -> dict:
                 "visible": True,
             },
         },
-        "style": {"zIndex": 4, "outline": "none"}, "index": 1, "type": "userTaskNode",
+        "style": {"zIndex": 4, "outline": "none"}, "index": 2, "type": "userTaskNode",
+    }
+
+    # ---- Domo AI Agent tile: calls the Databricks MAS (agent-to-agent) ----
+    def stext(t):
+        return {"text": t, "bold": False, "italic": False, "underlined": False, "sql": False}
+
+    def svar(varid, name, dtype="text"):
+        return {"type": "variable", "children": [stext("")], "dataType": dtype, "id": varid, "name": name, "isList": False}
+
+    ai_id = rid()
+    result_id = rid()
+    tool_in_id = rid()
+    ai_agent = {
+        "id": ai_id, "position": {"x": 50, "y": 180},
+        "data": {
+            "dimensions": {"width": 200, "height": 60},
+            "title": "Retention triage agent", "description": "",
+            "prompt": {
+                "id": rid(), "paramName": "prompt", "dataType": "text", "mappedTo": None,
+                "value": [{"type": "paragraph", "children": [
+                    stext("At-risk account: "), svar(var["account"], "account"),
+                    stext(". Risk context: "), svar(var["sourceQuestion"], "sourceQuestion"),
+                    stext(". Seed recommendation: "), svar(var["recommendation"], "recommendation"),
+                    stext(". Call the Ask Retention Agent tool (the Databricks Retention Supervisor Agent, which reasons over governed Unity Catalog data via Genie) with this account and context, then return ONE concrete recommended retention action plus a one-sentence rationale."),
+                ]}],
+                "required": True, "isList": False, "children": [], "displayName": "Prompt",
+                "visible": True, "flag": "input", "customMappingType": None, "configType": None,
+                "entitySubType": None, "aiDescription": None,
+            },
+            "result": {
+                "id": result_id, "paramName": "result", "dataType": "object", "mappedTo": var_agent,
+                "value": None, "required": True, "isList": False,
+                "children": [{
+                    "id": result_id + ".recommendation", "paramName": "recommendation", "dataType": "text",
+                    "mappedTo": var_agent_rec, "value": None, "required": True, "isList": False, "children": [],
+                    "displayName": "", "visible": True, "flag": "output", "customMappingType": None,
+                    "configType": None, "entitySubType": None, "aiDescription": None,
+                }],
+                "displayName": "Result", "visible": True, "flag": "output", "customMappingType": None,
+                "configType": None, "entitySubType": None, "aiDescription": None,
+            },
+            "agent": {
+                "instructions": (
+                    "You are a renewal-risk retention analyst for a B2B revenue command center. "
+                    "Use the Ask Retention Agent tool — the Databricks Retention Supervisor Agent (an "
+                    "Agent Bricks multi-agent that reasons over governed Unity Catalog gold views via Genie) "
+                    "— passing the account name and risk context from the prompt. Based on its governed "
+                    "response, return ONE concrete recommended retention action with a one-sentence rationale "
+                    "and what to watch after executing. Put the final text in result.recommendation."
+                ),
+                "tools": [{
+                    "functionName": AGENT_TOOL_FUNCTION,
+                    "functionDescription": "Ask the Databricks Retention Supervisor Agent (Genie-backed) for a governed retention recommendation for an at-risk account.",
+                    "inputs": [{
+                        "id": tool_in_id, "paramName": "prompt", "dataType": "text", "mappedTo": None,
+                        "value": None, "required": False, "isList": False, "children": [], "displayName": "prompt",
+                        "visible": True, "flag": "input", "customMappingType": None, "configType": None,
+                        "entitySubType": None, "aiDescription": None,
+                    }],
+                    "inputDescriptions": {tool_in_id: "The account name and risk context to analyze."},
+                    "id": rid(), "name": "Ask Retention Agent",
+                    "description": "Databricks Retention Supervisor Agent (MAS) over the Pattern 4 Genie space.",
+                    "packageId": CE_PACKAGE_ID, "packageVersion": CE_VERSION,
+                    "output": {
+                        "id": rid(), "paramName": "result", "dataType": "object", "mappedTo": None,
+                        "value": None, "required": False, "isList": False, "children": [], "displayName": "result",
+                        "visible": True, "flag": "output", "customMappingType": None, "configType": None,
+                        "entitySubType": None, "aiDescription": None,
+                    },
+                    "type": "FUNCTION",
+                }],
+                "context": {"datasets": [], "directories": [], "files": [], "isEmpty": True},
+                "outputDescriptions": {},
+            },
+            "_designNode": "AI_AGENT",
+        },
+        "style": {"zIndex": 3, "outline": "none"}, "index": 1, "type": "AI_AGENT",
     }
 
     gateway_id = rid()
     gateway = {
-        "id": gateway_id, "position": {"x": 50, "y": 350},
+        "id": gateway_id, "position": {"x": 50, "y": 500},
         "data": {
             "dimensions": {"width": 200, "height": 60}, "title": "Approved?",
             "description": "Route on the approval decision.",
             "_designNode": "conditionalGatewayNode", "inclusive": False,
         },
-        "style": {"zIndex": 3, "outline": "none"}, "index": 2, "type": "conditionalGatewayNode",
+        "style": {"zIndex": 3, "outline": "none"}, "index": 3, "type": "conditionalGatewayNode",
     }
 
     def service_task(node_id, idx, x, y, title, decision, exec_status, note):
@@ -305,20 +401,20 @@ def build_definition(model_id, form, queue_id) -> dict:
         }
 
     approve_id, reject_id = rid(), rid()
-    approve_task = service_task(approve_id, 3, 50, 510, "Write Approved status",
+    approve_task = service_task(approve_id, 4, 50, 660, "Write Approved status",
                                 "Approved", "Executed", "Approved via Domo Workflow")
-    reject_task = service_task(reject_id, 4, 360, 510, "Write Rejected status",
+    reject_task = service_task(reject_id, 5, 360, 660, "Write Rejected status",
                                "Rejected", "Rejected", "Rejected via Domo Workflow")
 
     end1_id, end2_id = rid(), rid()
-    end1 = {"id": end1_id, "position": {"x": 50, "y": 670},
-            "data": {"dimensions": {"width": 200, "height": 60}, "title": "", "description": "",
-                     "_designNode": "endNode", "terminating": False},
-            "style": {"zIndex": 4, "outline": "none"}, "index": 5, "type": "endNode"}
-    end2 = {"id": end2_id, "position": {"x": 360, "y": 670},
-            "data": {"dimensions": {"width": 200, "height": 60}, "title": "", "description": "",
+    end1 = {"id": end1_id, "position": {"x": 50, "y": 820},
+            "data": {"dimensions": {"width": 200, "height": 60}, "title": "Done (approved)", "description": "",
                      "_designNode": "endNode", "terminating": False},
             "style": {"zIndex": 4, "outline": "none"}, "index": 6, "type": "endNode"}
+    end2 = {"id": end2_id, "position": {"x": 360, "y": 820},
+            "data": {"dimensions": {"width": 200, "height": 60}, "title": "Done (rejected)", "description": "",
+                     "_designNode": "endNode", "terminating": False},
+            "style": {"zIndex": 4, "outline": "none"}, "index": 7, "type": "endNode"}
 
     def default_edge(idx, src, tgt, sp, tp, path):
         return {"id": f"edge-{src}-{tgt}-{rid(11)}", "source": src, "target": tgt,
@@ -345,19 +441,20 @@ def build_definition(model_id, form, queue_id) -> dict:
     }]]
 
     edges = [
-        default_edge(7, "rootNode", ut_id, "bottom", "top", [[150, 90], [150, 189]]),
-        default_edge(8, ut_id, gateway_id, "bottom", "top", [[150, 250], [150, 349]]),
-        condition_edge(9, gateway_id, approve_id, "Approved", "Basic", approve_rules,
-                       "bottom", "top", [[150, 410], [150, 509]], "bottom", "top"),
-        condition_edge(10, gateway_id, reject_id, "Rejected", "Default", None,
-                       "right", "top", [[250, 380], [460, 380], [460, 509]], "right", "top"),
-        default_edge(11, approve_id, end1_id, "bottom", "top", [[150, 570], [150, 669]]),
-        default_edge(12, reject_id, end2_id, "bottom", "top", [[460, 570], [460, 669]]),
+        default_edge(8, "rootNode", ai_id, "bottom", "top", [[150, 90], [150, 179]]),
+        default_edge(9, ai_id, ut_id, "bottom", "top", [[150, 240], [150, 339]]),
+        default_edge(10, ut_id, gateway_id, "bottom", "top", [[150, 410], [150, 499]]),
+        condition_edge(11, gateway_id, approve_id, "Approved", "Basic", approve_rules,
+                       "bottom", "top", [[150, 560], [150, 659]], "bottom", "top"),
+        condition_edge(12, gateway_id, reject_id, "Rejected", "Default", None,
+                       "right", "top", [[250, 530], [460, 530], [460, 659]], "right", "top"),
+        default_edge(13, approve_id, end1_id, "bottom", "top", [[150, 720], [150, 819]]),
+        default_edge(14, reject_id, end2_id, "bottom", "top", [[460, 720], [460, 819]]),
     ]
 
     return {
         "version": 2,
-        "designElements": [root, user_task, gateway, approve_task, reject_task, end1, end2] + edges,
+        "designElements": [root, ai_agent, user_task, gateway, approve_task, reject_task, end1, end2] + edges,
         "dataList": data_list,
         "schema": {"inputs": schema_inputs, "outputs": {}},
     }

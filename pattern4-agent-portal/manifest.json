@@ -74,6 +74,24 @@
       }
     },
     {
+      "alias": "askRetentionAgent",
+      "parameters": [
+        {
+          "alias": "prompt",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
       "alias": "askReasoningModel",
       "parameters": [
         {
