@@ -1304,8 +1304,10 @@ function renderLakebaseBanner() {
 function renderLakebase() {
   const stateEl = document.getElementById("lakebaseState");
   if (stateEl) {
-    stateEl.textContent = state.lakebaseLive ? "Live · cobra-v1" : "Planned · mock";
+    // Only surface the live badge; never show a "planned/mock" placeholder.
+    stateEl.textContent = state.lakebaseLive ? "Live · cobra-v1" : "";
     stateEl.classList.toggle("live", !!state.lakebaseLive);
+    stateEl.style.display = state.lakebaseLive ? "" : "none";
   }
   const grid = document.getElementById("lakebaseMetaGrid");
   if (grid) {
