@@ -1481,6 +1481,9 @@ function getDomoSyncedColumns(item) {
   if (item?.domoReadinessLoaded) {
     return new Set(item.domoSyncedColumns || []);
   }
+  if (window.domo && typeof window.domo.post === "function") {
+    return new Set(item?.domoSyncedColumns || []);
+  }
   const local = state.readinessColumnSync[item.alias];
   const source = Array.isArray(local) ? local : (item.domoSyncedColumns || []);
   return new Set(source);
@@ -1557,9 +1560,12 @@ async function syncReadinessColumns(item, names) {
     }
     throw new Error(result?.error ? JSON.stringify(result.error) : "Sync failed");
   } catch (error) {
-    console.warn("Live Domo AI Readiness sync failed; staging locally", error);
-    setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).concat(names));
-    return { live: false, error };
+    console.warn("Live Domo AI Readiness sync failed; re-reading Domo state", error);
+    const refreshed = await refreshDomoReadinessForItem(item);
+    if (!refreshed && !(window.domo && typeof window.domo.post === "function")) {
+      setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).concat(names));
+    }
+    return { live: !!refreshed, recovered: !!refreshed, error };
   }
 }
 
@@ -1577,10 +1583,13 @@ async function wipeReadinessColumns(item, names) {
     }
     throw new Error(result?.error ? JSON.stringify(result.error) : "Wipe failed");
   } catch (error) {
-    console.warn("Live Domo AI Readiness wipe failed; wiping staged state locally", error);
-    const remove = new Set(names || []);
-    setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).filter((name) => !remove.has(name)));
-    return { live: false, error };
+    console.warn("Live Domo AI Readiness wipe failed; re-reading Domo state", error);
+    const refreshed = await refreshDomoReadinessForItem(item);
+    if (!refreshed && !(window.domo && typeof window.domo.post === "function")) {
+      const remove = new Set(names || []);
+      setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).filter((name) => !remove.has(name)));
+    }
+    return { live: !!refreshed, recovered: !!refreshed, error };
   }
 }
 
@@ -1729,8 +1738,8 @@ function renderReadinessDetail() {
       if (note) {
         note.classList.add("done");
         note.textContent = outcome.live
-          ? `Synced ${ucReady.length} columns from Unity Catalog into Domo AI Readiness for ${item.alias}.`
-          : `Live sync unavailable; staged ${ucReady.length} columns locally for ${item.alias}.`;
+          ? `${outcome.recovered ? "Re-read" : "Synced"} Domo AI Readiness state for ${item.alias}.`
+          : `Live sync unavailable; no Domo readiness changes were confirmed for ${item.alias}.`;
       }
       renderReadiness();
     });
@@ -1744,7 +1753,7 @@ function renderReadinessDetail() {
         note.classList.add("done");
         note.textContent = outcome.live
           ? `Wiped Domo AI Readiness config for ${item.alias}. Unity Catalog metadata remains unchanged.`
-          : `Live wipe unavailable; wiped local staged state for ${item.alias}.`;
+          : `Live wipe unavailable; no Domo readiness changes were confirmed for ${item.alias}.`;
       }
       renderReadiness();
     });
