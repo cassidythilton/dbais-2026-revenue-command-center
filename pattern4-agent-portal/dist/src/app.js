@@ -2083,6 +2083,9 @@ function renderReadinessPortfolio() {
 function renderReadinessRail() {
   const rail = document.getElementById("readinessRail");
   if (!rail) return;
+  const railCount = document.getElementById("railCount");
+  if (railCount) railCount.textContent = state.readiness.length;
+  const dsIcon = '<svg class="rail-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>';
   rail.innerHTML = state.readiness
     .map((item) => {
       const s = readinessStats(item);
@@ -2091,9 +2094,10 @@ function renderReadinessRail() {
       return `
         <button class="rail-item ${active ? "active" : ""}" type="button" data-readiness-alias="${escapeHtml(item.alias)}" aria-pressed="${active}">
           <div class="rail-item-top">
-            <span class="rail-name">${escapeHtml(item.alias)}</span>
+            <span class="rail-name">${dsIcon}${escapeHtml(item.alias)}</span>
             <span class="rail-dot ${rs.cls}" title="${rs.label}"></span>
           </div>
+          <div class="rail-sub">Unity Catalog dataset</div>
           <div class="rail-meter">
             <span class="rail-meter-tag">UC</span>
             <span class="rail-bar"><span class="uc" style="width:${s.ucPct}%"></span></span>
@@ -2224,6 +2228,52 @@ function showLinkModal(url) {
   document.addEventListener("keydown", linkModalEsc);
 }
 
+// Context length (characters) for the selected dataset — mirrors Domo AI Readiness's
+// native gauge, which counts column names + context + synonyms (+ dataset context here).
+function datasetContextChars(item) {
+  let n = (item.context || "").length;
+  (item.datasetSynonyms || []).forEach((s) => { n += String(s || "").length; });
+  getReadinessColumns(item).forEach((c) => {
+    n += String(c.name || "").length;
+    n += String(c.context || "").length;
+    (c.synonyms || []).forEach((s) => { n += String(s || "").length; });
+  });
+  return n;
+}
+
+// Domo-native-style 270° arc gauge with green/amber/red zones, a marker, and a center value.
+function renderContextGauge(chars, max) {
+  max = max || 16000;
+  const cx = 80, cy = 78, r = 58;
+  const START = 225, SWEEP = 270; // gap at the bottom
+  const frac = Math.max(0, Math.min(1, chars / max));
+  const pt = (deg) => {
+    const a = (deg * Math.PI) / 180;
+    return [cx + r * Math.sin(a), cy - r * Math.cos(a)];
+  };
+  const arc = (a0, a1, cls, w) => {
+    const [x0, y0] = pt(a0);
+    const [x1, y1] = pt(a1);
+    const large = a1 - a0 > 180 ? 1 : 0;
+    return `<path class="${cls}" d="M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${large} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}" fill="none" stroke-width="${w}" stroke-linecap="round"/>`;
+  };
+  const z = (f) => START + f * SWEEP;
+  const markAngle = z(frac);
+  const [mx, my] = pt(markAngle);
+  const fmt = chars >= 1000 ? `${(chars / 1000).toFixed(1)}k` : String(chars);
+  return `
+    <svg class="ctx-gauge-svg" viewBox="0 0 160 120" role="img" aria-label="Context length ${chars} characters">
+      ${arc(START, z(1), "ctx-track", 10)}
+      ${arc(START, z(0.56), "ctx-zone-good", 10)}
+      ${arc(z(0.56), z(0.81), "ctx-zone-warn", 10)}
+      ${arc(z(0.81), z(1), "ctx-zone-bad", 10)}
+      <circle class="ctx-marker" cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="6"/>
+      <text class="ctx-gauge-num" x="${cx}" y="74" text-anchor="middle">${fmt}</text>
+      <text class="ctx-gauge-unit" x="${cx}" y="90" text-anchor="middle">characters</text>
+    </svg>
+    <div class="ctx-gauge-ends"><span>0</span><span>${(max / 1000).toFixed(0)}k</span></div>`;
+}
+
 function renderReadinessDetail() {
   const detail = document.getElementById("readinessDetail");
   if (!detail) return;
@@ -2262,16 +2312,25 @@ function renderReadinessDetail() {
         <button class="link-pill dbx" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Databricks table &rarr;</button>
       </div>
     </div>
-    <div class="readiness-compare">
-      <div class="readiness-score">
-        <div class="readiness-score-head"><span>Unity Catalog metadata prepared</span><b>${ucPct}%</b></div>
-        <div class="readiness-progress uc"><span style="width:${ucPct}%"></span></div>
-        <small>${ucReady.length}/${columns.length} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</small>
+    <div class="readiness-context-row">
+      <div class="ctx-gauge-card">
+        <div class="ctx-gauge-tag">Context length
+          <span class="ctx-info" title="Context length includes column names, context, and synonyms. Adding context improves results — but too much can lower accuracy and slow response time.">i</span>
+        </div>
+        ${renderContextGauge(datasetContextChars(item))}
+        <div class="ctx-gauge-foot">column names · context · synonyms</div>
       </div>
-      <div class="readiness-score domo">
-        <div class="readiness-score-head"><span>Domo AI Readiness synced</span><b>${domoPct}%</b></div>
-        <div class="readiness-progress domo"><span style="width:${domoPct}%"></span></div>
-        <small>${domoSynced.size}/${columns.length} columns synced into Domo</small>
+      <div class="readiness-compare">
+        <div class="readiness-score">
+          <div class="readiness-score-head"><span>Unity Catalog metadata prepared</span><b>${ucPct}%</b></div>
+          <div class="readiness-progress uc"><span style="width:${ucPct}%"></span></div>
+          <small>${ucReady.length}/${columns.length} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</small>
+        </div>
+        <div class="readiness-score domo">
+          <div class="readiness-score-head"><span>Domo AI Readiness synced</span><b>${domoPct}%</b></div>
+          <div class="readiness-progress domo"><span style="width:${domoPct}%"></span></div>
+          <small>${domoSynced.size}/${columns.length} columns synced into Domo</small>
+        </div>
       </div>
     </div>
     <div class="readiness-dataset-actions">
