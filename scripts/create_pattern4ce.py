@@ -225,8 +225,8 @@ def main() -> int:
             "Sync Domo AI Readiness",
             [
                 text_input("datasetId", False),
-                object_input("desiredState", False),
-                object_list_input("columns", True),
+                text_input("desiredState", False),
+                text_input("columns", True),
             ],
         ),
         fn(
@@ -234,7 +234,7 @@ def main() -> int:
             "Wipe Domo AI Readiness",
             [
                 text_input("datasetId", False),
-                object_list_input("columns", True),
+                text_input("columns", True),
             ],
         ),
         fn(

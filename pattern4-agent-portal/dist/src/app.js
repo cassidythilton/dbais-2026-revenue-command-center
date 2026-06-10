@@ -1545,13 +1545,13 @@ async function syncReadinessColumns(item, names) {
   try {
     const result = await callPattern4ce("syncDomoAiReadiness", {
       datasetId: item.datasetId,
-      desiredState: {
+      desiredState: JSON.stringify({
         context: item.context,
         datasetContext: item.context,
         datasetSynonyms: item.datasetSynonyms || [],
         columns: cols,
-      },
-      columns: cols,
+      }),
+      columns: JSON.stringify(cols),
     });
     if (result?.status === "SUCCEEDED") {
       applyDomoReadinessState(item, result.readiness);
@@ -1574,7 +1574,7 @@ async function wipeReadinessColumns(item, names) {
   try {
     const result = await callPattern4ce("wipeDomoAiReadiness", {
       datasetId: item.datasetId,
-      columns: cols,
+      columns: JSON.stringify(cols),
     });
     if (result?.status === "SUCCEEDED") {
       applyDomoReadinessState(item, result.readiness);
