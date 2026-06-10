@@ -146,3 +146,29 @@ Breadboard the concrete token + component changes, then build **incrementally pe
 a headless-render check after each, coordinating edits to the shared files (`styles.css`,
 `index.html`, `src/app.js`) with the parallel agent (ideally land this restyle in focused
 commits so it rebases cleanly against their Agent Catalyst/Gateway changes).
+
+## DECISION: Shape B + accent X-C selected (2026-06-10) — BUILT
+
+User selected **Shape B + X-C**. Built front-end-only (CSS + light markup); no CE release,
+no publish.
+
+### What shipped
+- **Tokens:** smaller radii (`--r-lg 8 / --r-md 6 / --r-sm 4`), near-flat surfaces
+  (`--shadow-sm: none`; elevation reserved for overlays via `--shadow-md/lg`), added
+  `--hairline` and `--font-mono` (Roboto Mono first).
+- **Typography:** added Roboto Mono to the Google Fonts import; replaced every SF-Mono stack
+  with `var(--font-mono)` so all technical strings (UC tables, SQL, IDs, payloads) render in
+  Roboto Mono; titles bold / subtitles light per the styleguide.
+- **Chrome:** `.panel` and cards are now flat hairline surfaces (no drop shadow).
+- **Tabs:** the full-width view-tab bar is now an analyzer-style **underline** strip (dots
+  hidden), with the **Domo-blue** active underline (X-C — brand-safe, never black).
+- **Accent discipline:** Domo Blue stays the primary/active accent; Databricks red reserved
+  for UC source-of-truth cues; Domo neutrals throughout.
+- IA, layouts, charts, the Context Length gauge, drawers, and all functionality preserved.
+
+### Validation (local, no publish)
+- No lints; `dist` mirrors `src`; headless renders of every tab (Forecast, ML, Lakebase,
+  UC AI Readiness, Genie, Genie legacy, How It Works) confirm the flat/underline/mono
+  native-Domo look with the Databricks collaboration intact.
+- Coordination: this landed as CSS/token + `index.html` font + tab-bar markup only, kept in
+  focused commits to rebase cleanly against the parallel Agent Catalyst/Gateway workstream.
