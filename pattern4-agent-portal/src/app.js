@@ -2535,7 +2535,7 @@ const WORKSPACE_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 // Set GENIE_SPACE_ID once a dedicated Pattern 4 Genie Space exists; deep link adapts automatically.
 const GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 const GENIE_DEEPLINK = GENIE_SPACE_ID ? `${WORKSPACE_HOST}/genie/rooms/${GENIE_SPACE_ID}` : `${WORKSPACE_HOST}/genie`;
-const LAKEBASE_PROJECT_LINK = `${WORKSPACE_HOST}/database/projects/cobra-v1`;
+const LAKEBASE_PROJECT_LINK = `${WORKSPACE_HOST}/lakebase/projects/2829411b-5a16-4d4f-931c-bf4860ed7749`;
 // Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
 // table; shows the downstream Domo Pattern 4 external-lineage node.
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
