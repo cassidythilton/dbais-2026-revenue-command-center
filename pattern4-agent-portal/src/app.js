@@ -1581,20 +1581,22 @@ function planeLabel(plane) {
 
 function renderFlow() {
   const rail = document.getElementById("flowRail");
-  rail.innerHTML = FLOW_STAGES.map((s, i) => {
-    const stage = `
+  rail.innerHTML = FLOW_STAGES.map((s, i) => `
       <button class="flow-stage ${s.plane}" type="button" data-id="${s.id}">
+        <span class="flow-step-num">${i + 1}</span>
         <span class="stage-ic">${ICONS[s.icon]}</span>
         <span class="flow-plane ${s.plane}">${planeLabel(s.plane)}</span>
         <span class="stage-name">${s.name}</span>
         <span class="stage-sub">${s.sub}</span>
-      </button>`;
-    const arrow = i < FLOW_STAGES.length - 1 ? '<span class="flow-arrow" aria-hidden="true"></span>' : "";
-    return stage + arrow;
-  }).join("");
+      </button>`).join("");
   rail.querySelectorAll(".flow-stage").forEach((el) => {
     el.addEventListener("click", () => selectStage(el.getAttribute("data-id")));
   });
+  const lineage = document.getElementById("flowLineageLink");
+  if (lineage && !lineage.dataset.wired) {
+    lineage.addEventListener("click", () => openExternal(LINEAGE_URL));
+    lineage.dataset.wired = "1";
+  }
 }
 
 function selectStage(id) {
@@ -1923,33 +1925,21 @@ function openExternal(url) {
     window.domo.navigate(target, true);
     return;
   }
-  // External URLs (Databricks / Lakebase). In the App Studio runtime the app iframe is
-  // sandboxed without `allow-popups`, so window.open is blocked; the Domo parent also
-  // rejects external domains via navigate. Try a normal new-tab open first (works in
-  // local preview / unsandboxed contexts); if blocked, copy the link and surface a toast
-  // so the link is always reachable.
-  var opened = null;
-  try {
-    opened = window.open(target, "_blank", "noopener");
-  } catch (_) {
-    opened = null;
+  // Non-embedded (local preview): a normal new tab works.
+  if (window.self === window.top) {
+    var w = null;
+    try { w = window.open(target, "_blank", "noopener"); } catch (_) {}
+    if (w) return;
   }
-  if (opened) return;
-  copyTextToClipboard(target);
-  showLinkToast(target);
+  // Embedded Domo iframe: window.open and the async Clipboard API are both blocked by the
+  // sandbox / permissions policy. Present the link in a modal the user can copy or select —
+  // no blocked APIs are called automatically, so there are no console violations.
+  showLinkModal(target);
 }
 
+// execCommand copy only — the async Clipboard API is blocked by the iframe permissions
+// policy. execCommand on a transient selection is generally still permitted. Returns bool.
 function copyTextToClipboard(text) {
-  try {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      navigator.clipboard.writeText(text).catch(function () { legacyCopy(text); });
-      return;
-    }
-  } catch (_) {}
-  legacyCopy(text);
-}
-
-function legacyCopy(text) {
   try {
     var ta = document.createElement("textarea");
     ta.value = text;
@@ -1958,37 +1948,66 @@ function legacyCopy(text) {
     ta.style.top = "-1000px";
     document.body.appendChild(ta);
     ta.select();
-    document.execCommand("copy");
+    var ok = document.execCommand("copy");
     ta.remove();
+    return !!ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+function selectElementText(el) {
+  try {
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(range);
   } catch (_) {}
 }
 
-function showLinkToast(url) {
-  var existing = document.getElementById("linkToast");
-  if (existing) existing.remove();
+function linkModalEsc(e) { if (e.key === "Escape") closeLinkModal(); }
+
+function closeLinkModal() {
+  var m = document.getElementById("linkModal");
+  if (m) m.remove();
+  document.removeEventListener("keydown", linkModalEsc);
+}
+
+function showLinkModal(url) {
+  closeLinkModal();
   var host = String(url).replace(/^https?:\/\//, "").split("/")[0];
-  var toast = document.createElement("div");
-  toast.id = "linkToast";
-  toast.className = "link-toast";
-  toast.innerHTML =
-    '<div class="link-toast-row">' +
-    '<span class="link-toast-icon" aria-hidden="true">\u2197</span>' +
-    '<div class="link-toast-body">' +
-    '<b>Link copied to your clipboard</b>' +
-    '<span>The embedded app can\u2019t open external tabs \u2014 paste into a new browser tab to open <em>' + escapeHtml(host) + '</em>.</span>' +
-    '<code>' + escapeHtml(String(url)) + '</code>' +
-    '</div>' +
-    '<button type="button" class="link-toast-close" aria-label="Dismiss">\u00d7</button>' +
+  var backdrop = document.createElement("div");
+  backdrop.id = "linkModal";
+  backdrop.className = "link-modal-backdrop";
+  backdrop.innerHTML =
+    '<div class="link-modal" role="dialog" aria-modal="true" aria-label="Open external link">' +
+      '<div class="link-modal-head">' +
+        '<span class="link-modal-tag"><img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" /> Open in Databricks</span>' +
+        '<button type="button" class="link-modal-close" aria-label="Close">\u00d7</button>' +
+      '</div>' +
+      '<p class="link-modal-lead">The embedded app can\u2019t open external browser tabs. Copy this link (or click it to select), then open <em>' + escapeHtml(host) + '</em> in a new tab.</p>' +
+      '<code class="link-modal-url" id="linkModalUrl">' + escapeHtml(url) + '</code>' +
+      '<div class="link-modal-actions">' +
+        '<button type="button" class="btn btn-primary" id="linkModalCopy">Copy link</button>' +
+        '<button type="button" class="pill-btn ghost" id="linkModalClose2">Close</button>' +
+        '<span class="link-modal-note" id="linkModalNote"></span>' +
+      '</div>' +
     '</div>';
-  document.body.appendChild(toast);
-  requestAnimationFrame(function () { toast.classList.add("show"); });
-  var timer = setTimeout(dismiss, 9000);
-  function dismiss() {
-    clearTimeout(timer);
-    toast.classList.remove("show");
-    setTimeout(function () { toast.remove(); }, 240);
-  }
-  toast.querySelector(".link-toast-close").addEventListener("click", dismiss);
+  document.body.appendChild(backdrop);
+  requestAnimationFrame(function () { backdrop.classList.add("show"); });
+  var urlEl = backdrop.querySelector("#linkModalUrl");
+  urlEl.addEventListener("click", function () { selectElementText(urlEl); });
+  backdrop.querySelector("#linkModalCopy").addEventListener("click", function () {
+    var ok = copyTextToClipboard(url);
+    var note = backdrop.querySelector("#linkModalNote");
+    if (!ok) selectElementText(urlEl);
+    if (note) note.textContent = ok ? "Copied to clipboard" : "Selected \u2014 press \u2318C / Ctrl+C";
+  });
+  backdrop.querySelector(".link-modal-close").addEventListener("click", closeLinkModal);
+  backdrop.querySelector("#linkModalClose2").addEventListener("click", closeLinkModal);
+  backdrop.addEventListener("click", function (e) { if (e.target === backdrop) closeLinkModal(); });
+  document.addEventListener("keydown", linkModalEsc);
 }
 
 function renderReadinessDetail() {
@@ -2256,6 +2275,9 @@ function wireTabs() {
   document.querySelectorAll(".view-tab").forEach((tab) => {
     tab.addEventListener("click", () => activateView(tab.getAttribute("data-view")));
   });
+  document.querySelectorAll("[data-goto-view]").forEach((el) => {
+    el.addEventListener("click", () => activateView(el.getAttribute("data-goto-view")));
+  });
 }
 
 function wireForecastControls() {
@@ -2295,6 +2317,9 @@ const WORKSPACE_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 const GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 const GENIE_DEEPLINK = GENIE_SPACE_ID ? `${WORKSPACE_HOST}/genie/rooms/${GENIE_SPACE_ID}` : `${WORKSPACE_HOST}/genie`;
 const LAKEBASE_PROJECT_LINK = `${WORKSPACE_HOST}/database/projects/cobra-v1`;
+// Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
+// table; shows the downstream Domo Pattern 4 external-lineage node.
+const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
 
 const GENIE_MODELS = [
   { value: "genie-default", label: "Genie (default)", sub: "AI/BI" },

@@ -40,10 +40,6 @@
       </div>
 
       <div class="header-controls">
-        <div class="control-group">
-          <span class="label">Viewing as</span>
-          <div class="select" id="personaSelect"></div>
-        </div>
         <span class="mode-pill" id="modePill">Loading</span>
       </div>
     </header>
@@ -62,11 +58,11 @@
       <button class="view-tab" type="button" data-view="readiness" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> AI Readiness
       </button>
-      <button class="view-tab" type="button" data-view="genie" role="tab" aria-selected="false">
+      <button class="view-tab" type="button" data-view="genieEmbed" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Genie Workspace
       </button>
-      <button class="view-tab" type="button" data-view="genieEmbed" role="tab" aria-selected="false">
-        <span class="tab-dot" aria-hidden="true"></span> Genie Embed Alpha
+      <button class="view-tab deprecated" type="button" data-view="genie" role="tab" aria-selected="false" title="Legacy Code Engine Genie panel — superseded by the native Genie Workspace">
+        <span class="tab-dot" aria-hidden="true"></span> Genie (legacy)
       </button>
       <button class="view-tab" type="button" data-view="guide" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> How It Works
@@ -75,6 +71,15 @@
 
     <!-- ============================ FORECAST HOME ============================ -->
     <div id="viewForecast" class="view">
+
+      <!-- Persona scope (Forecast Home only) -->
+      <div class="forecast-toolbar">
+        <div class="control-group">
+          <span class="label">Viewing as</span>
+          <div class="select" id="personaSelect"></div>
+        </div>
+        <span class="forecast-toolbar-note">Persona rescopes the forecast, KPIs, risk, and actions below &mdash; the same entitlement enforced by UC row filters and Domo PDP.</span>
+      </div>
 
       <!-- KPI row -->
       <section class="kpi-row" aria-label="Executive KPIs">
@@ -397,8 +402,11 @@
       <aside class="uc-drawer is-hidden" id="ucDrawer" role="dialog" aria-modal="true" aria-label="Unity Catalog column inspector" aria-hidden="true"></aside>
     </div><!-- /viewReadiness -->
 
-    <!-- ============================ GENIE WORKSPACE ============================ -->
+    <!-- ============================ GENIE WORKSPACE (LEGACY) ============================ -->
     <div id="viewGenie" class="view is-hidden">
+      <div class="legacy-banner">
+        <strong>Legacy panel.</strong> This Code Engine&ndash;routed Genie panel (with the API inspector and Domo-side chart reconstruction) is superseded by the native <button type="button" class="legacy-link" data-goto-view="genieEmbed">Genie Workspace</button>. Kept for the inspector/SQL deep-dive.
+      </div>
       <section class="genie-workspace">
         <article class="panel genie" id="geniePanel" data-accent="dbx">
           <div class="genie-head">
@@ -447,8 +455,8 @@
       <section class="panel genie-embed-panel">
         <div class="panel-head">
           <div>
-            <h2>Native Databricks Genie Embed &mdash; Alpha</h2>
-            <p>Side-by-side test of Databricks' native Genie room experience inside the Domo app. If iframe policies block it, use the open-in-Databricks link below.</p>
+            <h2>Genie Workspace &mdash; Native Databricks</h2>
+            <p>Ask the lakehouse in Databricks' native Genie, embedded in the portal &mdash; it renders Databricks result tables and charts directly. If iframe policy blocks it, use the open-in-Databricks link.</p>
           </div>
           <a class="icon-link" href="https://dbc-0516e56c-ba3e.cloud.databricks.com/genie/rooms/01f1642295b61d6b8849e106f52fc781" target="_blank" rel="noopener">
             <img src="./public/databricks-logo.png" alt="" aria-hidden="true" />
@@ -473,9 +481,12 @@
     <!-- ============================ HOW IT WORKS ============================ -->
     <div id="viewGuide" class="view is-hidden">
       <section class="panel guide-section">
-        <div class="guide-section-head">
-          <h2>Solution Architecture &mdash; Agent-to-Agent Flow</h2>
-          <p>Click any stage to see what it does, how it's governed, and its inputs &amp; outputs.</p>
+        <div class="guide-section-head flow-head">
+          <div>
+            <h2>Solution Architecture &mdash; Agent-to-Agent Flow</h2>
+            <p>Click any stage to see what it does, how it's governed, and its inputs &amp; outputs.</p>
+          </div>
+          <button class="link-pill dbx" type="button" id="flowLineageLink">View Unity Catalog lineage &rarr;</button>
         </div>
         <div class="flow-rail" id="flowRail"></div>
         <div class="flow-detail" id="flowDetail"></div>
@@ -502,7 +513,6 @@
 
     <footer class="app-footer">
       <span class="powered">Build with Databricks &middot; Deliver with Domo &middot; Govern everywhere</span>
-      <span class="synthetic-tag">Synthetic demo data &middot; databricks_raptor.pattern4_agent_automation</span>
     </footer>
 
     <div id="genieBackdrop" hidden></div>
