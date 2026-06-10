@@ -20,9 +20,9 @@ singular `packageMapping` pattern resolves at runtime by package name and avoids
 2. Paste the contents of `functions.js` into the package code.
 3. Set server-side tokens at the top of the file. Keep them server-side; never commit them:
    - `DATABRICKS_TOKEN` = Databricks PAT (same token as the local `databricks token` file).
-   - AI Readiness Domo auth comes from the `domo_account` function input. Configure it as Data Type
-     `ACCOUNT` and select the same `Domo Access Token` provider used by the existing
-     `Databricks Unity Catalog AIR` Code Engine package.
+   - `DOMO_DEVELOPER_TOKEN` = Domo access token used only by AI Readiness functions.
+     `scripts/create_pattern4ce.py` injects this from the local `databricks token` file when
+     creating a version; the committed source stays placeholder-only.
 4. Confirm the package exposes these functions with these inputs (the editor's function form must match):
    - `askGenie(question, conversationId, persona, model)` → object
    - `writeActionStatus(actionId, decision, executionStatus, approvedBy, note, persona)` → object
@@ -33,11 +33,6 @@ singular `packageMapping` pattern resolves at runtime by package name and avoids
    - `syncDomoAiReadiness(datasetId, desiredState, columns)` / `wipeDomoAiReadiness(datasetId, columns)` → object
    - `updateUcColumnContext(tableName, columnName, context, synonyms, aiEnabled, updatedBy)` → object
    - (`runSql`, `sqlString`, `lakebaseQuery` are internal helpers)
-   - For `getDomoAiReadiness`, `syncDomoAiReadiness`, and `wipeDomoAiReadiness`, add/configure
-     `domo_account` in the **Code Engine editor** as an `ACCOUNT` parameter. Do not expose it in
-     the app `manifest.json` packageMapping; the app sends only dataset/column payloads while
-     Code Engine uses its configured account binding. The source reads
-     `codeengine.getAccount(domo_account.id).properties.domoAccessToken`.
 5. **Release** the package only after explicit user approval. Model Serving deployment is also approval-gated because it carries ongoing Databricks cost.
 6. Re-publish the app:  `cd pattern4-agent-portal && domo publish`
 7. **Re-instantiate the card** so it binds the new proxy:

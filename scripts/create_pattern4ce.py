@@ -32,6 +32,14 @@ def read_token() -> str:
     return m.group(1)
 
 
+def read_domo_token() -> str:
+    text = TOKEN_FILE.read_text()
+    m = re.search(r"domo access token:\s*([A-Za-z0-9]+)", text, re.IGNORECASE)
+    if not m:
+        raise SystemExit("Could not find a Domo access token in 'databricks token'")
+    return m.group(1)
+
+
 def text_input(name: str, nullable: bool) -> dict:
     return {
         "name": name,
@@ -133,7 +141,12 @@ def client() -> DomoClient:
 
 def main() -> int:
     token = read_token()
-    code = FUNCTIONS_JS.read_text().replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
+    domo_token = read_domo_token()
+    code = (
+        FUNCTIONS_JS.read_text()
+        .replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
+        .replace("REPLACE_WITH_DOMO_DEVELOPER_TOKEN", domo_token)
+    )
 
     functions = [
         fn(
@@ -206,7 +219,7 @@ def main() -> int:
             ],
         ),
         fn("getUcReadinessState", "Get UC Readiness State", [text_input("tableName", False)]),
-        fn("getDomoAiReadiness", "Get Domo AI Readiness", [text_input("datasetId", False), account_input("domo_account", True)]),
+        fn("getDomoAiReadiness", "Get Domo AI Readiness", [text_input("datasetId", False)]),
         fn(
             "syncDomoAiReadiness",
             "Sync Domo AI Readiness",
@@ -214,7 +227,6 @@ def main() -> int:
                 text_input("datasetId", False),
                 object_input("desiredState", False),
                 object_list_input("columns", True),
-                account_input("domo_account", True),
             ],
         ),
         fn(
@@ -223,7 +235,6 @@ def main() -> int:
             [
                 text_input("datasetId", False),
                 object_list_input("columns", True),
-                account_input("domo_account", True),
             ],
         ),
         fn(
