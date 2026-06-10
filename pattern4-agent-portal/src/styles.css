@@ -886,6 +886,35 @@ td.num {
   border-color: rgba(192, 57, 43, 0.25);
 }
 
+.action-writeback {
+  display: inline-block;
+  margin-left: 7px;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--status-good);
+}
+
+.row-actioned td { background: rgba(63, 143, 107, 0.07); }
+.row-actioned { animation: row-actioned-in 0.5s ease; }
+@keyframes row-actioned-in {
+  from { background: rgba(63, 143, 107, 0.22); }
+  to { background: transparent; }
+}
+
+.kpi-flash::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: rgba(63, 143, 107, 0.18);
+  animation: kpi-flash 0.9s ease forwards;
+}
+@keyframes kpi-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 /* ---------- Governance / lineage ---------- */
 
 .lineage-head {
@@ -2891,6 +2920,17 @@ td.num {
   border-radius: 4px;
   padding: 1px 5px;
 }
+
+/* Compact meta box grid (used by the Lakebase Ops status strip) */
+.ml-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+.ml-meta { padding: 9px 11px; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--n-050); }
+.ml-meta-k { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+.ml-meta-v { display: block; font-size: 12px; font-weight: 600; color: var(--n-700); word-break: break-word; }
 
 .ml-form { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
 .ml-field { display: flex; flex-direction: column; gap: 4px; }
