@@ -1593,41 +1593,87 @@ async function wipeReadinessColumns(item, names) {
   }
 }
 
-function renderReadiness() {
-  const grid = document.getElementById("readinessGrid");
-  if (!grid) return;
-  grid.innerHTML = state.readiness
+function readinessStats(item) {
+  const columns = getReadinessColumns(item);
+  const ucReady = getUcReadyColumns(item);
+  const domoSynced = getDomoSyncedColumns(item);
+  const ucPct = columns.length ? Math.round((ucReady.length / columns.length) * 100) : 0;
+  const domoPct = columns.length ? Math.round((domoSynced.size / columns.length) * 100) : 0;
+  return { columns, ucReady, domoSynced, ucPct, domoPct };
+}
+
+function readinessRailState(stats) {
+  if (stats.domoSynced.size === 0) return { cls: "off", label: "Domo off" };
+  if (stats.domoSynced.size >= stats.ucReady.length && stats.ucReady.length > 0) {
+    return { cls: "synced", label: "Synced" };
+  }
+  return { cls: "partial", label: "Partial" };
+}
+
+function renderReadinessPortfolio() {
+  const host = document.getElementById("readinessPortfolio");
+  if (!host) return;
+  let totalCols = 0, totalUcReady = 0, totalSynced = 0;
+  state.readiness.forEach((item) => {
+    const s = readinessStats(item);
+    totalCols += s.columns.length;
+    totalUcReady += s.ucReady.length;
+    totalSynced += s.domoSynced.size;
+  });
+  const ucPct = totalCols ? Math.round((totalUcReady / totalCols) * 100) : 0;
+  const domoPct = totalCols ? Math.round((totalSynced / totalCols) * 100) : 0;
+  host.innerHTML = `
+    <div class="portfolio-meter">
+      <div class="portfolio-meter-head"><span>Unity Catalog prepared</span><b>${ucPct}%</b></div>
+      <div class="readiness-progress uc"><span style="width:${ucPct}%"></span></div>
+      <small>${totalUcReady}/${totalCols} columns across ${state.readiness.length} datasets</small>
+    </div>
+    <div class="portfolio-meter domo">
+      <div class="portfolio-meter-head"><span>Domo AI Readiness synced</span><b>${domoPct}%</b></div>
+      <div class="readiness-progress domo"><span style="width:${domoPct}%"></span></div>
+      <small>${totalSynced}/${totalCols} columns synced into Domo</small>
+    </div>`;
+}
+
+function renderReadinessRail() {
+  const rail = document.getElementById("readinessRail");
+  if (!rail) return;
+  rail.innerHTML = state.readiness
     .map((item) => {
-      const columns = getReadinessColumns(item);
-      const ucReady = getUcReadyColumns(item);
-      const domoSynced = getDomoSyncedColumns(item);
-      const ucPct = columns.length ? Math.round((ucReady.length / columns.length) * 100) : 0;
-      const domoPct = columns.length ? Math.round((domoSynced.size / columns.length) * 100) : 0;
+      const s = readinessStats(item);
+      const rs = readinessRailState(s);
+      const active = state.readinessSelected === item.alias;
       return `
-        <article class="readiness-card ${state.readinessSelected === item.alias ? "active" : ""}" data-readiness-alias="${escapeHtml(item.alias)}">
-          <div class="readiness-top">
-            <div class="readiness-title">${escapeHtml(item.alias)}</div>
-            <div class="readiness-status ${state.readinessSynced ? "synced" : ""}">
-              ${domoSynced.size ? "Staged" : "Domo off"}
-            </div>
+        <button class="rail-item ${active ? "active" : ""}" type="button" data-readiness-alias="${escapeHtml(item.alias)}" aria-pressed="${active}">
+          <div class="rail-item-top">
+            <span class="rail-name">${escapeHtml(item.alias)}</span>
+            <span class="rail-dot ${rs.cls}" title="${rs.label}"></span>
           </div>
-          <p>${escapeHtml(item.context || "Unity Catalog context ready to mirror into Domo AI Readiness.")}</p>
-          <div class="readiness-progress"><span style="width:${ucPct}%"></span></div>
-          <div class="readiness-metrics">
-            <div class="readiness-metric"><b>${ucReady.length}/${columns.length}</b><span>UC cols ready</span></div>
-            <div class="readiness-metric"><b>${domoPct}%</b><span>Domo synced</span></div>
-            <div class="readiness-metric"><b>${item.tagCount}</b><span>UC tags</span></div>
+          <div class="rail-meter">
+            <span class="rail-meter-tag">UC</span>
+            <span class="rail-bar"><span class="uc" style="width:${s.ucPct}%"></span></span>
+            <span class="rail-meter-val">${s.ucPct}%</span>
           </div>
-        </article>
-      `;
+          <div class="rail-meter">
+            <span class="rail-meter-tag domo">Domo</span>
+            <span class="rail-bar"><span class="domo" style="width:${s.domoPct}%"></span></span>
+            <span class="rail-meter-val">${s.domoPct}%</span>
+          </div>
+        </button>`;
     })
     .join("");
-  grid.querySelectorAll("[data-readiness-alias]").forEach((card) => {
-    card.addEventListener("click", () => {
-      state.readinessSelected = card.getAttribute("data-readiness-alias");
+  rail.querySelectorAll("[data-readiness-alias]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.readinessSelected = btn.getAttribute("data-readiness-alias");
       renderReadiness();
     });
   });
+}
+
+function renderReadiness() {
+  if (!document.getElementById("readinessRail")) return;
+  renderReadinessPortfolio();
+  renderReadinessRail();
   renderReadinessDetail();
 }
 
@@ -1664,69 +1710,61 @@ function renderReadinessDetail() {
   if (!detail) return;
   const item = state.readiness.find((r) => r.alias === state.readinessSelected) || state.readiness[0];
   if (!item) {
-    detail.innerHTML = `<p class="empty-state">No readiness records loaded.</p>`;
+    detail.innerHTML = `<p class="readiness-empty">No readiness records loaded.</p>`;
     return;
   }
-  const columns = getReadinessColumns(item);
-  const ucReady = getUcReadyColumns(item);
-  const domoSynced = getDomoSyncedColumns(item);
-  const ucPct = columns.length ? Math.round((ucReady.length / columns.length) * 100) : 0;
-  const domoPct = columns.length ? Math.round((domoSynced.size / columns.length) * 100) : 0;
+  const { columns, ucReady, domoSynced, ucPct, domoPct } = readinessStats(item);
+  const allSynced = domoSynced.size >= ucReady.length && ucReady.length > 0;
   const columnRows = columns.map((col) => {
     const synced = domoSynced.has(col.name);
+    const synonyms = (col.synonyms || []).length;
     return `
       <tr>
-        <td><strong>${escapeHtml(col.name)}</strong><span>${escapeHtml(col.type || "")}</span></td>
-        <td><span class="readiness-pill ${col.aiEnabled ? "ready" : "off"}">${col.aiEnabled ? "Prepared" : "Not prepared"}</span></td>
-        <td><span class="readiness-pill ${synced ? "synced" : "off"}">${synced ? "Staged" : "Not synced"}</span></td>
-        <td>${escapeHtml(col.context || "No column context staged in Unity Catalog.")}</td>
-        <td>
-          <button class="mini-btn" type="button" data-sync-column="${escapeHtml(col.name)}" ${!col.aiEnabled ? "disabled" : ""}>Sync</button>
-          <button class="mini-btn ghost" type="button" data-wipe-column="${escapeHtml(col.name)}" ${!synced ? "disabled" : ""}>Wipe</button>
-          <button class="mini-btn ghost" type="button" data-edit-uc-column="${escapeHtml(col.name)}">Edit UC</button>
+        <td class="col-name"><strong>${escapeHtml(col.name)}</strong><span>${escapeHtml(col.type || "")}</span></td>
+        <td><span class="state-pill ${col.aiEnabled ? "uc" : "muted"}">${col.aiEnabled ? "Prepared" : "Not prepared"}</span></td>
+        <td><span class="state-pill ${synced ? "synced" : "muted"}">${synced ? "Synced" : "Not synced"}</span></td>
+        <td class="col-ctx">${escapeHtml(col.context || "No column context staged in Unity Catalog.")}${synonyms ? `<em>${synonyms} synonym${synonyms === 1 ? "" : "s"}</em>` : ""}</td>
+        <td class="col-act">
+          <button class="pill-btn ${synced ? "" : "go"}" type="button" data-sync-column="${escapeHtml(col.name)}" ${!col.aiEnabled || synced ? "disabled" : ""} title="${synced ? "Already synced" : col.aiEnabled ? "Sync into Domo" : "Not prepared in UC"}">Sync</button>
+          <button class="pill-btn ghost" type="button" data-wipe-column="${escapeHtml(col.name)}" ${!synced ? "disabled" : ""} title="${synced ? "Remove from Domo" : "Nothing to wipe"}">Wipe</button>
+          <button class="pill-btn inspect" type="button" data-inspect-column="${escapeHtml(col.name)}" title="Inspect / edit Unity Catalog source context">Inspect</button>
         </td>
       </tr>`;
   }).join("");
   detail.innerHTML = `
-    <div class="readiness-detail-top">
-      <span class="panel-tag">selected dataset</span>
-      <h3>${escapeHtml(item.alias)}</h3>
-      <p>${escapeHtml(item.context || "")}</p>
+    <div class="readiness-panel-head">
+      <div>
+        <span class="panel-tag">selected dataset</span>
+        <h3>${escapeHtml(item.alias)}</h3>
+        <code class="readiness-object">${escapeHtml(item.object || "")}</code>
+      </div>
+      <div class="readiness-deeplinks">
+        <button class="link-pill" type="button" data-open-url="${escapeHtml(domoDatasetUrl(item))}">Domo AI Readiness &rarr;</button>
+        <button class="link-pill dbx" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Databricks table &rarr;</button>
+      </div>
     </div>
     <div class="readiness-compare">
       <div class="readiness-score">
-        <b>${ucPct}%</b>
-        <span>Unity Catalog metadata prepared</span>
-        <div class="readiness-progress"><span style="width:${ucPct}%"></span></div>
+        <div class="readiness-score-head"><span>Unity Catalog metadata prepared</span><b>${ucPct}%</b></div>
+        <div class="readiness-progress uc"><span style="width:${ucPct}%"></span></div>
+        <small>${ucReady.length}/${columns.length} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</small>
       </div>
       <div class="readiness-score domo">
-        <b>${domoPct}%</b>
-        <span>Domo AI Readiness synced</span>
-        <div class="readiness-progress"><span style="width:${domoPct}%"></span></div>
+        <div class="readiness-score-head"><span>Domo AI Readiness synced</span><b>${domoPct}%</b></div>
+        <div class="readiness-progress domo"><span style="width:${domoPct}%"></span></div>
+        <small>${domoSynced.size}/${columns.length} columns synced into Domo</small>
       </div>
     </div>
-    <dl class="readiness-kv">
-      <div><dt>Domo dataset</dt><dd>${escapeHtml(item.datasetId || "")}</dd></div>
-      <div><dt>Unity Catalog table</dt><dd>${escapeHtml(item.object || "")}</dd></div>
-      <div><dt>Unity Catalog assets ready</dt><dd>${ucReady.length}/${columns.length} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
-    </dl>
-    <div class="readiness-actions">
-      <button class="mini-btn primary" type="button" data-readiness-sync="${escapeHtml(item.alias)}">Sync all prepared columns</button>
-      <button class="mini-btn danger" type="button" data-readiness-wipe="${escapeHtml(item.alias)}">Wipe Domo readiness config</button>
-      <button class="btn btn-primary btn-sm" type="button" data-open-url="${escapeHtml(domoDatasetUrl(item))}">Open Domo AI Readiness</button>
-      <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open Databricks Table</button>
+    <div class="readiness-dataset-actions">
+      <span class="dataset-actions-label">Dataset controls</span>
+      <button class="pill-btn go solid" type="button" data-readiness-sync="${escapeHtml(item.alias)}" ${allSynced ? "disabled" : ""}>Sync all prepared</button>
+      <button class="pill-btn danger" type="button" data-readiness-wipe="${escapeHtml(item.alias)}" ${domoSynced.size ? "" : "disabled"}>Wipe all from Domo</button>
     </div>
-    <div class="readiness-column-compare">
-      <div class="readiness-column-head">
-        <h4>Column-by-column comparison</h4>
-        <span>${domoSynced.size}/${columns.length} staged in Domo</span>
-      </div>
-      <div class="table-wrap">
-        <table class="readiness-column-table">
-          <thead><tr><th>Column</th><th>Unity Catalog</th><th>Domo AI Readiness</th><th>Context</th><th>Action</th></tr></thead>
-          <tbody>${columnRows}</tbody>
-        </table>
-      </div>
+    <div class="table-wrap readiness-table-wrap">
+      <table class="readiness-column-table">
+        <thead><tr><th>Column</th><th>Unity Catalog</th><th>Domo AI Readiness</th><th>Source context</th><th class="th-act">Sync / Wipe / Inspect</th></tr></thead>
+        <tbody>${columnRows}</tbody>
+      </table>
     </div>`;
   detail.querySelectorAll("[data-open-url]").forEach((btn) => {
     btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
@@ -1770,44 +1808,123 @@ function renderReadinessDetail() {
       wipeReadinessColumns(item, [name]).then(() => renderReadiness());
     });
   });
-  detail.querySelectorAll("[data-edit-uc-column]").forEach((btn) => {
+  detail.querySelectorAll("[data-inspect-column]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      editUcColumnContext(item, btn.getAttribute("data-edit-uc-column"));
+      openUcDrawer(item, btn.getAttribute("data-inspect-column"));
     });
   });
 }
 
-async function editUcColumnContext(item, columnName) {
+/* ---------- UC inspector drawer (governed source-of-truth edit) ---------- */
+
+function openUcDrawer(item, columnName) {
   const col = getReadinessColumns(item).find((c) => c.name === columnName);
   if (!col) return;
-  const nextContext = window.prompt(`Update Unity Catalog context for ${item.object}.${columnName}`, col.context || "");
-  if (nextContext === null) return;
-  const nextSynonymsText = window.prompt("Synonyms (comma-separated)", (col.synonyms || []).join(", "));
-  if (nextSynonymsText === null) return;
-  const nextSynonyms = nextSynonymsText.split(",").map((s) => s.trim()).filter(Boolean);
+  const drawer = document.getElementById("ucDrawer");
+  const backdrop = document.getElementById("ucDrawerBackdrop");
+  if (!drawer || !backdrop) return;
+  const synced = getDomoSyncedColumns(item).has(col.name);
+  drawer.innerHTML = `
+    <div class="uc-drawer-head">
+      <span class="uc-drawer-tag"><img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" /> Unity Catalog · governed source edit</span>
+      <button class="uc-drawer-close" id="ucDrawerClose" type="button" aria-label="Close">&times;</button>
+    </div>
+    <code class="uc-drawer-path">${escapeHtml(item.object || "")}.${escapeHtml(col.name)}</code>
+    <dl class="uc-drawer-meta">
+      <div><dt>Type</dt><dd>${escapeHtml(col.type || "—")}</dd></div>
+      <div><dt>UC prepared</dt><dd>${col.aiEnabled ? "Yes" : "No"}</dd></div>
+      <div><dt>Domo synced</dt><dd>${synced ? "Yes" : "No"}</dd></div>
+    </dl>
+    <div class="uc-drawer-warn">
+      Editing here updates the <strong>Unity Catalog source of truth</strong> via <code>updateUcColumnContext</code>.
+      This is a governed exception to the UC&nbsp;&rarr;&nbsp;Domo sync direction &mdash; it changes Databricks metadata, not Domo.
+    </div>
+    <label class="uc-field">
+      <span>Column context (UC comment)</span>
+      <textarea id="ucEditContext" rows="4">${escapeHtml(col.context || "")}</textarea>
+    </label>
+    <label class="uc-field">
+      <span>Synonyms (comma-separated)</span>
+      <input type="text" id="ucEditSynonyms" value="${escapeHtml((col.synonyms || []).join(", "))}" />
+    </label>
+    <label class="uc-toggle">
+      <input type="checkbox" id="ucEditEnabled" ${col.aiEnabled ? "checked" : ""} />
+      <span>AI-enabled in Unity Catalog</span>
+    </label>
+    <div class="uc-drawer-actions">
+      <button class="btn btn-primary" id="ucEditSave" type="button">Update Unity Catalog metadata</button>
+      <button class="pill-btn ghost" id="ucEditCancel" type="button">Cancel</button>
+      <button class="link-pill dbx" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open in Databricks &rarr;</button>
+    </div>
+    <div class="uc-edit-note" id="ucEditNote"></div>`;
+  backdrop.classList.remove("is-hidden");
+  drawer.classList.remove("is-hidden");
+  drawer.classList.add("open");
+  drawer.setAttribute("aria-hidden", "false");
+  drawer.querySelector("#ucDrawerClose")?.addEventListener("click", closeUcDrawer);
+  drawer.querySelector("#ucEditCancel")?.addEventListener("click", closeUcDrawer);
+  backdrop.addEventListener("click", closeUcDrawer, { once: true });
+  drawer.querySelector("[data-open-url]")?.addEventListener("click", (e) => openExternal(e.currentTarget.getAttribute("data-open-url")));
+  drawer.querySelector("#ucEditSave")?.addEventListener("click", () => saveUcColumnContext(item, col.name));
+  document.addEventListener("keydown", ucDrawerEscHandler);
+}
+
+function ucDrawerEscHandler(e) {
+  if (e.key === "Escape") closeUcDrawer();
+}
+
+function closeUcDrawer() {
+  const drawer = document.getElementById("ucDrawer");
+  const backdrop = document.getElementById("ucDrawerBackdrop");
+  if (drawer) {
+    drawer.classList.remove("open");
+    drawer.classList.add("is-hidden");
+    drawer.setAttribute("aria-hidden", "true");
+  }
+  if (backdrop) backdrop.classList.add("is-hidden");
+  document.removeEventListener("keydown", ucDrawerEscHandler);
+}
+
+async function saveUcColumnContext(item, columnName) {
+  const col = getReadinessColumns(item).find((c) => c.name === columnName);
+  if (!col) return;
+  const note = document.getElementById("ucEditNote");
+  const nextContext = (document.getElementById("ucEditContext")?.value || "").trim();
+  const nextSynonyms = (document.getElementById("ucEditSynonyms")?.value || "")
+    .split(",").map((s) => s.trim()).filter(Boolean);
+  const nextEnabled = !!document.getElementById("ucEditEnabled")?.checked;
+  const saveBtn = document.getElementById("ucEditSave");
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Updating Unity Catalog…"; }
+  if (note) { note.className = "uc-edit-note"; note.textContent = "Writing column context to the Unity Catalog source of truth…"; }
   try {
     const result = await callPattern4ce("updateUcColumnContext", {
       tableName: item.object,
       columnName,
       context: nextContext,
       synonyms: nextSynonyms,
-      aiEnabled: true,
+      aiEnabled: nextEnabled,
       updatedBy: state.persona || "Pattern 4 Revenue Command Center",
     });
-    if (result?.status === "SUCCEEDED" && result.columns) {
+    if (result?.status === "SUCCEEDED" && Array.isArray(result.columns)) {
       item.columns = result.columns;
+      if (note) { note.className = "uc-edit-note done"; note.textContent = `Unity Catalog source metadata updated for ${columnName}.`; }
     } else {
       col.context = nextContext;
       col.synonyms = nextSynonyms;
-      col.aiEnabled = true;
+      col.aiEnabled = nextEnabled;
+      if (note) { note.className = "uc-edit-note warn"; note.textContent = "Live Unity Catalog write was not confirmed; staged the edit locally."; }
     }
+    renderReadiness();
+    setTimeout(closeUcDrawer, 900);
   } catch (error) {
     console.warn("Live UC update failed; updating local desired state only", error);
     col.context = nextContext;
     col.synonyms = nextSynonyms;
-    col.aiEnabled = true;
+    col.aiEnabled = nextEnabled;
+    if (note) { note.className = "uc-edit-note warn"; note.textContent = "Live Unity Catalog write unavailable; staged the edit locally."; }
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Update Unity Catalog metadata"; }
+    renderReadiness();
   }
-  renderReadiness();
 }
 
 async function syncReadinessDemo() {

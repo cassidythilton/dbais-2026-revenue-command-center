@@ -345,21 +345,28 @@
     <!-- ============================ AI READINESS ============================ -->
     <div id="viewReadiness" class="view is-hidden">
       <section class="panel readiness-command">
-        <div class="guide-section-head readiness-head">
-          <div>
+        <div class="readiness-head">
+          <div class="readiness-head-titles">
+            <span class="panel-tag readiness-source-tag">
+              <img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" /> Unity Catalog · source of truth
+            </span>
             <h2>AI Readiness Control Plane</h2>
-            <p>Compare what is prepared in Databricks Unity Catalog with what is currently synced into Domo AI Readiness.</p>
+            <p>Unity Catalog is the governed source of truth. Sync prepared column metadata into Domo AI Readiness &mdash; Domo never edits the source. Editing source context is a separate, governed action.</p>
           </div>
-          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Stage all column syncs</button>
+          <div class="readiness-portfolio" id="readinessPortfolio"></div>
         </div>
         <div class="readiness-note" id="readinessNote">
-          Domo AI Readiness is not enabled yet. This view shows Unity Catalog metadata that is ready to sync, alongside the current Domo readiness state.
+          Unity Catalog metadata that is prepared for AI, alongside the columns currently synced into Domo AI Readiness.
         </div>
-        <div class="readiness-layout">
-          <div class="readiness-grid" id="readinessGrid"></div>
-          <aside class="readiness-detail" id="readinessDetail"></aside>
+        <div class="readiness-shell">
+          <aside class="readiness-rail" id="readinessRail" aria-label="Pattern 4 datasets"></aside>
+          <div class="readiness-panel" id="readinessDetail"></div>
         </div>
       </section>
+
+      <!-- UC inspector drawer: governed source-of-truth edit -->
+      <div class="uc-drawer-backdrop is-hidden" id="ucDrawerBackdrop"></div>
+      <aside class="uc-drawer is-hidden" id="ucDrawer" role="dialog" aria-modal="true" aria-label="Unity Catalog column inspector" aria-hidden="true"></aside>
     </div><!-- /viewReadiness -->
 
     <!-- ============================ GENIE WORKSPACE ============================ -->
