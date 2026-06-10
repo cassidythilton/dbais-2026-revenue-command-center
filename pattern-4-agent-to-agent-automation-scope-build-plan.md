@@ -624,6 +624,13 @@ The project is complete when a presenter can run this end-to-end flow:
 6. DONE — Databricks external lineage for all six `gold_*` tables via `domo_pattern4_revenue_command_center`.
 7. Keep UC row-filter/PDP alignment and Agent Catalyst/Workflow approval wrapper in scope as supporting governance and automation work.
 
+## Skills & Locations (consult before acting from memory)
+
+- Databricks AI Dev Kit skills (PROJECT-LEVEL): `/Users/cassidy.hilton/Cursor Projects/dais-demo-scenarios/.cursor/skills/` — e.g. `databricks`, `databricks-config`, `databricks-unity-catalog`, `databricks-genie`, `databricks-model-serving`, `databricks-lakebase` (+ `databricks-lakebase-provisioned`), `databricks-apps`, `databricks-python-sdk`, `databricks-synthetic-data-gen`, `databricks-mlflow-evaluation`.
+- Domo skills (GLOBAL): `/Users/cassidy.hilton/.claude/skills/` and `/Users/cassidy.hilton/.agents/skills/` — e.g. `app-studio-pro-code`, `app-studio`, `basic-app-build`, `domo-app-theme`, `code-engine`, `code-engine-create`, `code-engine-update`, `manifest`, `publish`, `appdb`, `da-cli`, `domo-js`, `dataset-query`, `programmatic-filters`/`jsapi-filters`.
+- Shaping methodology: `/Users/cassidy.hilton/.agents/skills/shaping/SKILL.md` (use for the AI Readiness redesign before building).
+- Approved local reference for Code Engine app manifest/runtime patterns: `/Users/cassidy.hilton/Cursor Projects/deal-inspect`.
+
 ## AI Readiness Redesign Scope (requested, pending)
 
 Functionality (UC↔Domo compare + per-column/dataset sync/wipe + UC context edit) is live; the remaining ask is a deliberate visual/UX redesign of the AI Readiness tab. Target:
