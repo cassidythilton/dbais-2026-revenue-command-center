@@ -2139,26 +2139,19 @@ function databricksTableUrl(item) {
 function openExternal(url) {
   if (!url) return;
   var target = String(url);
-  var isDomoUrl = /^https:\/\/databricks-demo\.domo\.com\//i.test(target) || target.startsWith("/page/");
-  // Domo in-platform URLs: domo.navigate is honored by the parent frame.
-  if (isDomoUrl && window.domo && typeof window.domo.navigate === "function") {
+  // domo.navigate runs in the (non-sandboxed) parent frame, so per Domo's domo.js docs it
+  // opens both Domo and external (Databricks / Lakebase) URLs directly in a new tab. The app
+  // iframe itself can't window.open (no allow-popups), so this is the supported path.
+  if (window.domo && typeof window.domo.navigate === "function") {
     window.domo.navigate(target, true);
     return;
   }
-  // Non-embedded (local preview): a normal new tab works.
-  if (window.self === window.top) {
-    var w = null;
-    try { w = window.open(target, "_blank", "noopener"); } catch (_) {}
-    if (w) return;
-  }
-  // Embedded Domo iframe: window.open and the async Clipboard API are both blocked by the
-  // sandbox / permissions policy. Present the link in a modal the user can copy or select —
-  // no blocked APIs are called automatically, so there are no console violations.
-  showLinkModal(target);
+  // Local preview (outside the Domo runtime): a normal new tab.
+  try { window.open(target, "_blank", "noopener"); } catch (_) {}
 }
 
-// execCommand copy only — the async Clipboard API is blocked by the iframe permissions
-// policy. execCommand on a transient selection is generally still permitted. Returns bool.
+// execCommand copy (the async Clipboard API is blocked by the iframe permissions policy).
+// Used by the ML "Copy" button on the inference payload panel. Returns bool.
 function copyTextToClipboard(text) {
   try {
     var ta = document.createElement("textarea");
@@ -2174,63 +2167,6 @@ function copyTextToClipboard(text) {
   } catch (_) {
     return false;
   }
-}
-
-function selectElementText(el) {
-  try {
-    var range = document.createRange();
-    range.selectNodeContents(el);
-    var sel = window.getSelection();
-    sel.removeAllRanges();
-    sel.addRange(range);
-  } catch (_) {}
-}
-
-function linkModalEsc(e) { if (e.key === "Escape") closeLinkModal(); }
-
-function closeLinkModal() {
-  var m = document.getElementById("linkModal");
-  if (m) m.remove();
-  document.removeEventListener("keydown", linkModalEsc);
-}
-
-function showLinkModal(url) {
-  closeLinkModal();
-  var host = String(url).replace(/^https?:\/\//, "").split("/")[0];
-  var backdrop = document.createElement("div");
-  backdrop.id = "linkModal";
-  backdrop.className = "link-modal-backdrop";
-  backdrop.innerHTML =
-    '<div class="link-modal" role="dialog" aria-modal="true" aria-label="Open external link">' +
-      '<div class="link-modal-head">' +
-        '<span class="link-modal-tag"><img class="dbx-mark" src="./public/databricks-logo.png" alt="" aria-hidden="true" /> Open in Databricks</span>' +
-        '<button type="button" class="link-modal-close" aria-label="Close">\u00d7</button>' +
-      '</div>' +
-      '<p class="link-modal-lead">The embedded app can\u2019t open external browser tabs. Copy this link (or click it to select), then open <em>' + escapeHtml(host) + '</em> in a new tab.</p>' +
-      '<code class="link-modal-url" id="linkModalUrl">' + escapeHtml(url) + '</code>' +
-      '<div class="link-modal-actions">' +
-        '<button type="button" class="btn btn-primary" id="linkModalCopy">Copy link</button>' +
-        '<button type="button" class="pill-btn ghost" id="linkModalClose2">Close</button>' +
-        '<span class="link-modal-note" id="linkModalNote"></span>' +
-      '</div>' +
-    '</div>';
-  document.body.appendChild(backdrop);
-  // Anchor near the click (the iframe has no real viewport to center against).
-  var modalEl = backdrop.querySelector(".link-modal");
-  if (modalEl) modalEl.style.top = Math.max(12, (LAST_CLICK.clientY || 120) - 28) + "px";
-  requestAnimationFrame(function () { backdrop.classList.add("show"); });
-  var urlEl = backdrop.querySelector("#linkModalUrl");
-  urlEl.addEventListener("click", function () { selectElementText(urlEl); });
-  backdrop.querySelector("#linkModalCopy").addEventListener("click", function () {
-    var ok = copyTextToClipboard(url);
-    var note = backdrop.querySelector("#linkModalNote");
-    if (!ok) selectElementText(urlEl);
-    if (note) note.textContent = ok ? "Copied to clipboard" : "Selected \u2014 press \u2318C / Ctrl+C";
-  });
-  backdrop.querySelector(".link-modal-close").addEventListener("click", closeLinkModal);
-  backdrop.querySelector("#linkModalClose2").addEventListener("click", closeLinkModal);
-  backdrop.addEventListener("click", function (e) { if (e.target === backdrop) closeLinkModal(); });
-  document.addEventListener("keydown", linkModalEsc);
 }
 
 // Context length (characters) for the selected dataset — mirrors Domo AI Readiness's
@@ -3267,6 +3203,17 @@ function trackPointer(e) {
 async function init() {
   document.addEventListener("pointerdown", trackPointer, true);
   document.addEventListener("click", trackPointer, true);
+  // Route every external (http/https) link through domo.navigate so it opens directly in a
+  // new tab via the parent frame — anchor target=_blank is blocked in the sandboxed iframe.
+  document.addEventListener("click", function (e) {
+    var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
+    if (!a) return;
+    var href = a.getAttribute("href") || "";
+    if (/^https?:\/\//i.test(href)) {
+      e.preventDefault();
+      openExternal(href);
+    }
+  });
   wireEvents();
   wireTabs();
   wireForecastControls();
