@@ -221,6 +221,74 @@
         "isList": false,
         "children": null
       }
+    },
+    {
+      "alias": "getUcReadinessState",
+      "parameters": [
+        { "alias": "tableName", "type": "string", "nullable": false, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "getDomoAiReadiness",
+      "parameters": [
+        { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "syncDomoAiReadiness",
+      "parameters": [
+        { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "desiredState", "type": "object", "nullable": false, "isList": false, "children": null },
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "wipeDomoAiReadiness",
+      "parameters": [
+        { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "updateUcColumnContext",
+      "parameters": [
+        { "alias": "tableName", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "columnName", "type": "string", "nullable": false, "isList": false, "children": null },
+        { "alias": "context", "type": "string", "nullable": true, "isList": false, "children": null },
+        { "alias": "synonyms", "type": "object", "nullable": true, "isList": true, "children": null },
+        { "alias": "aiEnabled", "type": "boolean", "nullable": true, "isList": false, "children": null },
+        { "alias": "updatedBy", "type": "string", "nullable": true, "isList": false, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
     }
   ],
   "collectionsMapping": []

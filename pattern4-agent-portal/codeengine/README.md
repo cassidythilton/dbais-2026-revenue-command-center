@@ -18,14 +18,18 @@ singular `packageMapping` pattern resolves at runtime by package name and avoids
 1. In Domo, open **Code Engine** and create a **new package named exactly `pattern4ce`**
    (the name must match `manifest.json` `proxyId`).
 2. Paste the contents of `functions.js` into the package code.
-3. Set `DATABRICKS_TOKEN` at the top of the file to your Databricks PAT
-   (same token as the local `databricks token` file). Keep it server-side; never commit it.
+3. Set server-side tokens at the top of the file. Keep them server-side; never commit them:
+   - `DATABRICKS_TOKEN` = Databricks PAT (same token as the local `databricks token` file).
+   - `DOMO_DEVELOPER_TOKEN` = Domo developer token used only by AI Readiness functions.
 4. Confirm the package exposes these functions with these inputs (the editor's function form must match):
    - `askGenie(question, conversationId, persona, model)` → object
    - `writeActionStatus(actionId, decision, executionStatus, approvedBy, note, persona)` → object
    - `listScenarios()` / `createScenario(...)` / `updateScenario(...)` / `deleteScenario(id)` → object
    - `listPredictionFeedback()` / `savePredictionFeedback(...)` → object
    - `runModelInference(records)` → object, calls Databricks Model Serving with `{ "dataframe_records": records }`
+   - `getUcReadinessState(tableName)` / `getDomoAiReadiness(datasetId)` → object
+   - `syncDomoAiReadiness(datasetId, desiredState, columns)` / `wipeDomoAiReadiness(datasetId, columns)` → object
+   - `updateUcColumnContext(tableName, columnName, context, synonyms, aiEnabled, updatedBy)` → object
    - (`runSql`, `sqlString`, `lakebaseQuery` are internal helpers)
 5. **Release** the package only after explicit user approval. Model Serving deployment is also approval-gated because it carries ongoing Databricks cost.
 6. Re-publish the app:  `cd pattern4-agent-portal && domo publish`

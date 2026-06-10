@@ -1489,6 +1489,98 @@ function setDomoSyncedColumns(alias, columns) {
   persistReadinessLocalState();
 }
 
+function applyDomoReadinessState(item, readiness) {
+  if (!item || !readiness) return;
+  const columns = Array.isArray(readiness.columns) ? readiness.columns : [];
+  item.domoReadinessEnabled = columns.some((col) => col.agentEnabled);
+  item.domoSyncedColumns = columns.filter((col) => col.agentEnabled).map((col) => col.name);
+  item.domoReadiness = readiness;
+  if (!state.readinessColumnSync[item.alias] && item.domoSyncedColumns.length) {
+    state.readinessColumnSync[item.alias] = item.domoSyncedColumns.slice();
+  }
+}
+
+async function refreshDomoReadinessForItem(item) {
+  if (!item?.datasetId) return null;
+  try {
+    const result = await callPattern4ce("getDomoAiReadiness", { datasetId: item.datasetId });
+    if (result?.status === "SUCCEEDED") {
+      applyDomoReadinessState(item, result.readiness);
+      renderReadiness();
+      return result.readiness;
+    }
+    throw new Error(result?.error ? JSON.stringify(result.error) : "Unable to load Domo AI Readiness");
+  } catch (error) {
+    console.warn("Domo AI Readiness live read unavailable; using staged state", error);
+    return null;
+  }
+}
+
+async function refreshDomoReadinessLive() {
+  if (!window.domo || typeof window.domo.post !== "function") return;
+  await Promise.all(state.readiness.map((item) => refreshDomoReadinessForItem(item)));
+}
+
+function selectedColumnPayload(item, names) {
+  const selected = new Set(names || []);
+  return getReadinessColumns(item)
+    .filter((col) => selected.has(col.name))
+    .map((col) => ({
+      name: col.name,
+      type: col.type,
+      aiEnabled: !!col.aiEnabled,
+      context: col.context || "",
+      synonyms: col.synonyms || [],
+    }));
+}
+
+async function syncReadinessColumns(item, names) {
+  const cols = selectedColumnPayload(item, names);
+  try {
+    const result = await callPattern4ce("syncDomoAiReadiness", {
+      datasetId: item.datasetId,
+      desiredState: {
+        context: item.context,
+        datasetContext: item.context,
+        datasetSynonyms: item.datasetSynonyms || [],
+        columns: cols,
+      },
+      columns: cols,
+    });
+    if (result?.status === "SUCCEEDED") {
+      applyDomoReadinessState(item, result.readiness);
+      setDomoSyncedColumns(item.alias, (item.domoSyncedColumns || []));
+      return { live: true, result };
+    }
+    throw new Error(result?.error ? JSON.stringify(result.error) : "Sync failed");
+  } catch (error) {
+    console.warn("Live Domo AI Readiness sync failed; staging locally", error);
+    setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).concat(names));
+    return { live: false, error };
+  }
+}
+
+async function wipeReadinessColumns(item, names) {
+  const cols = selectedColumnPayload(item, names || []);
+  try {
+    const result = await callPattern4ce("wipeDomoAiReadiness", {
+      datasetId: item.datasetId,
+      columns: cols,
+    });
+    if (result?.status === "SUCCEEDED") {
+      applyDomoReadinessState(item, result.readiness);
+      setDomoSyncedColumns(item.alias, (item.domoSyncedColumns || []));
+      return { live: true, result };
+    }
+    throw new Error(result?.error ? JSON.stringify(result.error) : "Wipe failed");
+  } catch (error) {
+    console.warn("Live Domo AI Readiness wipe failed; wiping staged state locally", error);
+    const remove = new Set(names || []);
+    setDomoSyncedColumns(item.alias, Array.from(getDomoSyncedColumns(item)).filter((name) => !remove.has(name)));
+    return { live: false, error };
+  }
+}
+
 function renderReadiness() {
   const grid = document.getElementById("readinessGrid");
   if (!grid) return;
@@ -1579,6 +1671,7 @@ function renderReadinessDetail() {
         <td>
           <button class="mini-btn" type="button" data-sync-column="${escapeHtml(col.name)}" ${!col.aiEnabled ? "disabled" : ""}>Sync</button>
           <button class="mini-btn ghost" type="button" data-wipe-column="${escapeHtml(col.name)}" ${!synced ? "disabled" : ""}>Wipe</button>
+          <button class="mini-btn ghost" type="button" data-edit-uc-column="${escapeHtml(col.name)}">Edit UC</button>
         </td>
       </tr>`;
   }).join("");
@@ -1627,46 +1720,94 @@ function renderReadinessDetail() {
     btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
   });
   detail.querySelector("[data-readiness-sync]")?.addEventListener("click", () => {
-    setDomoSyncedColumns(item.alias, ucReady);
     const note = document.getElementById("readinessNote");
-    if (note) {
-      note.classList.add("done");
-      note.textContent = `Column-level sync staged for ${item.alias}. Real Domo persistence is TBD until AI Readiness write access is confirmed.`;
-    }
-    renderReadiness();
+    if (note) note.textContent = `Syncing ${ucReady.length} prepared columns from Unity Catalog into Domo AI Readiness...`;
+    syncReadinessColumns(item, ucReady).then((outcome) => {
+      if (note) {
+        note.classList.add("done");
+        note.textContent = outcome.live
+          ? `Synced ${ucReady.length} columns from Unity Catalog into Domo AI Readiness for ${item.alias}.`
+          : `Live sync unavailable; staged ${ucReady.length} columns locally for ${item.alias}.`;
+      }
+      renderReadiness();
+    });
   });
   detail.querySelector("[data-readiness-wipe]")?.addEventListener("click", () => {
-    setDomoSyncedColumns(item.alias, []);
     const note = document.getElementById("readinessNote");
-    if (note) {
-      note.classList.add("done");
-      note.textContent = `Domo readiness staging wiped for ${item.alias}. Unity Catalog metadata remains unchanged.`;
-    }
-    renderReadiness();
+    const allNames = columns.map((col) => col.name);
+    if (note) note.textContent = `Wiping Domo AI Readiness state for ${item.alias}...`;
+    wipeReadinessColumns(item, allNames).then((outcome) => {
+      if (note) {
+        note.classList.add("done");
+        note.textContent = outcome.live
+          ? `Wiped Domo AI Readiness config for ${item.alias}. Unity Catalog metadata remains unchanged.`
+          : `Live wipe unavailable; wiped local staged state for ${item.alias}.`;
+      }
+      renderReadiness();
+    });
   });
   detail.querySelectorAll("[data-sync-column]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      setDomoSyncedColumns(item.alias, Array.from(domoSynced).concat(btn.getAttribute("data-sync-column")));
-      renderReadiness();
+      const name = btn.getAttribute("data-sync-column");
+      syncReadinessColumns(item, [name]).then(() => renderReadiness());
     });
   });
   detail.querySelectorAll("[data-wipe-column]").forEach((btn) => {
     btn.addEventListener("click", () => {
-      setDomoSyncedColumns(item.alias, Array.from(domoSynced).filter((name) => name !== btn.getAttribute("data-wipe-column")));
-      renderReadiness();
+      const name = btn.getAttribute("data-wipe-column");
+      wipeReadinessColumns(item, [name]).then(() => renderReadiness());
+    });
+  });
+  detail.querySelectorAll("[data-edit-uc-column]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      editUcColumnContext(item, btn.getAttribute("data-edit-uc-column"));
     });
   });
 }
 
-function syncReadinessDemo() {
+async function editUcColumnContext(item, columnName) {
+  const col = getReadinessColumns(item).find((c) => c.name === columnName);
+  if (!col) return;
+  const nextContext = window.prompt(`Update Unity Catalog context for ${item.object}.${columnName}`, col.context || "");
+  if (nextContext === null) return;
+  const nextSynonymsText = window.prompt("Synonyms (comma-separated)", (col.synonyms || []).join(", "));
+  if (nextSynonymsText === null) return;
+  const nextSynonyms = nextSynonymsText.split(",").map((s) => s.trim()).filter(Boolean);
+  try {
+    const result = await callPattern4ce("updateUcColumnContext", {
+      tableName: item.object,
+      columnName,
+      context: nextContext,
+      synonyms: nextSynonyms,
+      aiEnabled: true,
+      updatedBy: state.persona || "Pattern 4 Revenue Command Center",
+    });
+    if (result?.status === "SUCCEEDED" && result.columns) {
+      item.columns = result.columns;
+    } else {
+      col.context = nextContext;
+      col.synonyms = nextSynonyms;
+      col.aiEnabled = true;
+    }
+  } catch (error) {
+    console.warn("Live UC update failed; updating local desired state only", error);
+    col.context = nextContext;
+    col.synonyms = nextSynonyms;
+    col.aiEnabled = true;
+  }
+  renderReadiness();
+}
+
+async function syncReadinessDemo() {
   state.readinessSynced = true;
   const note = document.getElementById("readinessNote");
   note.classList.add("done");
   note.textContent =
-    "All prepared Unity Catalog columns have been staged for Domo AI Readiness sync. Real Domo persistence is TBD until AI Readiness write access is confirmed.";
-  state.readiness.forEach((item) => {
-    setDomoSyncedColumns(item.alias, getUcReadyColumns(item));
-  });
+    "Syncing all prepared Unity Catalog columns into Domo AI Readiness...";
+  for (const item of state.readiness) {
+    await syncReadinessColumns(item, getUcReadyColumns(item));
+  }
+  note.textContent = "All prepared Unity Catalog columns were synced where live write access was available; otherwise staged locally.";
   renderReadiness();
 }
 
@@ -2399,6 +2540,7 @@ async function init() {
   await loadReadiness();
   renderGuide();
   renderReadiness();
+  refreshDomoReadinessLive();
   renderMl();
   renderLakebase();
   loadLakebaseLive();

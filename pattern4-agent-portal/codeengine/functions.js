@@ -15,6 +15,11 @@
  *   - listPredictionFeedback()
  *   - savePredictionFeedback(predictionId, entityType, entityId, feedback, predictedValue, correctedValue, comment, createdBy)
  *   - runModelInference(records)
+ *   - getUcReadinessState(tableName)
+ *   - getDomoAiReadiness(datasetId)
+ *   - syncDomoAiReadiness(datasetId, desiredState, columns)
+ *   - wipeDomoAiReadiness(datasetId, columns)
+ *   - updateUcColumnContext(tableName, columnName, context, synonyms, aiEnabled, updatedBy)
  *
  * SETUP: paste your Databricks PAT into DATABRICKS_TOKEN below (same token as
  * the local `databricks token` file). Do NOT commit a real token to git.
@@ -26,6 +31,8 @@ var pg = require("pg");
 
 var DATABRICKS_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 var DATABRICKS_TOKEN = "REPLACE_WITH_DATABRICKS_TOKEN";
+var DOMO_INSTANCE = "https://databricks-demo.domo.com";
+var DOMO_DEVELOPER_TOKEN = "REPLACE_WITH_DOMO_DEVELOPER_TOKEN";
 var GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 var WAREHOUSE_ID = "ea829ba58bcae093";
 var CATALOG = "databricks_raptor";
@@ -95,6 +102,152 @@ function sqlString(value) {
     return "NULL";
   }
   return "'" + String(value).replace(/'/g, "''") + "'";
+}
+
+function parseMaybeJson(value, fallback) {
+  if (value === null || value === undefined || value === "") {
+    return fallback;
+  }
+  if (typeof value === "object") {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch (err) {
+    return fallback;
+  }
+}
+
+function identifierPart(value) {
+  return String(value || "").replace(/`/g, "``");
+}
+
+function quotedTableName(fullName) {
+  return String(fullName || "")
+    .split(".")
+    .map(function (part) { return "`" + identifierPart(part) + "`"; })
+    .join(".");
+}
+
+function runSqlChecked(statement) {
+  return runSql(statement).then(function (data) {
+    var state = data.status && data.status.state ? data.status.state : "SUCCEEDED";
+    if (state === "FAILED") {
+      var detail = data.status && data.status.error ? data.status.error : "SQL failed";
+      return Promise.reject(detail);
+    }
+    return data;
+  });
+}
+
+function domoHeaders() {
+  return {
+    "X-DOMO-Developer-Token": DOMO_DEVELOPER_TOKEN,
+    "Content-Type": "application/json;charset=utf-8",
+    "accept": "application/json, text/plain, */*"
+  };
+}
+
+function domoApi(method, path, body) {
+  if (!DOMO_DEVELOPER_TOKEN || DOMO_DEVELOPER_TOKEN.indexOf("REPLACE_WITH") === 0) {
+    return Promise.reject("DOMO_DEVELOPER_TOKEN is not configured in Code Engine");
+  }
+  return axios({
+    method: method,
+    url: DOMO_INSTANCE + path,
+    headers: domoHeaders(),
+    data: body || undefined,
+    timeout: 30000
+  }).then(function (resp) {
+    return resp.data;
+  });
+}
+
+function normalizeDomoReadiness(raw) {
+  var payload = raw;
+  if (Array.isArray(payload)) {
+    payload = payload[0] || {};
+  }
+  var dict = payload.dataDictionary || payload;
+  var columns = dict.columns || [];
+  return {
+    id: dict.id || "",
+    datasetId: dict.datasetId || "",
+    name: dict.name || "",
+    description: dict.description || "",
+    unitOfAnalysis: dict.unitOfAnalysis || "",
+    columns: columns.map(function (col) {
+      return {
+        name: col.name,
+        description: col.description || "",
+        synonyms: col.synonyms || [],
+        agentEnabled: !!col.agentEnabled,
+        sampleValues: col.sampleValues || [],
+        subType: col.subType || null,
+        beastmodeId: col.beastmodeId || null
+      };
+    })
+  };
+}
+
+function getDomoDatasetInfo(datasetId) {
+  return domoApi("GET", "/api/data/v3/datasources/" + datasetId);
+}
+
+function getDomoDatasetSchema(datasetId) {
+  return domoApi("GET", "/api/query/v1/datasources/" + datasetId + "/schema/indexed?includeHidden=true");
+}
+
+function getDomoAiReadiness(datasetId) {
+  return domoApi("GET", "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId)
+    .then(function (data) {
+      return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(data) };
+    })
+    .catch(function (err) {
+      var status = err && err.response && err.response.status ? err.response.status : "";
+      if (status === 404) {
+        return { status: "SUCCEEDED", readiness: { datasetId: datasetId, columns: [] }, notFound: true };
+      }
+      return { status: "FAILED", error: err && err.response && err.response.data ? err.response.data : String(err) };
+    });
+}
+
+function buildReadinessBaseline(datasetId, datasetInfo, schemaInfo, existing) {
+  var table = schemaInfo && schemaInfo.tables && schemaInfo.tables[0] ? schemaInfo.tables[0] : { columns: [] };
+  var existingByName = {};
+  (existing && existing.columns ? existing.columns : []).forEach(function (col) {
+    existingByName[col.name] = col;
+  });
+  return {
+    id: existing && existing.id ? existing.id : "",
+    datasetId: datasetId,
+    name: datasetInfo && datasetInfo.name ? datasetInfo.name : (existing && existing.name ? existing.name : datasetId),
+    description: existing && existing.description ? existing.description : "",
+    unitOfAnalysis: existing && existing.unitOfAnalysis ? existing.unitOfAnalysis : "",
+    columns: (table.columns || []).map(function (col) {
+      var current = existingByName[col.name] || {};
+      return {
+        name: col.name,
+        description: current.description || "",
+        synonyms: current.synonyms || [],
+        subType: current.subType || null,
+        agentEnabled: !!current.agentEnabled,
+        sampleValues: current.sampleValues || [],
+        beastmodeId: current.beastmodeId || null
+      };
+    })
+  };
+}
+
+function selectedColumnSet(columns) {
+  var parsed = parseMaybeJson(columns, []);
+  if (!Array.isArray(parsed)) return {};
+  var out = {};
+  parsed.forEach(function (col) {
+    if (typeof col === "string") out[col] = true;
+    else if (col && col.name) out[col.name] = true;
+  });
+  return out;
 }
 
 /* ------------------------------ Lakebase PG ------------------------------- */
@@ -199,6 +352,191 @@ function savePredictionFeedback(predictionId, entityType, entityId, feedback, pr
       createdBy || "demo.user@domo.com"
     ]
   );
+}
+
+/* -------------------------- AI Readiness sync ----------------------------- */
+
+function getUcReadinessState(tableName) {
+  var fullName = String(tableName || "");
+  var parts = fullName.split(".");
+  var catalog = parts[0] || CATALOG;
+  var schema = parts[1] || SCHEMA;
+  var table = parts[2] || "";
+  var tableUrl = DATABRICKS_HOST + "/api/2.1/unity-catalog/tables/" + encodeURIComponent(fullName);
+  var tagsSql =
+    "SELECT column_name, tag_name, tag_value FROM system.information_schema.column_tags " +
+    "WHERE catalog_name = " + sqlString(catalog) +
+    " AND schema_name = " + sqlString(schema) +
+    " AND table_name = " + sqlString(table);
+  var tableInfo;
+  return axios.get(tableUrl, { headers: dbxHeaders() })
+    .then(function (resp) {
+      tableInfo = resp.data || {};
+      return runSqlChecked(tagsSql);
+    })
+    .then(function (tagResp) {
+      var tagColumns = tagResp.manifest && tagResp.manifest.schema && tagResp.manifest.schema.columns ? tagResp.manifest.schema.columns : [];
+      var tagRows = tagResp.result && tagResp.result.data_array ? tagResp.result.data_array : [];
+      var tagMap = {};
+      tagRows.forEach(function (row) {
+        var col = row[0];
+        var key = row[1];
+        var value = row[2];
+        if (!tagMap[col]) tagMap[col] = [];
+        tagMap[col].push({ key: key, value: value });
+      });
+      var properties = tableInfo.properties || {};
+      return {
+        status: "SUCCEEDED",
+        tableName: fullName,
+        comment: tableInfo.comment || "",
+        properties: properties,
+        columns: (tableInfo.columns || []).map(function (col) {
+          var tags = tagMap[col.name] || [];
+          var synonyms = [];
+          tags.forEach(function (tag) {
+            if (tag.key === "domo.ai.synonym" || tag.key === "domo_ai_synonym") synonyms.push(tag.value);
+          });
+          return {
+            name: col.name,
+            type: col.type_name || col.type_text || col.type_json || "",
+            context: col.comment || "",
+            synonyms: synonyms,
+            tags: tags,
+            aiEnabled: tags.some(function (tag) { return tag.key === "domo_ai_ready" && String(tag.value) === "true"; }) || !!col.comment
+          };
+        })
+      };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.getUcReadinessState] failed", JSON.stringify({ tableName: fullName, error: detail }));
+      return { status: "FAILED", error: detail, tableName: fullName };
+    });
+}
+
+function syncDomoAiReadiness(datasetId, desiredState, columns) {
+  var desired = parseMaybeJson(desiredState, {});
+  var selected = selectedColumnSet(columns);
+  var existing;
+  var datasetInfo;
+  var schemaInfo;
+  return getDomoAiReadiness(datasetId)
+    .then(function (readinessResp) {
+      existing = readinessResp.readiness || { columns: [] };
+      return getDomoDatasetInfo(datasetId);
+    })
+    .then(function (info) {
+      datasetInfo = info || {};
+      return getDomoDatasetSchema(datasetId);
+    })
+    .then(function (schema) {
+      schemaInfo = schema || {};
+      var baseline = buildReadinessBaseline(datasetId, datasetInfo, schemaInfo, existing);
+      var desiredColumns = desired.columns || [];
+      var desiredByName = {};
+      desiredColumns.forEach(function (col) { desiredByName[col.name] = col; });
+      baseline.description = desired.context || desired.datasetContext || baseline.description || "";
+      baseline.columns = baseline.columns.map(function (col) {
+        var shouldSync = !Object.keys(selected).length || selected[col.name];
+        var desiredCol = desiredByName[col.name];
+        if (shouldSync && desiredCol) {
+          return {
+            name: col.name,
+            description: desiredCol.context || desiredCol.description || "",
+            synonyms: desiredCol.synonyms || [],
+            subType: col.subType || null,
+            agentEnabled: desiredCol.aiEnabled !== false,
+            sampleValues: col.sampleValues || [],
+            beastmodeId: col.beastmodeId || null
+          };
+        }
+        return col;
+      });
+      var method = baseline.id ? "PUT" : "POST";
+      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline);
+    })
+    .then(function (result) {
+      return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.syncDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail }));
+      return { status: "FAILED", error: detail, datasetId: datasetId };
+    });
+}
+
+function wipeDomoAiReadiness(datasetId, columns) {
+  var selected = selectedColumnSet(columns);
+  var existing;
+  var datasetInfo;
+  var schemaInfo;
+  return getDomoAiReadiness(datasetId)
+    .then(function (readinessResp) {
+      existing = readinessResp.readiness || { columns: [] };
+      return getDomoDatasetInfo(datasetId);
+    })
+    .then(function (info) {
+      datasetInfo = info || {};
+      return getDomoDatasetSchema(datasetId);
+    })
+    .then(function (schema) {
+      schemaInfo = schema || {};
+      var baseline = buildReadinessBaseline(datasetId, datasetInfo, schemaInfo, existing);
+      var wipeAll = !Object.keys(selected).length;
+      if (wipeAll) baseline.description = "";
+      baseline.columns = baseline.columns.map(function (col) {
+        if (wipeAll || selected[col.name]) {
+          return {
+            name: col.name,
+            description: "",
+            synonyms: [],
+            subType: col.subType || null,
+            agentEnabled: false,
+            sampleValues: col.sampleValues || [],
+            beastmodeId: col.beastmodeId || null
+          };
+        }
+        return col;
+      });
+      var method = baseline.id ? "PUT" : "POST";
+      return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, baseline);
+    })
+    .then(function (result) {
+      return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.wipeDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail }));
+      return { status: "FAILED", error: detail, datasetId: datasetId };
+    });
+}
+
+function updateUcColumnContext(tableName, columnName, context, synonyms, aiEnabled, updatedBy) {
+  var full = quotedTableName(tableName);
+  var col = "`" + identifierPart(columnName) + "`";
+  var cleanContext = context || "";
+  var parsedSynonyms = parseMaybeJson(synonyms, []);
+  if (!Array.isArray(parsedSynonyms)) parsedSynonyms = [];
+  var stmts = [
+    "COMMENT ON COLUMN " + full + "." + col + " IS " + sqlString(cleanContext),
+    "ALTER TABLE " + full + " ALTER COLUMN " + col + " SET TAGS ('domo_ai_ready' = " + sqlString(aiEnabled === false ? "false" : "true") + ")",
+    "ALTER TABLE " + full + " ALTER COLUMN " + col + " SET TAGS ('domo_ai_synonyms' = " + sqlString(parsedSynonyms.join(",")) + ")",
+    "ALTER TABLE " + full + " ALTER COLUMN " + col + " SET TAGS ('domo_ai_updated_by' = " + sqlString(updatedBy || "Pattern 4 Revenue Command Center") + ")"
+  ];
+  var chain = Promise.resolve();
+  stmts.forEach(function (stmt) {
+    chain = chain.then(function () { return runSqlChecked(stmt); });
+  });
+  return chain
+    .then(function () {
+      return getUcReadinessState(tableName);
+    })
+    .catch(function (err) {
+      var detail = err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.updateUcColumnContext] failed", JSON.stringify({ tableName: tableName, columnName: columnName, error: detail }));
+      return { status: "FAILED", error: detail, tableName: tableName, columnName: columnName };
+    });
 }
 
 /* ---------------------------- Model inference ----------------------------- */
@@ -529,6 +867,11 @@ module.exports = {
   listPredictionFeedback: listPredictionFeedback,
   savePredictionFeedback: savePredictionFeedback,
   runModelInference: runModelInference,
+  getUcReadinessState: getUcReadinessState,
+  getDomoAiReadiness: getDomoAiReadiness,
+  syncDomoAiReadiness: syncDomoAiReadiness,
+  wipeDomoAiReadiness: wipeDomoAiReadiness,
+  updateUcColumnContext: updateUcColumnContext,
   runSql: runSql,
   sqlString: sqlString,
   lakebaseQuery: lakebaseQuery

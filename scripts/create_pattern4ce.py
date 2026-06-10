@@ -9,6 +9,7 @@ to disk. Does NOT release (release requires explicit user approval).
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
@@ -30,6 +31,13 @@ def read_token() -> str:
     if not m:
         raise SystemExit("Could not find a dapi... token in 'databricks token'")
     return m.group(1)
+
+
+def read_domo_token() -> str:
+    token = os.environ.get("DOMO_DEVELOPER_TOKEN", "").strip()
+    if not token:
+        raise SystemExit("Set DOMO_DEVELOPER_TOKEN before creating a pattern4ce version with AI Readiness writes")
+    return token
 
 
 def text_input(name: str, nullable: bool) -> dict:
@@ -120,7 +128,12 @@ def client() -> DomoClient:
 
 def main() -> int:
     token = read_token()
-    code = FUNCTIONS_JS.read_text().replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
+    domo_token = read_domo_token()
+    code = (
+        FUNCTIONS_JS.read_text()
+        .replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
+        .replace("REPLACE_WITH_DOMO_DEVELOPER_TOKEN", domo_token)
+    )
 
     functions = [
         fn(
@@ -190,6 +203,37 @@ def main() -> int:
             "Run Renewal-Risk Model Inference",
             [
                 object_list_input("records", False),
+            ],
+        ),
+        fn("getUcReadinessState", "Get UC Readiness State", [text_input("tableName", False)]),
+        fn("getDomoAiReadiness", "Get Domo AI Readiness", [text_input("datasetId", False)]),
+        fn(
+            "syncDomoAiReadiness",
+            "Sync Domo AI Readiness",
+            [
+                text_input("datasetId", False),
+                object_input("desiredState", False),
+                object_list_input("columns", True),
+            ],
+        ),
+        fn(
+            "wipeDomoAiReadiness",
+            "Wipe Domo AI Readiness",
+            [
+                text_input("datasetId", False),
+                object_list_input("columns", True),
+            ],
+        ),
+        fn(
+            "updateUcColumnContext",
+            "Update UC Column Context",
+            [
+                text_input("tableName", False),
+                text_input("columnName", False),
+                text_input("context", True),
+                object_list_input("synonyms", True),
+                text_input("aiEnabled", True),
+                text_input("updatedBy", True),
             ],
         ),
         fn("runSql", "Run SQL", [text_input("statement", False)], private=True),

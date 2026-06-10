@@ -139,11 +139,41 @@
     {
       "alias": "createScenario",
       "parameters": [
-        { "alias": "name", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "status", "type": "string", "nullable": true, "isList": false, "children": null },
-        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null },
-        { "alias": "assumptions", "type": "object", "nullable": true, "isList": false, "children": null },
-        { "alias": "results", "type": "object", "nullable": true, "isList": false, "children": null }
+        {
+          "alias": "name",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "status",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "createdBy",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "assumptions",
+          "type": "object",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "results",
+          "type": "object",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
       ],
       "output": {
         "alias": "result",
@@ -155,12 +185,48 @@
     {
       "alias": "updateScenario",
       "parameters": [
-        { "alias": "id", "type": "number", "nullable": false, "isList": false, "children": null },
-        { "alias": "name", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "status", "type": "string", "nullable": true, "isList": false, "children": null },
-        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null },
-        { "alias": "assumptions", "type": "object", "nullable": true, "isList": false, "children": null },
-        { "alias": "results", "type": "object", "nullable": true, "isList": false, "children": null }
+        {
+          "alias": "id",
+          "type": "number",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "name",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "status",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "createdBy",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "assumptions",
+          "type": "object",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "results",
+          "type": "object",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
       ],
       "output": {
         "alias": "result",
@@ -172,7 +238,13 @@
     {
       "alias": "deleteScenario",
       "parameters": [
-        { "alias": "id", "type": "number", "nullable": false, "isList": false, "children": null }
+        {
+          "alias": "id",
+          "type": "number",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        }
       ],
       "output": {
         "alias": "result",
@@ -194,14 +266,62 @@
     {
       "alias": "savePredictionFeedback",
       "parameters": [
-        { "alias": "predictionId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "entityType", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "entityId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "feedback", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "predictedValue", "type": "number", "nullable": true, "isList": false, "children": null },
-        { "alias": "correctedValue", "type": "number", "nullable": true, "isList": false, "children": null },
-        { "alias": "comment", "type": "string", "nullable": true, "isList": false, "children": null },
-        { "alias": "createdBy", "type": "string", "nullable": true, "isList": false, "children": null }
+        {
+          "alias": "predictionId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "entityType",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "entityId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "feedback",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "predictedValue",
+          "type": "number",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "correctedValue",
+          "type": "number",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "comment",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "createdBy",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
       ],
       "output": {
         "alias": "result",
@@ -213,7 +333,159 @@
     {
       "alias": "runModelInference",
       "parameters": [
-        { "alias": "records", "type": "object", "nullable": false, "isList": true, "children": null }
+        {
+          "alias": "records",
+          "type": "object",
+          "nullable": false,
+          "isList": true,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "getUcReadinessState",
+      "parameters": [
+        {
+          "alias": "tableName",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "getDomoAiReadiness",
+      "parameters": [
+        {
+          "alias": "datasetId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "syncDomoAiReadiness",
+      "parameters": [
+        {
+          "alias": "datasetId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "desiredState",
+          "type": "object",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "columns",
+          "type": "object",
+          "nullable": true,
+          "isList": true,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "wipeDomoAiReadiness",
+      "parameters": [
+        {
+          "alias": "datasetId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "columns",
+          "type": "object",
+          "nullable": true,
+          "isList": true,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "updateUcColumnContext",
+      "parameters": [
+        {
+          "alias": "tableName",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "columnName",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "context",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "synonyms",
+          "type": "object",
+          "nullable": true,
+          "isList": true,
+          "children": null
+        },
+        {
+          "alias": "aiEnabled",
+          "type": "boolean",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "updatedBy",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
       ],
       "output": {
         "alias": "result",
