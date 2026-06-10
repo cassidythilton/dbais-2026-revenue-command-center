@@ -1829,7 +1829,7 @@ td.num {
   cursor: help;
 }
 
-.ctx-gauge-svg { width: 160px; height: 120px; margin-top: 2px; }
+.ctx-gauge-svg { width: 138px; height: 104px; margin-top: 4px; }
 .ctx-track { stroke: var(--n-100); }
 .ctx-zone-good { stroke: #5aa66f; }
 .ctx-zone-warn { stroke: #e6b54a; }
@@ -1839,10 +1839,10 @@ td.num {
 .ctx-gauge-unit { font: 700 10px var(--font); fill: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
 
 .ctx-gauge-ends {
-  width: 132px;
+  width: 116px;
   display: flex;
   justify-content: space-between;
-  margin-top: -8px;
+  margin-top: -10px;
   font-size: 10px;
   font-weight: 700;
   color: var(--muted);
