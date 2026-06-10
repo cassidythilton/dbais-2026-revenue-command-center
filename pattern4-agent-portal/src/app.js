@@ -1671,7 +1671,7 @@ const FLOW_STAGES = [
     id: "uc", name: "Unity Catalog Gold", sub: "Governed source of truth", plane: "dbx", icon: "data",
     lead: "The single source of truth. Six governed gold views in databricks_raptor.pattern4_agent_automation define revenue, renewal risk, incidents, the forecast time series, actions, and access.",
     bullets: ["Metric views + gold tables over medallion data", "UC comments, tags & synonyms are the AI Readiness source", "Same definitions feed Genie, the model, and Domo — no metric drift"],
-    input: "Bronze / Silver Delta + synthetic generator",
+    input: "Bronze / Silver Delta",
     output: "6 governed gold views",
     governed: "Unity Catalog — permissions, lineage, ABAC",
   },
