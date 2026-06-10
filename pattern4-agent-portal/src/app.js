@@ -64,15 +64,21 @@ const MOCK = {
   ],
 };
 
-// 24 months of total net revenue (USD). Seasonal climb, an incident dip near the
-// recent past, then modeled recovery. todayIdx splits actual (<=) from forecast (>).
+// 78 weeks of total net revenue (USD). The weekly cadence gives the hero chart
+// visible seasonal oscillation, a disruption dip, and a forecast recovery arc.
 const FORECAST_BASE = {
-  todayIdx: 17, // 18 months of actuals, 6 months of forecast horizon
-  monthly: [
-    9.6, 9.9, 10.2, 10.4, 10.1, 10.6, 11.0, 11.3, 11.1, 11.6,
-    12.0, 12.4, 12.2, 12.7, 12.1, 11.3, 11.7, 12.3, // <- index 15/16 = incident dip + early recovery
-    12.9, 13.4, 13.9, 14.3, 14.7, 15.1, // forecast horizon
-  ].map((m) => m * 1_000_000),
+  cadence: "week",
+  todayIdx: 61, // 62 weeks of actuals, 16 weeks of forecast horizon
+  weekly: Array.from({ length: 78 }, (_, i) => {
+    const trend = 10.6 + i * 0.034;
+    const annualSeason = 0.46 * Math.sin((2 * Math.PI * i) / 52 - 0.4);
+    const quarterPulse = 0.22 * Math.sin((2 * Math.PI * i) / 13 + 0.7);
+    const operatingNoise = 0.16 * Math.sin((2 * Math.PI * i) / 5);
+    const incidentDip = i >= 50 && i <= 55 ? -0.95 + Math.abs(i - 53) * 0.13 : 0;
+    const recovery = i > 55 ? Math.min((i - 55) * 0.055, 0.72) : 0;
+    const forecastLift = i > 61 ? (i - 61) * 0.06 : 0;
+    return (trend + annualSeason + quarterPulse + operatingNoise + incidentDip + recovery + forecastLift) * 1_000_000;
+  }),
 };
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -284,30 +290,35 @@ function personaView() {
 
 /* ---------- forecast model ---------- */
 
-const forecastState = { range: 18, confidence: true, hoverIdx: null };
+const forecastState = { range: 52, confidence: true, hoverIdx: null };
 
 // Build the actual/forecast/confidence series for the hero chart, scaled per persona.
 function buildForecast(scale) {
   const s = scale || 1;
   const today = new Date();
-  const base = FORECAST_BASE.monthly;
+  const base = FORECAST_BASE.weekly || FORECAST_BASE.monthly;
   const todayIdx = FORECAST_BASE.todayIdx;
   const n = base.length;
 
   const points = base.map((raw, i) => {
     const value = raw * s;
     const isFuture = i > todayIdx;
-    const monthsOut = Math.max(0, i - todayIdx);
+    const periodsOut = Math.max(0, i - todayIdx);
     // Model forecast line: smoothed fit over actuals, projection over the horizon.
-    const forecast = value * (isFuture ? 1 : 0.992 + 0.004 * Math.sin(i));
+    const forecast = value * (isFuture ? 1 : 0.986 + 0.006 * Math.sin(i / 2));
     // Confidence band widens into the future; tight (recent fit) near today.
-    const bandPct = isFuture ? 0.02 + 0.018 * monthsOut : i >= todayIdx - 2 ? 0.012 : 0;
-    const d = new Date(today.getFullYear(), today.getMonth() - (todayIdx - i), 1);
+    const bandPct = isFuture ? 0.025 + 0.006 * periodsOut : i >= todayIdx - 4 ? 0.01 : 0;
+    const d = new Date(today);
+    if (FORECAST_BASE.cadence === "week") {
+      d.setDate(today.getDate() - (todayIdx - i) * 7);
+    } else {
+      d.setMonth(today.getMonth() - (todayIdx - i), 1);
+    }
     return {
       idx: i,
-      label: MONTH_NAMES[d.getMonth()],
+      label: FORECAST_BASE.cadence === "week" ? `${MONTH_NAMES[d.getMonth()]} ${d.getDate()}` : MONTH_NAMES[d.getMonth()],
       year: d.getFullYear(),
-      monthLabel: `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
+      monthLabel: FORECAST_BASE.cadence === "week" ? `Week of ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}` : `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
       actual: isFuture ? null : value,
       forecast: forecast,
       lower: bandPct ? forecast * (1 - bandPct) : null,
