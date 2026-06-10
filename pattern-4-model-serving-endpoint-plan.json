@@ -1,0 +1,59 @@
+{
+  "status": "prepared_not_deployed",
+  "approval_required": true,
+  "approval_note": "Do not create or update this endpoint until the user explicitly approves Databricks Model Serving cost.",
+  "workspace": "https://dbc-0516e56c-ba3e.cloud.databricks.com",
+  "endpoint_name": "pattern4-renewal-risk",
+  "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
+  "registered_model_version": "3",
+  "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+  "serving_contract": {
+    "method": "POST",
+    "path": "/serving-endpoints/pattern4-renewal-risk/invocations",
+    "request_body": {
+      "dataframe_records": [
+        {
+          "segment": "Enterprise",
+          "region": "West",
+          "industry": "Manufacturing",
+          "annual_recurring_revenue": 1330000.0,
+          "cases_90d": 41.0,
+          "sla_breaches_90d": 12.0,
+          "negative_cases_90d": 9.0,
+          "avg_usage_score_90d": 58.0,
+          "usage_drop_days_90d": 22.0,
+          "days_to_renewal": 47.0
+        }
+      ]
+    },
+    "response_body": {
+      "predictions": [0.0]
+    }
+  },
+  "create_endpoint_config": {
+    "served_entities": [
+      {
+        "name": "pattern4_renewal_risk_v3",
+        "entity_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
+        "entity_version": "3",
+        "workload_size": "Small",
+        "scale_to_zero_enabled": true
+      }
+    ],
+    "traffic_config": {
+      "routes": [
+        {
+          "served_model_name": "pattern4_renewal_risk_v3",
+          "traffic_percentage": 100
+        }
+      ]
+    }
+  },
+  "validation_after_approval": [
+    "Create endpoint with the config above.",
+    "Wait until endpoint state is READY.",
+    "POST a dataframe_records payload to /serving-endpoints/pattern4-renewal-risk/invocations.",
+    "Verify response contains predictions as probabilities in [0, 1].",
+    "Only after endpoint is READY, release the Code Engine version that exposes runModelInference."
+  ]
+}

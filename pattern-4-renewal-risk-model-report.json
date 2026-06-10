@@ -1,0 +1,121 @@
+{
+  "status": "registered",
+  "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
+  "model_uri": "models:/m-fc3e719da5254376993db3b124c650b3",
+  "run_id": "b71a362ca0b140e09cb7efed6b5ee735",
+  "experiment": "/Users/cassidy.hilton@domo.com/pattern4-renewal-risk",
+  "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+  "features": [
+    "segment",
+    "region",
+    "industry",
+    "annual_recurring_revenue",
+    "cases_90d",
+    "sla_breaches_90d",
+    "negative_cases_90d",
+    "avg_usage_score_90d",
+    "usage_drop_days_90d",
+    "days_to_renewal"
+  ],
+  "target_column": "predicted_churn_probability",
+  "metrics": {
+    "row_count": 4000,
+    "positive_rate": 0.0565,
+    "target_threshold": 0.5,
+    "accuracy": 1.0,
+    "roc_auc": 1.0,
+    "average_precision": 1.0
+  },
+  "input_example": [
+    {
+      "segment": "SMB",
+      "region": "East",
+      "industry": "Healthcare",
+      "annual_recurring_revenue": 17912.0,
+      "cases_90d": 3.0,
+      "sla_breaches_90d": 0.0,
+      "negative_cases_90d": 2.0,
+      "avg_usage_score_90d": 82.67391304347827,
+      "usage_drop_days_90d": 0.0,
+      "days_to_renewal": 107.0
+    },
+    {
+      "segment": "SMB",
+      "region": "West",
+      "industry": "Transportation",
+      "annual_recurring_revenue": 8346.0,
+      "cases_90d": 5.0,
+      "sla_breaches_90d": 0.0,
+      "negative_cases_90d": 2.0,
+      "avg_usage_score_90d": 84.07843137254902,
+      "usage_drop_days_90d": 0.0,
+      "days_to_renewal": 299.0
+    },
+    {
+      "segment": "Enterprise",
+      "region": "East",
+      "industry": "Financial Services",
+      "annual_recurring_revenue": 752733.0,
+      "cases_90d": 2.0,
+      "sla_breaches_90d": 0.0,
+      "negative_cases_90d": 0.0,
+      "avg_usage_score_90d": 82.61702127659575,
+      "usage_drop_days_90d": 0.0,
+      "days_to_renewal": 299.0
+    },
+    {
+      "segment": "Enterprise",
+      "region": "Central",
+      "industry": "Retail",
+      "annual_recurring_revenue": 1048089.0,
+      "cases_90d": 3.0,
+      "sla_breaches_90d": 0.0,
+      "negative_cases_90d": 0.0,
+      "avg_usage_score_90d": 83.25,
+      "usage_drop_days_90d": 0.0,
+      "days_to_renewal": 264.0
+    },
+    {
+      "segment": "Mid-Market",
+      "region": "West",
+      "industry": "Healthcare",
+      "annual_recurring_revenue": 204582.0,
+      "cases_90d": 5.0,
+      "sla_breaches_90d": 0.0,
+      "negative_cases_90d": 1.0,
+      "avg_usage_score_90d": 83.85714285714286,
+      "usage_drop_days_90d": 0.0,
+      "days_to_renewal": 361.0
+    }
+  ],
+  "example_predictions": [
+    1.3420930423689801e-05,
+    1.3420930423689801e-05,
+    1.3420930423689801e-05,
+    1.3420930423689801e-05,
+    1.3420930423689801e-05
+  ],
+  "serving_contract": {
+    "request": {
+      "dataframe_records": [
+        {
+          "segment": "SMB",
+          "region": "East",
+          "industry": "Healthcare",
+          "annual_recurring_revenue": 17912.0,
+          "cases_90d": 3.0,
+          "sla_breaches_90d": 0.0,
+          "negative_cases_90d": 2.0,
+          "avg_usage_score_90d": 82.67391304347827,
+          "usage_drop_days_90d": 0.0,
+          "days_to_renewal": 107.0
+        }
+      ]
+    },
+    "response": {
+      "predictions": [
+        1.3420930423689801e-05
+      ]
+    }
+  }
+}

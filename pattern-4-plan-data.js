@@ -252,7 +252,8 @@ window.PATTERN_4_PLAN_MODEL = {
     "2026-06-10: Fixed Databricks external-link handling in Domo apps: non-Domo URLs now use a normal new-tab browser open instead of `domo.navigate`, avoiding unsupported-domain errors for Lakebase/Databricks workspace links. Clarified Lakebase Prediction Feedback UX: scenario saves do not create feedback rows; feedback rows come from Accept/Adjust/Reject actions on the ML Predictions tab. Decision: update underlying Databricks/Domo data with seasonal forecast behavior during the upcoming ML model build/data refresh pass.",
     "2026-06-10: Added a separate Genie Embed Alpha tab using the native Databricks iframe URL (`/embed/genie/rooms/01f1642295b61d6b8849e106f52fc781?o=8127410670216233`). This gives a side-by-side test path for native Databricks-rendered result tables/plots if iframe policy allows it. The existing Genie Workspace remains the controlled Code Engine path for app-native inspector metadata and Domo-side chart reconstruction from `columns` + `dataRows`.",
     "2026-06-10: Reworked AI Readiness again to avoid implying a live write path. The app now loads detailed column-level Unity Catalog readiness metadata from `ai-readiness-detail.json`, compares each column's Databricks/UC prepared state against Domo synced state, and supports per-column Sync/Wipe plus dataset-level Sync all/Wipe controls as staged demo state. Investigated historical Code Engine package `0689ed1a-1d81-422b-8e88-49d305bf340c`; product API metadata shows it is private/unreleased with no exposed functions, so it is not currently a callable implementation path. Real Domo AI Readiness persistence remains TBD pending a confirmed writable endpoint or package contract.",
-    "2026-06-10: Scope refinement: Unity Catalog remains the authoritative source of truth, but the app should also support a controlled column-level edit/propose UC context path so a user can update Databricks column comments/tags/synonyms from the app when they intentionally want to improve source metadata. This is a governed exception to the primary UC -> Domo sync direction and should include review/confirmation, audit/writeback, and a clear distinction between editing UC source metadata and syncing UC metadata into Domo AI Readiness."
+    "2026-06-10: Scope refinement: Unity Catalog remains the authoritative source of truth, but the app should also support a controlled column-level edit/propose UC context path so a user can update Databricks column comments/tags/synonyms from the app when they intentionally want to improve source metadata. This is a governed exception to the primary UC -> Domo sync direction and should include review/confirmation, audit/writeback, and a clear distinction between editing UC source metadata and syncing UC metadata into Domo AI Readiness.",
+    "2026-06-09: Sprint 7 model foundation and inference bridge built up to approval gates. Refreshed seasonal Databricks revenue/risk facts and gold views, added `gold_revenue_forecast_time_series`, trained and registered UC/MLflow model `databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk` v3, wrote model report + serving endpoint plan, and staged `pattern4ce.runModelInference(records)` plus ML Predictions live-call wiring in source and `dist`. Model Serving deployment, Code Engine release, and final Domo AI Services registration remain gated/blockered as documented."
   ],
   blockers: [
     "Unity AI Gateway availability is not yet confirmed; Code Engine proxy currently provides the server-side bridge while Gateway/OBO is finalized.",
@@ -265,7 +266,10 @@ window.PATTERN_4_PLAN_MODEL = {
     "Domo AI Readiness write automation remains TBD: the app now provides column-level staged sync/wipe UX, but no confirmed supported API/package write path is wired yet.",
     "RESOLVED 2026-06-09: User approved release and `pattern4ce` v1.0.4 is live with the chart-result contract. Remaining check is an in-Domo app click-test to confirm live Genie responses now include `columns` + `dataRows` and render charts in the published portal.",
     "RESOLVED 2026-06-09: User approved release and `pattern4ce` v1.0.5 is live with Lakebase read/write functions. Remaining check is an in-Domo app click-test after the user publishes latest `dist`.",
-    "RESOLVED 2026-06-10: User approved release and `pattern4ce` v1.0.6 is live with the Genie wait-for-completed + fallback answer fix. Remaining check is an in-Domo Genie click-test after user publishes latest `dist`."
+    "RESOLVED 2026-06-10: User approved release and `pattern4ce` v1.0.6 is live with the Genie wait-for-completed + fallback answer fix. Remaining check is an in-Domo Genie click-test after user publishes latest `dist`.",
+    "Sprint 7 approval gate: do not deploy Model Serving endpoint `pattern4-renewal-risk` until the user explicitly approves serving cost.",
+    "Sprint 7 approval gate: do not release the staged `pattern4ce.runModelInference` Code Engine update until the user explicitly approves release.",
+    "Domo AI Services registration route remains unconfirmed: current CLI session returned 404 for `/api/ml/v1/models`; direct Databricks Model Serving remains the runtime inference path."
   ],
   decisions: [
     "Pattern 4 is the baseline experience.",
@@ -298,6 +302,7 @@ window.PATTERN_4_PLAN_MODEL = {
     "Main page redesign should be inspired by `/Users/cassidy.hilton/Cursor Projects/forecast line recharts` (actual vs prediction, confidence band, period controls, compact legend, polished tooltip).",
     "ML inference runtime path: `pattern4ce.runModelInference` calls Databricks Model Serving directly (`dataframe_records` in, `{predictions:[...]}` out); Domo AI Services is the governance/catalog layer.",
     "ML model = renewal-risk/churn classifier on `gold_customer_renewal_risk`, named-column MLflow signature, registered in UC, served like `CassidyLightGBM`.",
+    "Sprint 7 deployment target is UC model `databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk` version 3 and planned serving endpoint `pattern4-renewal-risk`; config is captured in `pattern-4-model-serving-endpoint-plan.json`.",
     "Seasonal forecast behavior should be pushed into the underlying Databricks/Domo datasets during the ML model build/data refresh pass, rather than as a standalone regeneration right now.",
     "Lakebase: reuse project `cobra-v1`; first tables `public.p4_scenario_runs` + `public.p4_prediction_feedback`; fold Lakebase access into `pattern4ce` (SP M2M token -> node-postgres).",
     "Genie has no chart metadata; render Domo-side charts from `manifest.schema.columns` + `result.data_array`. App seeded-question chips must match the 5 verbatim Genie sample questions.",
@@ -306,8 +311,8 @@ window.PATTERN_4_PLAN_MODEL = {
   openDecisions: [
     "Investigate whether Unity AI Gateway is available in the target workspace for tool registration; requires Databricks API token or configured CLI profile.",
     "Decide the persona/group model to mirror between UC row filters and Domo PDP.",
-    "Confirm with user: deploy a Databricks Model Serving endpoint (ongoing compute cost) for the renewal-risk model.",
-    "Confirm with user: write `p4_scenario_runs` + `p4_prediction_feedback` tables into the shared `cobra-v1` Lakebase project (reuse vs new project).",
+    "Confirm with user: deploy Databricks Model Serving endpoint `pattern4-renewal-risk` (ongoing compute cost) for UC model version 3.",
+    "RESOLVED: `p4_scenario_runs` + `p4_prediction_feedback` tables are already created in the shared `cobra-v1` Lakebase project.",
     "Optionally capture the Domo AI Services model network call from the browser to confirm the AI-Services-mediated invoke contract (not required for direct Model Serving)."
   ],
   nextSteps: [
@@ -316,7 +321,7 @@ window.PATTERN_4_PLAN_MODEL = {
     "DONE — Genie Workspace chart rendering: `askGenie` source returns columns+rows, the app renders Domo-side KPI/line/bar/scatter/table visuals, and `pattern4ce` v1.0.4 is released. Next validation is an in-Domo app click-test after the user publishes or reloads the latest `dist`.",
     "DONE — Lakebase Ops: `p4_scenario_runs` + `p4_prediction_feedback` are created/seeded in `cobra-v1`; app CRUD UI and `pattern4ce` v1.0.5 live functions are built/released for live reads/writes.",
     "Validate the published Domo app after user publishes latest `dist`: live Lakebase rows should load, scenario CRUD should write to `cobra-v1`, ML prediction feedback should save, and Genie result charts should remain visible.",
-    "Sprint 7 (gated by user confirm): train renewal-risk/churn model, register via MLflow/UC, deploy Model Serving, add `pattern4ce.runModelInference` + ML Predictions page.",
+    "Sprint 7 next approval step: deploy Model Serving endpoint `pattern4-renewal-risk` from UC model v3 only after user approval; after endpoint READY, request explicit Code Engine release approval for the staged `pattern4ce.runModelInference(records)` update.",
     "Keep UC row-filter/PDP alignment and Agent Catalyst/Workflow approval wrapper in scope as supporting governance and automation work."
   ]
 };

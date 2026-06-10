@@ -71,6 +71,19 @@ def object_input(name: str, nullable: bool) -> dict:
     }
 
 
+def object_list_input(name: str, nullable: bool) -> dict:
+    return {
+        "name": name,
+        "displayName": name,
+        "type": "object",
+        "value": None,
+        "nullable": nullable,
+        "isList": True,
+        "children": None,
+        "entitySubType": None,
+    }
+
+
 def result_output() -> dict:
     return {
         "name": "result",
@@ -170,6 +183,13 @@ def main() -> int:
                 number_input("correctedValue", True),
                 text_input("comment", True),
                 text_input("createdBy", True),
+            ],
+        ),
+        fn(
+            "runModelInference",
+            "Run Renewal-Risk Model Inference",
+            [
+                object_list_input("records", False),
             ],
         ),
         fn("runSql", "Run SQL", [text_input("statement", False)], private=True),

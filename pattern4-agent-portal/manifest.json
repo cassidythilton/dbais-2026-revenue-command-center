@@ -209,6 +209,18 @@
         "isList": false,
         "children": null
       }
+    },
+    {
+      "alias": "runModelInference",
+      "parameters": [
+        { "alias": "records", "type": "object", "nullable": false, "isList": true, "children": null }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
     }
   ],
   "collectionsMapping": []

@@ -14,6 +14,7 @@
  *   - deleteScenario(id)
  *   - listPredictionFeedback()
  *   - savePredictionFeedback(predictionId, entityType, entityId, feedback, predictedValue, correctedValue, comment, createdBy)
+ *   - runModelInference(records)
  *
  * SETUP: paste your Databricks PAT into DATABRICKS_TOKEN below (same token as
  * the local `databricks token` file). Do NOT commit a real token to git.
@@ -30,6 +31,7 @@ var WAREHOUSE_ID = "ea829ba58bcae093";
 var CATALOG = "databricks_raptor";
 var SCHEMA = "pattern4_agent_automation";
 var WRITEBACK_TABLE = "agent_action_writeback";
+var MODEL_SERVING_ENDPOINT = "pattern4-renewal-risk";
 var LAKEBASE_ENDPOINT = "projects/cobra-v1/branches/production/endpoints/primary";
 var LAKEBASE_HOST = "ep-fancy-mud-d2xv4rcd.database.us-east-1.cloud.databricks.com";
 var LAKEBASE_DATABASE = "databricks_postgres";
@@ -197,6 +199,87 @@ function savePredictionFeedback(predictionId, entityType, entityId, feedback, pr
       createdBy || "demo.user@domo.com"
     ]
   );
+}
+
+/* ---------------------------- Model inference ----------------------------- */
+
+function normalizeInferenceRecords(records) {
+  var source = records;
+  if (typeof source === "string") {
+    try {
+      source = JSON.parse(source);
+    } catch (err) {
+      source = [];
+    }
+  }
+  if (!Array.isArray(source)) {
+    source = source ? [source] : [];
+  }
+  var required = [
+    "segment",
+    "region",
+    "industry",
+    "annual_recurring_revenue",
+    "cases_90d",
+    "sla_breaches_90d",
+    "negative_cases_90d",
+    "avg_usage_score_90d",
+    "usage_drop_days_90d",
+    "days_to_renewal"
+  ];
+  var normalized = [];
+  for (var i = 0; i < source.length; i++) {
+    var row = source[i] || {};
+    var next = {};
+    for (var r = 0; r < required.length; r++) {
+      var key = required[r];
+      if (key === "segment" || key === "region" || key === "industry") {
+        next[key] = row[key] === null || row[key] === undefined ? "" : String(row[key]);
+      } else {
+        next[key] = row[key] === null || row[key] === undefined || row[key] === "" ? null : Number(row[key]);
+      }
+    }
+    normalized.push(next);
+  }
+  return normalized;
+}
+
+function runModelInference(records) {
+  var normalized = normalizeInferenceRecords(records);
+  console.log("[pattern4ce.runModelInference] start", JSON.stringify({
+    endpoint: MODEL_SERVING_ENDPOINT,
+    recordCount: normalized.length
+  }));
+  if (!normalized.length) {
+    return Promise.resolve({ status: "FAILED", error: "No records supplied for inference", predictions: [] });
+  }
+  var url = DATABRICKS_HOST + "/serving-endpoints/" + MODEL_SERVING_ENDPOINT + "/invocations";
+  return axios
+    .post(
+      url,
+      { dataframe_records: normalized },
+      { headers: dbxHeaders(), timeout: 30000 }
+    )
+    .then(function (resp) {
+      var data = resp.data || {};
+      var predictions = data.predictions || [];
+      console.log("[pattern4ce.runModelInference] success", JSON.stringify({
+        endpoint: MODEL_SERVING_ENDPOINT,
+        predictionCount: predictions.length
+      }));
+      return {
+        status: "SUCCEEDED",
+        endpoint: MODEL_SERVING_ENDPOINT,
+        predictions: predictions,
+        records: normalized,
+        governedBy: "MLflow Unity Catalog model + Databricks Model Serving + Domo Code Engine"
+      };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.runModelInference] failed", JSON.stringify({ endpoint: MODEL_SERVING_ENDPOINT, error: detail }));
+      return { status: "FAILED", endpoint: MODEL_SERVING_ENDPOINT, error: detail, predictions: [] };
+    });
 }
 
 /* ------------------------------ Genie proxy ------------------------------- */
@@ -445,6 +528,7 @@ module.exports = {
   deleteScenario: deleteScenario,
   listPredictionFeedback: listPredictionFeedback,
   savePredictionFeedback: savePredictionFeedback,
+  runModelInference: runModelInference,
   runSql: runSql,
   sqlString: sqlString,
   lakebaseQuery: lakebaseQuery

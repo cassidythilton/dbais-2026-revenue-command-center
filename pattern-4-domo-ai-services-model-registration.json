@@ -1,0 +1,47 @@
+{
+  "status": "prepared_api_route_unconfirmed",
+  "domo_instance": "https://databricks-demo.domo.com",
+  "api_probe": {
+    "timestamp": "2026-06-09",
+    "result": "The current community-domo-cli ryuu-session returned 404 for GET/POST /api/ml/v1/models and POST /api/ml/v1/models/search. Earlier browser spike identified /api/ml/v1/models as the UI route, so the exact supported registration payload or route still needs browser-network confirmation.",
+    "runtime_decision": "Use Databricks Model Serving directly from Code Engine for runtime inference; use Domo AI Services only as the governance/catalog proof once the model registration route is confirmed."
+  },
+  "model_catalog_proof": {
+    "display_name": "Pattern 4 Renewal Risk",
+    "provider": "Databricks",
+    "model_type": "binary renewal-risk classifier",
+    "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
+    "registered_model_version": "3",
+    "mlflow_experiment": "/Users/cassidy.hilton@domo.com/pattern4-renewal-risk",
+    "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
+    "serving_endpoint_planned": "pattern4-renewal-risk",
+    "serving_deployment_status": "not_deployed_cost_approval_required"
+  },
+  "feature_schema": [
+    { "name": "segment", "type": "string" },
+    { "name": "region", "type": "string" },
+    { "name": "industry", "type": "string" },
+    { "name": "annual_recurring_revenue", "type": "number" },
+    { "name": "cases_90d", "type": "number" },
+    { "name": "sla_breaches_90d", "type": "number" },
+    { "name": "negative_cases_90d", "type": "number" },
+    { "name": "avg_usage_score_90d", "type": "number" },
+    { "name": "usage_drop_days_90d", "type": "number" },
+    { "name": "days_to_renewal", "type": "number" }
+  ],
+  "output_schema": [
+    { "name": "predictions", "type": "number[]", "description": "Churn/renewal-risk probability values in [0, 1]." }
+  ],
+  "candidate_registration_payload": {
+    "name": "Pattern 4 Renewal Risk",
+    "description": "Databricks MLflow/Unity Catalog renewal-risk classifier for the Pattern 4 Revenue Command Center.",
+    "provider": "DATABRICKS",
+    "source": "MLFLOW_UNITY_CATALOG",
+    "registeredModelName": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
+    "registeredModelVersion": "3",
+    "servingEndpointName": "pattern4-renewal-risk",
+    "servingEndpointUrl": "https://dbc-0516e56c-ba3e.cloud.databricks.com/serving-endpoints/pattern4-renewal-risk/invocations",
+    "inputFormat": "dataframe_records",
+    "outputFormat": "predictions"
+  }
+}

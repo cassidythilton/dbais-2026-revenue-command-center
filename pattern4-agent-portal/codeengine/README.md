@@ -23,8 +23,11 @@ singular `packageMapping` pattern resolves at runtime by package name and avoids
 4. Confirm the package exposes these functions with these inputs (the editor's function form must match):
    - `askGenie(question, conversationId, persona, model)` → object
    - `writeActionStatus(actionId, decision, executionStatus, approvedBy, note, persona)` → object
-   - (`runSql`, `sqlString` are internal helpers)
-5. **Release** the package (v1.0.0).
+   - `listScenarios()` / `createScenario(...)` / `updateScenario(...)` / `deleteScenario(id)` → object
+   - `listPredictionFeedback()` / `savePredictionFeedback(...)` → object
+   - `runModelInference(records)` → object, calls Databricks Model Serving with `{ "dataframe_records": records }`
+   - (`runSql`, `sqlString`, `lakebaseQuery` are internal helpers)
+5. **Release** the package only after explicit user approval. Model Serving deployment is also approval-gated because it carries ongoing Databricks cost.
 6. Re-publish the app:  `cd pattern4-agent-portal && domo publish`
 7. **Re-instantiate the card** so it binds the new proxy:
    - App Studio: remove and re-add the **Pattern 4 Agent Portal** app to the view.

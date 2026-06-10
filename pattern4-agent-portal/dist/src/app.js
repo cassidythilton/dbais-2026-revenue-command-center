@@ -87,14 +87,17 @@ const ML_MODEL = {
   name: "pattern4_renewal_risk",
   registry: "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
   endpoint: "pattern4-renewal-risk",
-  flavor: "LightGBM · sklearn pipeline",
+  version: "3",
+  flavor: "MLflow pyfunc · sklearn HGB classifier",
   target: "predicted_churn_probability",
   features: [
     { key: "segment", label: "Segment", type: "select", options: ["Enterprise", "Mid-Market", "SMB"], value: "Enterprise" },
     { key: "region", label: "Region", type: "select", options: ["West", "East", "Central", "South"], value: "West" },
+    { key: "industry", label: "Industry", type: "select", options: ["Retail", "Financial Services", "Manufacturing", "Healthcare", "Transportation", "Technology"], value: "Manufacturing" },
     { key: "annual_recurring_revenue", label: "ARR (USD)", type: "number", value: 1_330_000 },
     { key: "cases_90d", label: "Support cases (90d)", type: "number", value: 41 },
     { key: "sla_breaches_90d", label: "SLA breaches (90d)", type: "number", value: 12 },
+    { key: "negative_cases_90d", label: "Negative cases (90d)", type: "number", value: 9 },
     { key: "avg_usage_score_90d", label: "Avg usage score (90d)", type: "number", value: 58 },
     { key: "usage_drop_days_90d", label: "Usage-drop days (90d)", type: "number", value: 22 },
     { key: "days_to_renewal", label: "Days to renewal", type: "number", value: 47 },
@@ -211,7 +214,8 @@ const state = {
   readinessSynced: false,
   readinessSelected: "executiveRevenueHealth",
   readinessColumnSync: {},
-  mlServing: false, // flip true once the Model Serving endpoint + runModelInference are live
+  mlServing: false, // flips true after a successful live Model Serving response
+  mlInferenceBridge: true, // CE bridge is staged; mock fallback remains active until endpoint/release are live
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
     scenarios: LAKEBASE_MOCK.scenarios.slice(),
@@ -790,7 +794,7 @@ function databricksObjectUrl(objectName) {
 function renderMlStatus() {
   const stateEl = document.getElementById("mlModelState");
   if (stateEl) {
-    stateEl.textContent = state.mlServing ? "Serving · live" : "Planned · mock";
+    stateEl.textContent = state.mlServing ? "Serving · live" : "Bridge staged · fallback";
     stateEl.classList.toggle("live", !!state.mlServing);
   }
   const grid = document.getElementById("mlMetaGrid");
@@ -799,6 +803,7 @@ function renderMlStatus() {
     ["Model", ML_MODEL.name],
     ["Flavor", ML_MODEL.flavor],
     ["UC registry", ML_MODEL.registry],
+    ["UC version", ML_MODEL.version],
     ["Serving endpoint", ML_MODEL.endpoint],
     ["Target", ML_MODEL.target],
     ["Governed by", "Unity Catalog + Domo AI Services"],
@@ -866,21 +871,23 @@ async function runInference() {
   if (tag) tag.textContent = "scoring…";
   // Live path (when serving + CE function exist): pattern4ce.runModelInference
   let r = null;
-  if (window.domo && typeof window.domo.post === "function" && state.mlServing) {
+  if (window.domo && typeof window.domo.post === "function" && state.mlInferenceBridge) {
     try {
-      const resp = await window.domo.post("/domo/codeengine/v2/packages/runModelInference", { records: [f] });
-      const out = unwrapCodeEngineResponse(resp);
+      const out = await callPattern4ce("runModelInference", { records: [f] });
       if (out && Array.isArray(out.predictions) && out.predictions.length) {
         const prob = Number(out.predictions[0]);
         const arr = Number(f.annual_recurring_revenue || 0);
-        r = { probability: prob, revenueAtRisk: arr * prob, tier: prob >= 0.6 ? "High" : prob >= 0.35 ? "Medium" : "Low", drivers: [], action: prob >= 0.6 ? "Executive outreach" : "Monitor", live: true };
+        state.mlServing = true;
+        r = { probability: prob, revenueAtRisk: arr * prob, tier: prob >= 0.6 ? "High" : prob >= 0.35 ? "Medium" : "Low", drivers: [], action: prob >= 0.6 ? "Executive outreach + reliability credit review" : prob >= 0.35 ? "Technical success plan" : "Monitor — standard renewal motion", live: true };
       }
     } catch (e) {
       console.warn("runModelInference failed; using local model", e);
+      state.mlServing = false;
     }
   }
   if (!r) r = mockPredict(f);
   if (tag) tag.textContent = r.live ? "live · Model Serving" : "modeled · preview";
+  renderMlStatus();
 
   const pct = (r.probability * 100).toFixed(1);
   const ring = Math.round(r.probability * 100);
@@ -937,7 +944,7 @@ function renderMl() {
   const note = document.getElementById("mlFormNote");
   if (note) note.textContent = state.mlServing
     ? "Calls pattern4ce.runModelInference → Databricks Model Serving."
-    : "Model Serving is staged; this scores with the registered feature logic for preview.";
+    : "Live inference bridge is staged; if Code Engine or Model Serving is unavailable, this uses the preview fallback.";
   const btn = document.getElementById("mlRunBtn");
   if (btn && !btn.dataset.wired) { btn.addEventListener("click", runInference); btn.dataset.wired = "1"; }
 }
