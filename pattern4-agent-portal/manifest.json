@@ -237,8 +237,7 @@
     {
       "alias": "getDomoAiReadiness",
       "parameters": [
-        { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "domo_account", "type": "account", "nullable": true, "isList": false, "children": null }
+        { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null }
       ],
       "output": {
         "alias": "result",
@@ -252,8 +251,7 @@
       "parameters": [
         { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
         { "alias": "desiredState", "type": "object", "nullable": false, "isList": false, "children": null },
-        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null },
-        { "alias": "domo_account", "type": "account", "nullable": true, "isList": false, "children": null }
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
       ],
       "output": {
         "alias": "result",
@@ -266,8 +264,7 @@
       "alias": "wipeDomoAiReadiness",
       "parameters": [
         { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null },
-        { "alias": "domo_account", "type": "account", "nullable": true, "isList": false, "children": null }
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
       ],
       "output": {
         "alias": "result",
