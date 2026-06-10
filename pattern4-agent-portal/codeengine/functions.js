@@ -386,6 +386,28 @@ function savePredictionFeedback(predictionId, entityType, entityId, feedback, pr
   );
 }
 
+// STAGED (not released): enables full edit/delete of prediction-feedback rows from the
+// Lakebase explorer. Lands on the next approved pattern4ce release; the app keeps the
+// feedback edit/delete controls disabled until then.
+function updatePredictionFeedback(id, entityId, feedback, predictedValue, correctedValue, comment, createdBy) {
+  return lakebaseQuery(
+    "UPDATE public.p4_prediction_feedback SET entity_id = $2, feedback = $3, predicted_value = $4, corrected_value = $5, comment = $6, created_by = $7 WHERE id = $1 RETURNING *",
+    [
+      Number(id),
+      entityId || "unknown",
+      feedback || "accept",
+      predictedValue === null || predictedValue === undefined ? null : Number(predictedValue),
+      correctedValue === null || correctedValue === undefined ? null : Number(correctedValue),
+      comment || "",
+      createdBy || "demo.user@domo.com"
+    ]
+  );
+}
+
+function deletePredictionFeedback(id) {
+  return lakebaseQuery("DELETE FROM public.p4_prediction_feedback WHERE id = $1 RETURNING id", [Number(id)]);
+}
+
 /* -------------------------- AI Readiness sync ----------------------------- */
 
 function getUcReadinessState(tableName) {
@@ -913,6 +935,8 @@ module.exports = {
   deleteScenario: deleteScenario,
   listPredictionFeedback: listPredictionFeedback,
   savePredictionFeedback: savePredictionFeedback,
+  updatePredictionFeedback: updatePredictionFeedback,
+  deletePredictionFeedback: deletePredictionFeedback,
   runModelInference: runModelInference,
   getUcReadinessState: getUcReadinessState,
   getDomoAiReadiness: getDomoAiReadiness,

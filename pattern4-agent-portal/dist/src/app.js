@@ -224,7 +224,10 @@ const state = {
     scenarios: LAKEBASE_MOCK.scenarios.slice(),
     feedback: LAKEBASE_MOCK.feedback.slice(),
     selectedScenarioId: 1,
-    editingScenario: null,
+    activeTable: "scenarios", // explorer sub-table: "scenarios" | "feedback"
+    editingRow: null,         // row being edited in the explorer form (null = add)
+    formOpen: false,
+    banner: null,             // { type: "success"|"error", msg }
     saving: false,
     error: "",
   },
@@ -1093,22 +1096,38 @@ async function runInference() {
     </div>`;
   host.querySelectorAll(".fb-btn").forEach((b) =>
     b.addEventListener("click", async () => {
+      const decision = b.getAttribute("data-fb");
       const note = document.getElementById("mlFbNote");
-      if (note) note.textContent = "saving...";
+      host.querySelectorAll(".fb-btn").forEach((x) => x.classList.toggle("chosen", x === b));
+      if (note) note.textContent = "Writing to Lakebase…";
+      const entityId = `${f.region || "Unknown"} ${f.segment || "Account"}`;
       try {
+        // 1) record the feedback row, and 2) seed a reviewable scenario from the inputs.
         await savePredictionFeedback({
-          predictionId: `preview-${Date.now()}`,
+          predictionId: `pred-${Date.now()}`,
           entityType: "account",
-          entityId: `${f.region || "Unknown"} ${f.segment || "Account"}`,
-          feedback: b.getAttribute("data-fb"),
+          entityId: entityId,
+          feedback: decision,
           predictedValue: r.probability,
           correctedValue: null,
-          comment: `Prediction ${b.getAttribute("data-fb")} from ML Predictions page`,
+          comment: `Prediction ${decision} from ML Predictions (${Math.round(r.probability * 100)}% churn)`,
           createdBy: "demo.user@domo.com",
         });
-        if (note) note.textContent = state.lakebaseLive ? "saved to Lakebase" : "captured locally";
+        const seededId = await seedScenarioFromPrediction(f, r, decision);
+        if (note) {
+          note.innerHTML = "";
+          const label = document.createElement("span");
+          label.textContent = (state.lakebaseLive ? "Saved to Lakebase" : "Captured") + " — ";
+          const link = document.createElement("button");
+          link.type = "button";
+          link.className = "fb-review-link";
+          link.textContent = "Review scenario →";
+          link.addEventListener("click", () => gotoLakebaseScenario(seededId));
+          note.appendChild(label);
+          note.appendChild(link);
+        }
       } catch (error) {
-        if (note) note.textContent = "save failed";
+        if (note) note.textContent = "Save failed — see console.";
         console.warn("Prediction feedback save failed", error);
       }
     })
@@ -1217,6 +1236,71 @@ async function loadLakebaseLive() {
   renderLakebase();
 }
 
+/* ---------- Lakebase explorer (table CRUD, à la lakebase explorer) ---------- */
+
+const LAKEBASE_TABLES = [
+  {
+    key: "scenarios",
+    label: "Scenario Runs",
+    table: "public.p4_scenario_runs",
+    desc: "What-if forecast scenarios. Saved automatically when you accept a model prediction on the ML Predictions tab — or add one here. Full read / write.",
+    canEdit: true,
+    canDelete: true,
+    fields: [
+      { key: "name", label: "Scenario name", required: true },
+      { key: "status", label: "Status", type: "select", options: ["draft", "running", "complete", "archived"] },
+      { key: "created_by", label: "Created by", value: "demo.user@domo.com" },
+      { key: "delta", label: "Forecast delta (USD)", type: "number" },
+      { key: "assumptions", label: "Assumptions (JSON)", type: "json", full: true },
+    ],
+  },
+  {
+    key: "feedback",
+    label: "Prediction Feedback",
+    table: "public.p4_prediction_feedback",
+    desc: "Human accept / adjust / reject on model predictions. Written from the ML Predictions tab; you can also add a row here.",
+    canEdit: false,
+    canDelete: false,
+    editNote: "Editing & deleting feedback rows needs a pattern4ce CE function — staged, enable on release.",
+    fields: [
+      { key: "entity_id", label: "Account / entity", required: true, value: "West Enterprise" },
+      { key: "entity_type", label: "Entity type", value: "account" },
+      { key: "feedback", label: "Feedback", type: "select", options: ["accept", "adjust", "reject"] },
+      { key: "predicted_value", label: "Predicted churn (0–1)", type: "number" },
+      { key: "corrected_value", label: "Corrected churn (0–1)", type: "number" },
+      { key: "comment", label: "Comment", full: true },
+      { key: "created_by", label: "Created by", value: "demo.user@domo.com" },
+    ],
+  },
+];
+
+function activeLakebaseTable() {
+  return LAKEBASE_TABLES.find((t) => t.key === state.lakebase.activeTable) || LAKEBASE_TABLES[0];
+}
+
+function lakebaseRowsFor(cfg) {
+  return cfg.key === "scenarios" ? state.lakebase.scenarios : state.lakebase.feedback;
+}
+
+function lakebaseBanner(type, msg) {
+  state.lakebase.banner = { type: type, msg: msg };
+  renderLakebaseBanner();
+  if (type === "success") {
+    clearTimeout(lakebaseBanner._t);
+    lakebaseBanner._t = setTimeout(() => { state.lakebase.banner = null; renderLakebaseBanner(); }, 3500);
+  }
+}
+
+function renderLakebaseBanner() {
+  const host = document.getElementById("lakebaseBanner");
+  if (!host) return;
+  const b = state.lakebase.banner;
+  host.innerHTML = b
+    ? `<div class="lb-banner ${b.type}"><span>${escapeHtml(b.msg)}</span><button type="button" aria-label="Dismiss">×</button></div>`
+    : "";
+  host.querySelector("button")?.addEventListener("click", () => { state.lakebase.banner = null; renderLakebaseBanner(); });
+}
+
 function renderLakebase() {
   const stateEl = document.getElementById("lakebaseState");
   if (stateEl) {
@@ -1235,62 +1319,27 @@ function renderLakebase() {
     grid.innerHTML = meta.map(([k, v]) => `<div class="ml-meta"><span class="ml-meta-k">${escapeHtml(k)}</span><span class="ml-meta-v">${escapeHtml(v)}</span></div>`).join("");
   }
 
-  const countTag = document.getElementById("scenarioCountTag");
-  if (countTag) countTag.textContent = `${state.lakebase.scenarios.length} scenario rows`;
-
-  const rows = document.getElementById("scenarioRows");
-  if (rows) {
-    if (!state.lakebase.scenarios.length) {
-      rows.innerHTML = `<tr><td colspan="5" class="empty-state">No scenario runs yet — add one to write operational state to Lakebase.</td></tr>`;
-    } else {
-      rows.innerHTML = state.lakebase.scenarios
-      .map((s) => `
-        <tr class="${state.lakebase.selectedScenarioId === s.id ? "selected-row" : ""}" data-scenario-id="${s.id}">
-          <td><strong>${escapeHtml(s.name)}</strong><div class="row-sub">${escapeHtml(s.created_at ? new Date(s.created_at).toLocaleDateString() : "Lakebase scenario")}</div></td>
-          <td><span class="status ${s.status}">${s.status}</span></td>
-          <td>${escapeHtml(s.created_by)}</td>
-          <td class="num ${s.delta >= 0 ? "pos" : "neg"}">${s.delta >= 0 ? "+" : ""}${fmtCurrency(s.delta)}</td>
-          <td class="num">
-            <button class="btn-icon" type="button" title="Edit" data-scenario-edit="${s.id}">✎</button>
-            <button class="btn-icon btn-icon-danger" type="button" title="Delete" data-scenario-delete="${s.id}">✕</button>
-          </td>
-        </tr>`)
-      .join("");
-    }
-    rows.querySelectorAll("[data-scenario-id]").forEach((row) => {
-      row.addEventListener("click", (e) => {
-        if (e.target.closest("button")) return;
-        state.lakebase.selectedScenarioId = Number(row.getAttribute("data-scenario-id"));
+  const nav = document.getElementById("lakebaseTableNav");
+  if (nav) {
+    nav.innerHTML = LAKEBASE_TABLES.map((t) => `
+      <button class="lb-tab ${t.key === state.lakebase.activeTable ? "active" : ""}" type="button" data-lb-table="${t.key}">
+        ${escapeHtml(t.label)}<span class="lb-tab-count">${lakebaseRowsFor(t).length}</span>
+      </button>`).join("");
+    nav.querySelectorAll("[data-lb-table]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.lakebase.activeTable = btn.getAttribute("data-lb-table");
+        state.lakebase.formOpen = false;
+        state.lakebase.editingRow = null;
         renderLakebase();
       });
     });
-    rows.querySelectorAll("[data-scenario-edit]").forEach((btn) => {
-      btn.addEventListener("click", () => showScenarioForm(state.lakebase.scenarios.find((s) => s.id === Number(btn.getAttribute("data-scenario-edit")))));
-    });
-    rows.querySelectorAll("[data-scenario-delete]").forEach((btn) => {
-      btn.addEventListener("click", () => deleteScenario(Number(btn.getAttribute("data-scenario-delete"))));
-    });
   }
+
+  renderLakebaseBanner();
+  renderLakebaseTable();
+  renderLakebaseForm();
   renderScenarioDetail();
-  const fb = document.getElementById("feedbackList");
-  if (fb) {
-    const intro = `
-      <div class="feedback-item feedback-explainer">
-        <div class="fb-top"><span class="fb-acct">What appears here?</span><span class="fb-tag adjust">ML feedback</span></div>
-        <p>Scenario runs save forecast assumptions. Prediction feedback is separate: it is written when a user accepts, adjusts, or rejects a model prediction on the ML Predictions tab.</p>
-        <span class="fb-by">Stored in public.p4_prediction_feedback</span>
-      </div>`;
-    const rowsHtml = state.lakebase.feedback.length
-      ? state.lakebase.feedback.map((f) => `
-        <div class="feedback-item">
-          <div class="fb-top"><span class="fb-acct">${escapeHtml(f.entity_id || f.account || "Prediction")}</span><span class="fb-tag ${f.feedback}">${f.feedback}</span></div>
-          <p>${escapeHtml(f.comment || f.note || "Feedback captured from prediction review.")}</p>
-          <span class="fb-by">${escapeHtml(f.created_by || f.by || "demo.user@domo.com")}${f.predicted_value ? ` · predicted ${Math.round(Number(f.predicted_value) * 100)}%` : ""}</span>
-        </div>`)
-        .join("")
-      : `<div class="feedback-empty">No prediction feedback yet. Open ML Predictions, run a score, then click Accept, Adjust, or Reject.</div>`;
-    fb.innerHTML = intro + rowsHtml;
-  }
+
   const refresh = document.getElementById("lakebaseRefreshBtn");
   if (refresh && !refresh.dataset.wired) {
     refresh.addEventListener("click", loadLakebaseLive);
@@ -1298,34 +1347,211 @@ function renderLakebase() {
   }
   const add = document.getElementById("lakebaseAddBtn");
   if (add && !add.dataset.wired) {
-    add.addEventListener("click", () => showScenarioForm(null));
+    add.addEventListener("click", () => { state.lakebase.editingRow = null; state.lakebase.formOpen = true; renderLakebaseForm(); });
     add.dataset.wired = "1";
   }
-  const cancel = document.getElementById("lakebaseCancelBtn");
-  if (cancel && !cancel.dataset.wired) {
-    cancel.addEventListener("click", hideScenarioForm);
-    cancel.dataset.wired = "1";
+  const open = document.getElementById("lakebaseOpenBtn");
+  if (open && !open.dataset.wired) {
+    open.addEventListener("click", () => openExternal(LAKEBASE_PROJECT_LINK));
+    open.dataset.wired = "1";
   }
-  const form = document.getElementById("lakebaseScenarioForm");
-  if (form && !form.dataset.wired) {
-    form.addEventListener("submit", saveScenarioFromForm);
-    form.dataset.wired = "1";
+}
+
+function renderLakebaseTable() {
+  const cfg = activeLakebaseTable();
+  const rows = lakebaseRowsFor(cfg);
+  const title = document.getElementById("lakebaseTableTitle");
+  if (title) title.textContent = cfg.label;
+  const count = document.getElementById("lakebaseRowCount");
+  if (count) count.textContent = `${rows.length} row${rows.length === 1 ? "" : "s"}`;
+  const name = document.getElementById("lakebaseTableName");
+  if (name) name.textContent = cfg.table;
+  const desc = document.getElementById("lakebaseTableDesc");
+  if (desc) desc.textContent = cfg.desc;
+
+  const head = document.getElementById("lakebaseHead");
+  const body = document.getElementById("lakebaseBody");
+  if (!head || !body) return;
+
+  if (cfg.key === "scenarios") {
+    head.innerHTML = `<tr><th>Scenario</th><th>Status</th><th>Created by</th><th class="num">Δ Forecast</th><th class="lb-actions-col">Actions</th></tr>`;
+    body.innerHTML = rows.length
+      ? rows.map((s) => `
+        <tr class="${state.lakebase.selectedScenarioId === s.id ? "selected-row" : ""}" data-row-id="${s.id}">
+          <td><strong>${escapeHtml(s.name)}</strong><div class="row-sub">${escapeHtml(s.created_at ? new Date(s.created_at).toLocaleDateString() : "Lakebase scenario")}</div></td>
+          <td><span class="status ${escapeHtml(s.status)}">${escapeHtml(s.status)}</span></td>
+          <td>${escapeHtml(s.created_by)}</td>
+          <td class="num ${s.delta >= 0 ? "pos" : "neg"}">${s.delta >= 0 ? "+" : ""}${fmtCurrency(s.delta)}</td>
+          <td class="lb-actions-col">
+            <button class="btn-icon" type="button" title="Edit" data-row-edit="${s.id}">✎</button>
+            <button class="btn-icon btn-icon-danger" type="button" title="Delete" data-row-delete="${s.id}">✕</button>
+          </td>
+        </tr>`).join("")
+      : `<tr><td colspan="5" class="empty-state">No scenario runs yet — accept a prediction on ML Predictions, or click "+ Add row".</td></tr>`;
+  } else {
+    head.innerHTML = `<tr><th>Account</th><th>Feedback</th><th class="num">Predicted</th><th>Comment</th><th>Created by</th><th class="lb-actions-col">Actions</th></tr>`;
+    body.innerHTML = rows.length
+      ? rows.map((f) => {
+          const pred = f.predicted_value != null ? `${Math.round(Number(f.predicted_value) * 100)}%` : "—";
+          return `
+        <tr>
+          <td><strong>${escapeHtml(f.entity_id || f.account || "Prediction")}</strong></td>
+          <td><span class="fb-tag ${escapeHtml(f.feedback || "adjust")}">${escapeHtml(f.feedback || "—")}</span></td>
+          <td class="num">${pred}</td>
+          <td class="col-ctx">${escapeHtml(f.comment || f.note || "—")}</td>
+          <td>${escapeHtml(f.created_by || f.by || "demo.user@domo.com")}</td>
+          <td class="lb-actions-col">
+            <button class="btn-icon" type="button" title="${escapeHtml(cfg.editNote)}" disabled>✎</button>
+            <button class="btn-icon btn-icon-danger" type="button" title="${escapeHtml(cfg.editNote)}" disabled>✕</button>
+          </td>
+        </tr>`;
+        }).join("")
+      : `<tr><td colspan="6" class="empty-state">No prediction feedback yet. Open ML Predictions, run a score, then Accept / Adjust / Reject.</td></tr>`;
+    if (cfg.editNote) {
+      body.innerHTML += `<tr><td colspan="6" class="lb-staged-note">${escapeHtml(cfg.editNote)}</td></tr>`;
+    }
   }
-  const project = document.getElementById("lakebaseProjectBtn");
-  if (project && !project.dataset.wired) {
-    project.addEventListener("click", () => openExternal(LAKEBASE_PROJECT_LINK));
-    project.dataset.wired = "1";
+
+  body.querySelectorAll("[data-row-id]").forEach((row) => {
+    row.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      state.lakebase.selectedScenarioId = Number(row.getAttribute("data-row-id"));
+      renderLakebase();
+    });
+  });
+  body.querySelectorAll("[data-row-edit]").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = Number(btn.getAttribute("data-row-edit"));
+      state.lakebase.editingRow = state.lakebase.scenarios.find((s) => s.id === id) || null;
+      state.lakebase.formOpen = true;
+      renderLakebaseForm();
+    });
+  });
+  body.querySelectorAll("[data-row-delete]").forEach((btn) => {
+    btn.addEventListener("click", () => deleteScenario(Number(btn.getAttribute("data-row-delete"))));
+  });
+}
+
+function lakebaseFieldDefault(field, row) {
+  if (row) {
+    if (field.key === "delta") return row.delta != null ? row.delta : "";
+    if (field.key === "assumptions") return JSON.stringify(row.assumptions || {}, null, 2);
+    return row[field.key] != null ? row[field.key] : "";
+  }
+  if (field.key === "assumptions") return JSON.stringify({ source: "manual", region: "West" }, null, 2);
+  return field.value != null ? field.value : (field.type === "select" ? field.options[0] : "");
+}
+
+function renderLakebaseForm() {
+  const host = document.getElementById("lakebaseFormHost");
+  if (!host) return;
+  if (!state.lakebase.formOpen) {
+    host.classList.add("is-hidden");
+    host.innerHTML = "";
+    return;
+  }
+  const cfg = activeLakebaseTable();
+  const editing = state.lakebase.editingRow;
+  const title = editing ? `Edit ${cfg.label.replace(/s$/, "")} #${editing.id}` : `Add ${cfg.label.replace(/ Runs| Feedback/, "").toLowerCase()} row`;
+  const fieldHtml = cfg.fields.map((f) => {
+    const val = escapeHtml(String(lakebaseFieldDefault(f, editing)));
+    const cls = `lb-field ${f.full ? "full" : ""}`;
+    if (f.type === "select") {
+      const opts = f.options.map((o) => `<option ${o === lakebaseFieldDefault(f, editing) ? "selected" : ""}>${escapeHtml(o)}</option>`).join("");
+      return `<label class="${cls}"><span>${escapeHtml(f.label)}</span><select data-field="${f.key}">${opts}</select></label>`;
+    }
+    if (f.type === "json") {
+      return `<label class="${cls}"><span>${escapeHtml(f.label)}</span><textarea data-field="${f.key}" rows="3">${val}</textarea></label>`;
+    }
+    const type = f.type === "number" ? 'type="number" step="any"' : 'type="text"';
+    return `<label class="${cls}"><span>${escapeHtml(f.label)}</span><input ${type} data-field="${f.key}" value="${val}" ${f.required ? "required" : ""} /></label>`;
+  }).join("");
+  host.classList.remove("is-hidden");
+  host.innerHTML = `
+    <div class="lb-form-head"><h4>${escapeHtml(title)}</h4><button type="button" class="pill-btn ghost" id="lbFormCancel">Cancel</button></div>
+    <form class="lakebase-form" id="lbForm">
+      ${fieldHtml}
+      <div class="form-actions full"><button class="btn btn-primary" type="submit" id="lbFormSave">${editing ? "Save changes" : "Add to Lakebase"}</button></div>
+    </form>`;
+  host.querySelector("#lbFormCancel").addEventListener("click", () => { state.lakebase.formOpen = false; state.lakebase.editingRow = null; renderLakebaseForm(); });
+  host.querySelector("#lbForm").addEventListener("submit", saveLakebaseRow);
+}
+
+function collectLbForm() {
+  const out = {};
+  document.querySelectorAll("#lbForm [data-field]").forEach((el) => { out[el.getAttribute("data-field")] = el.value; });
+  return out;
+}
+
+async function saveLakebaseRow(event) {
+  event.preventDefault();
+  const cfg = activeLakebaseTable();
+  const data = collectLbForm();
+  const saveBtn = document.getElementById("lbFormSave");
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = "Saving…"; }
+  try {
+    if (cfg.key === "scenarios") {
+      const editing = state.lakebase.editingRow;
+      const delta = Number(data.delta || 0);
+      const payload = {
+        id: editing ? editing.id : undefined,
+        name: data.name,
+        status: data.status,
+        createdBy: data.created_by,
+        assumptions: safeJson(data.assumptions, {}),
+        results: { forecast_delta: delta, source: "Revenue Command Center" },
+      };
+      if (state.lakebaseLive) {
+        const result = await callPattern4ce(editing ? "updateScenario" : "createScenario", payload);
+        const row = normalizeScenario((result.rows && result.rows[0]) || result.row || payload);
+        if (editing) state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? row : s);
+        else { state.lakebase.scenarios.unshift(row); state.lakebase.selectedScenarioId = row.id; }
+      } else if (editing) {
+        state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? normalizeScenario({ ...s, ...payload, delta }) : s);
+      } else {
+        const next = normalizeScenario({ ...payload, id: Date.now(), delta });
+        state.lakebase.scenarios.unshift(next);
+        state.lakebase.selectedScenarioId = next.id;
+      }
+      lakebaseBanner("success", editing ? "Scenario updated in Lakebase." : "Scenario written to Lakebase.");
+    } else {
+      const payload = {
+        predictionId: `manual-${Date.now()}`,
+        entityType: data.entity_type || "account",
+        entityId: data.entity_id,
+        feedback: data.feedback || "adjust",
+        predictedValue: data.predicted_value === "" ? null : Number(data.predicted_value),
+        correctedValue: data.corrected_value === "" ? null : Number(data.corrected_value),
+        comment: data.comment || "",
+        createdBy: data.created_by || "demo.user@domo.com",
+      };
+      if (state.lakebaseLive) {
+        await callPattern4ce("savePredictionFeedback", payload);
+        await loadLakebaseLive();
+      } else {
+        state.lakebase.feedback.unshift({
+          entity_id: payload.entityId, feedback: payload.feedback, predicted_value: payload.predictedValue,
+          comment: payload.comment, created_by: payload.createdBy,
+        });
+      }
+      lakebaseBanner("success", "Prediction feedback written to Lakebase.");
+    }
+    state.lakebase.formOpen = false;
+    state.lakebase.editingRow = null;
+    renderLakebase();
+  } catch (error) {
+    console.warn("Lakebase save failed", error);
+    lakebaseBanner("error", error.message || "Unable to write to Lakebase.");
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = "Add to Lakebase"; }
   }
 }
 
 function renderScenarioDetail() {
   const detail = document.getElementById("scenarioDetail");
   if (!detail) return;
+  if (state.lakebase.activeTable !== "scenarios") { detail.innerHTML = ""; return; }
   const scenario = state.lakebase.scenarios.find((s) => s.id === state.lakebase.selectedScenarioId) || state.lakebase.scenarios[0];
-  if (!scenario) {
-    detail.innerHTML = "";
-    return;
-  }
+  if (!scenario) { detail.innerHTML = ""; return; }
   const assumptionText = JSON.stringify(scenario.assumptions || {}, null, 2);
   const resultText = JSON.stringify(scenario.results || {}, null, 2);
   detail.innerHTML = `
@@ -1341,71 +1567,14 @@ function renderScenarioDetail() {
       <div><b>Assumptions</b><pre>${escapeHtml(assumptionText)}</pre></div>
       <div><b>Results</b><pre>${escapeHtml(resultText)}</pre></div>
     </div>`;
-  detail.querySelector("[data-scenario-edit]")?.addEventListener("click", () => showScenarioForm(scenario));
+  detail.querySelector("[data-scenario-edit]")?.addEventListener("click", () => {
+    state.lakebase.editingRow = scenario;
+    state.lakebase.formOpen = true;
+    renderLakebaseForm();
+  });
   detail.querySelectorAll("[data-open-url]").forEach((btn) => {
     btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
   });
-}
-
-function showScenarioForm(scenario) {
-  state.lakebase.editingScenario = scenario || null;
-  const panel = document.getElementById("lakebaseScenarioFormPanel");
-  panel?.classList.remove("is-hidden");
-  document.getElementById("lakebaseFormTitle").textContent = scenario ? `Edit Scenario #${scenario.id}` : "Add Scenario";
-  document.getElementById("scenarioNameInput").value = scenario?.name || "";
-  document.getElementById("scenarioStatusInput").value = scenario?.status || "draft";
-  document.getElementById("scenarioOwnerInput").value = scenario?.created_by || "demo.user@domo.com";
-  document.getElementById("scenarioDeltaInput").value = scenario?.delta || 0;
-  document.getElementById("scenarioAssumptionsInput").value = JSON.stringify(scenario?.assumptions || { source: "manual", region: "West" }, null, 2);
-}
-
-function hideScenarioForm() {
-  state.lakebase.editingScenario = null;
-  document.getElementById("lakebaseScenarioFormPanel")?.classList.add("is-hidden");
-}
-
-async function saveScenarioFromForm(event) {
-  event.preventDefault();
-  const editing = state.lakebase.editingScenario;
-  const assumptions = safeJson(document.getElementById("scenarioAssumptionsInput").value, {});
-  const delta = Number(document.getElementById("scenarioDeltaInput").value || 0);
-  const payload = {
-    id: editing?.id,
-    name: document.getElementById("scenarioNameInput").value,
-    status: document.getElementById("scenarioStatusInput").value,
-    createdBy: document.getElementById("scenarioOwnerInput").value,
-    assumptions,
-    results: { forecast_delta: delta, source: "Revenue Command Center" },
-  };
-  const saveBtn = document.getElementById("lakebaseSaveBtn");
-  saveBtn.textContent = "Saving...";
-  saveBtn.disabled = true;
-  try {
-    if (state.lakebaseLive) {
-      const result = await callPattern4ce(editing ? "updateScenario" : "createScenario", payload);
-      const row = normalizeScenario((result.rows && result.rows[0]) || result.row || payload);
-      if (editing) {
-        state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? row : s);
-      } else {
-        state.lakebase.scenarios.unshift(row);
-        state.lakebase.selectedScenarioId = row.id;
-      }
-    } else if (editing) {
-      state.lakebase.scenarios = state.lakebase.scenarios.map((s) => s.id === editing.id ? normalizeScenario({ ...s, ...payload, delta }) : s);
-    } else {
-      const next = normalizeScenario({ ...payload, id: Date.now(), delta });
-      state.lakebase.scenarios.unshift(next);
-      state.lakebase.selectedScenarioId = next.id;
-    }
-    hideScenarioForm();
-    renderLakebase();
-  } catch (error) {
-    state.lakebase.error = error.message || "Unable to save scenario";
-    console.warn("Scenario save failed", error);
-  } finally {
-    saveBtn.textContent = "Save scenario";
-    saveBtn.disabled = false;
-  }
 }
 
 async function deleteScenario(id) {
@@ -1414,10 +1583,55 @@ async function deleteScenario(id) {
     if (state.lakebaseLive) await callPattern4ce("deleteScenario", { id });
     state.lakebase.scenarios = state.lakebase.scenarios.filter((s) => s.id !== id);
     state.lakebase.selectedScenarioId = state.lakebase.scenarios[0]?.id || null;
+    lakebaseBanner("success", "Scenario deleted from Lakebase.");
     renderLakebase();
   } catch (error) {
     console.warn("Scenario delete failed", error);
+    lakebaseBanner("error", error.message || "Unable to delete scenario.");
   }
+}
+
+// Called from ML Predictions when a user accepts/adjusts/rejects — seeds a reviewable
+// scenario from the scored inputs + prediction, then deep-links to it on the Lakebase tab.
+async function seedScenarioFromPrediction(features, prediction, decision) {
+  const pct = Math.round((Number(prediction.probability) || 0) * 100);
+  const name = `${features.region || "Account"} ${features.segment || ""} — ${decision} @ ${pct}% churn`.trim();
+  const payload = {
+    name: name,
+    status: decision === "accept" ? "complete" : decision === "reject" ? "archived" : "running",
+    createdBy: "demo.user@domo.com",
+    assumptions: { source: "ml_prediction", decision: decision, source_table: "gold_customer_renewal_risk", inputs: features },
+    results: {
+      predicted_churn_probability: Number((Number(prediction.probability) || 0).toFixed(4)),
+      revenue_at_risk: Math.round(Number(prediction.revenueAtRisk) || 0),
+      tier: prediction.tier,
+      recommended_action: prediction.action,
+    },
+  };
+  try {
+    if (state.lakebaseLive) {
+      const result = await callPattern4ce("createScenario", payload);
+      const row = normalizeScenario((result.rows && result.rows[0]) || result.row || payload);
+      state.lakebase.scenarios.unshift(row);
+      state.lakebase.selectedScenarioId = row.id;
+    } else {
+      const next = normalizeScenario({ ...payload, id: Date.now(), delta: 0 });
+      state.lakebase.scenarios.unshift(next);
+      state.lakebase.selectedScenarioId = next.id;
+    }
+    renderLakebase();
+    return state.lakebase.selectedScenarioId;
+  } catch (error) {
+    console.warn("Scenario seed failed", error);
+    return null;
+  }
+}
+
+function gotoLakebaseScenario(id) {
+  state.lakebase.activeTable = "scenarios";
+  if (id) state.lakebase.selectedScenarioId = id;
+  activateView("lakebase");
+  renderLakebase();
 }
 
 async function savePredictionFeedback(feedback) {

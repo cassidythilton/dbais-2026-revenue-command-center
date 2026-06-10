@@ -133,3 +133,33 @@ CRUD parity now and are happy to approve a pattern4ce release as part of this.
 
 Next step after a pick: breadboard the chosen shape, build front-end (+ staged CE for C),
 validate `dist` locally.
+
+## DECISION: Shape C selected (2026-06-10) — BUILT
+
+User selected **Shape C**. Built front-end-only against the released v1.0.12 contract;
+feedback edit/delete CE functions staged (not released).
+
+### What shipped
+- **Lakebase tab = table explorer**: a sub-nav (Scenario Runs / Prediction Feedback), each
+  with a toolbar (row count, table name, Open in Lakebase / Refresh / + Add row), a typed
+  add/edit form, inline ✎/✕ actions, success/error banners, and the selected-scenario
+  detail (assumptions/results JSON) — modeled on `lakebase explorer`.
+- **Scenario Runs**: full CRUD via existing create/update/deleteScenario.
+- **Prediction Feedback**: list + Add via existing list/savePredictionFeedback; **Edit/Delete
+  render disabled** with a "staged — enable on release" note.
+- **ML Accept/Adjust/Reject** → `savePredictionFeedback` **and** `seedScenarioFromPrediction`
+  (creates a scenario with the scored inputs as assumptions + the prediction as results),
+  then shows **"Captured — Review scenario →"** which deep-links to the Lakebase tab and
+  selects the new seeded scenario (verified end-to-end via headless render).
+- **"Why Lakebase" narrative** band (OLTP next to the lakehouse, app-owned, survives
+  sessions, separate from governed gold).
+- **Staged CE (not released)**: `updatePredictionFeedback` / `deletePredictionFeedback`
+  added to `codeengine/functions.js` + `module.exports`, mirroring the scenario pattern —
+  ready to enable feedback edit/delete on the next **approved** pattern4ce release.
+
+### Validation (local, no publish, no CE release)
+- `node --check` clean on `src/app.js`, `dist/src/app.js`, and `codeengine/functions.js`;
+  no lints; `dist` mirrors `src`.
+- Headless renders confirm: explorer + both sub-tables, the typed Add form, disabled
+  feedback edit/delete, and the ML Accept → Review-scenario deep link landing on the
+  seeded scenario.
