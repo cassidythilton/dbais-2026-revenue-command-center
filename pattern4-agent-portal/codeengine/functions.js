@@ -244,8 +244,7 @@ function askGenie(question, conversationId, persona, model) {
           if (
             status === "COMPLETED" ||
             status === "FAILED" ||
-            (m.attachments && m.attachments.length > 0 && attempt > 2) ||
-            attempt > 30
+            attempt > 45
           ) {
             return m;
           }
@@ -277,6 +276,19 @@ function askGenie(question, conversationId, persona, model) {
         }
       }
 
+      function synthesizeAnswer(resultColumns, resultRows) {
+        if (!resultColumns || !resultColumns.length || !resultRows || !resultRows.length) {
+          return "Genie returned a governed SQL result but did not provide a narrative answer. Review the result table below.";
+        }
+        var first = resultRows[0] || [];
+        var parts = [];
+        for (var si = 0; si < resultColumns.length && si < 5; si++) {
+          var col = resultColumns[si] || {};
+          parts.push(String(col.name || ("Column " + (si + 1))).replace(/_/g, " ") + ": " + first[si]);
+        }
+        return "Genie returned " + resultRows.length + " row" + (resultRows.length === 1 ? "" : "s") + " from governed Unity Catalog data. Top result — " + parts.join("; ") + ".";
+      }
+
       function finalize(rowCount, resultColumns, resultRows) {
         var chartColumns = resultColumns || [];
         var chartRows = resultRows || [];
@@ -290,7 +302,7 @@ function askGenie(question, conversationId, persona, model) {
         }));
         return {
           status: "SUCCEEDED",
-          answer: answerText || "Genie returned no text answer.",
+          answer: answerText || synthesizeAnswer(chartColumns, chartRows),
           sql: sqlText,
           rowCount: rowCount || 0,
           columns: chartColumns,

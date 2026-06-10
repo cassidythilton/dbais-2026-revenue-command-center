@@ -184,10 +184,10 @@ const GENIE_CANNED = [
 // These MUST match the Genie Space exactly (sourced from /api/2.0/data-rooms/{space}/curated-questions).
 const GENIE_CHIPS = [
   "Why did renewal risk increase for West enterprise accounts?",
+  "Did approved agent actions reduce revenue at risk after the incident?",
+  "Which recommended actions should the regional manager approve first?",
   "Which accounts were most affected by incident INC-0001?",
   "How much revenue is at risk because of SLA breaches?",
-  "Which recommended actions should the regional manager approve first?",
-  "Did approved agent actions reduce revenue at risk after the incident?",
 ];
 
 const PERSONAS = {
@@ -204,6 +204,7 @@ const state = {
   readiness: [],
   readinessSynced: false,
   readinessSelected: "executiveRevenueHealth",
+  readinessColumnSync: {},
   mlServing: false, // flip true once the Model Serving endpoint + runModelInference are live
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
@@ -1074,6 +1075,11 @@ function renderLakebase() {
     form.addEventListener("submit", saveScenarioFromForm);
     form.dataset.wired = "1";
   }
+  const project = document.getElementById("lakebaseProjectBtn");
+  if (project && !project.dataset.wired) {
+    project.addEventListener("click", () => openExternal(LAKEBASE_PROJECT_LINK));
+    project.dataset.wired = "1";
+  }
 }
 
 function renderScenarioDetail() {
@@ -1089,13 +1095,20 @@ function renderScenarioDetail() {
   detail.innerHTML = `
     <div class="scenario-detail-head">
       <div><span class="panel-tag">selected run</span><h3>${escapeHtml(scenario.name)}</h3></div>
-      <button class="btn btn-secondary btn-sm" type="button" data-scenario-edit="${scenario.id}">Edit selected</button>
+      <div class="toolbar-right">
+        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_PROJECT_LINK)}">Open Lakebase</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksObjectUrl(`databricks_raptor.pattern4_agent_automation.${scenario.assumptions?.source_table || "gold_agent_action_queue"}`))}">Open source table</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-scenario-edit="${scenario.id}">Edit selected</button>
+      </div>
     </div>
     <div class="scenario-json-grid">
       <div><b>Assumptions</b><pre>${escapeHtml(assumptionText)}</pre></div>
       <div><b>Results</b><pre>${escapeHtml(resultText)}</pre></div>
     </div>`;
   detail.querySelector("[data-scenario-edit]")?.addEventListener("click", () => showScenarioForm(scenario));
+  detail.querySelectorAll("[data-open-url]").forEach((btn) => {
+    btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
+  });
 }
 
 function showScenarioForm(scenario) {
@@ -1412,20 +1425,22 @@ function renderReadiness() {
   if (!grid) return;
   grid.innerHTML = state.readiness
     .map((item) => {
-      const pct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
+      const ucPct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
+      const domoSynced = state.readinessColumnSync[item.alias] || 0;
+      const domoPct = item.columnCount ? Math.round((domoSynced / item.columnCount) * 100) : 0;
       return `
         <article class="readiness-card ${state.readinessSelected === item.alias ? "active" : ""}" data-readiness-alias="${escapeHtml(item.alias)}">
           <div class="readiness-top">
             <div class="readiness-title">${escapeHtml(item.alias)}</div>
             <div class="readiness-status ${state.readinessSynced ? "synced" : ""}">
-              ${state.readinessSynced ? "Synced" : "Ready"}
+              ${domoSynced ? "Staged" : "Domo off"}
             </div>
           </div>
           <p>${escapeHtml(item.context || "Unity Catalog context ready to mirror into Domo AI Readiness.")}</p>
-          <div class="readiness-progress"><span style="width:${pct}%"></span></div>
+          <div class="readiness-progress"><span style="width:${ucPct}%"></span></div>
           <div class="readiness-metrics">
-            <div class="readiness-metric"><b>${item.aiEnabledCount}/${item.columnCount}</b><span>AI cols</span></div>
-            <div class="readiness-metric"><b>${item.synonymCount}</b><span>synonyms</span></div>
+            <div class="readiness-metric"><b>${item.aiEnabledCount}/${item.columnCount}</b><span>UC cols ready</span></div>
+            <div class="readiness-metric"><b>${domoPct}%</b><span>Domo synced</span></div>
             <div class="readiness-metric"><b>${item.tagCount}</b><span>UC tags</span></div>
           </div>
         </article>
@@ -1442,11 +1457,11 @@ function renderReadiness() {
 }
 
 function domoDatasetUrl(item) {
-  return `https://databricks-demo.domo.com/datasources/${item.datasetId}/details/settings/ai-readiness`;
+  return `https://databricks-demo.domo.com/datasources/${item.datasetId}/details/ai-readiness`;
 }
 
 function databricksTableUrl(item) {
-  return `${WORKSPACE_HOST}/explore/data/${encodeURIComponent(item.object || "")}`;
+  return databricksObjectUrl(item.object || "");
 }
 
 function openExternal(url) {
@@ -1466,29 +1481,49 @@ function renderReadinessDetail() {
     detail.innerHTML = `<p class="empty-state">No readiness records loaded.</p>`;
     return;
   }
-  const pct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
+  const ucPct = item.columnCount ? Math.round((item.aiEnabledCount / item.columnCount) * 100) : 0;
+  const domoSynced = state.readinessColumnSync[item.alias] || 0;
+  const domoPct = item.columnCount ? Math.round((domoSynced / item.columnCount) * 100) : 0;
   detail.innerHTML = `
     <div class="readiness-detail-top">
       <span class="panel-tag">selected dataset</span>
       <h3>${escapeHtml(item.alias)}</h3>
       <p>${escapeHtml(item.context || "")}</p>
     </div>
-    <div class="readiness-score">
-      <b>${pct}%</b>
-      <span>AI-enabled columns</span>
-      <div class="readiness-progress"><span style="width:${pct}%"></span></div>
+    <div class="readiness-compare">
+      <div class="readiness-score">
+        <b>${ucPct}%</b>
+        <span>Unity Catalog metadata prepared</span>
+        <div class="readiness-progress"><span style="width:${ucPct}%"></span></div>
+      </div>
+      <div class="readiness-score domo">
+        <b>${domoPct}%</b>
+        <span>Domo AI Readiness synced</span>
+        <div class="readiness-progress"><span style="width:${domoPct}%"></span></div>
+      </div>
     </div>
     <dl class="readiness-kv">
       <div><dt>Domo dataset</dt><dd>${escapeHtml(item.datasetId || "")}</dd></div>
       <div><dt>Unity Catalog table</dt><dd>${escapeHtml(item.object || "")}</dd></div>
-      <div><dt>Readiness assets</dt><dd>${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
+      <div><dt>Unity Catalog assets ready</dt><dd>${item.aiEnabledCount || 0}/${item.columnCount || 0} columns · ${item.synonymCount || 0} synonyms · ${item.tagCount || 0} UC tags</dd></div>
     </dl>
     <div class="readiness-actions">
+      <button class="btn btn-primary btn-sm" type="button" data-readiness-sync="${escapeHtml(item.alias)}">Sync selected columns</button>
       <button class="btn btn-primary btn-sm" type="button" data-open-url="${escapeHtml(domoDatasetUrl(item))}">Open Domo AI Readiness</button>
       <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(databricksTableUrl(item))}">Open Databricks Table</button>
     </div>`;
   detail.querySelectorAll("[data-open-url]").forEach((btn) => {
     btn.addEventListener("click", () => openExternal(btn.getAttribute("data-open-url")));
+  });
+  detail.querySelector("[data-readiness-sync]")?.addEventListener("click", () => {
+    state.readinessColumnSync[item.alias] = item.aiEnabledCount || 0;
+    state.readinessSynced = true;
+    const note = document.getElementById("readinessNote");
+    if (note) {
+      note.classList.add("done");
+      note.textContent = `Column-level sync staged for ${item.alias}: Unity Catalog context is ready to mirror into Domo AI Readiness, but Domo must have AI Readiness enabled to persist these settings.`;
+    }
+    renderReadiness();
   });
 }
 
@@ -1497,7 +1532,10 @@ function syncReadinessDemo() {
   const note = document.getElementById("readinessNote");
   note.classList.add("done");
   note.textContent =
-    "Readiness manifest applied for demo: UC comments, UC tags, dataset context, synonyms, and AI-enabled column selections are ready to mirror into Domo AI Readiness. Public Domo AI Readiness writes are UI-managed today; this button represents the governed update action and future internal/API wiring.";
+    "Unity Catalog readiness metadata is staged for column-level sync. Domo AI Readiness is not enabled yet, so this page shows prepared UC context separately from Domo's persisted readiness state.";
+  state.readiness.forEach((item) => {
+    state.readinessColumnSync[item.alias] = item.aiEnabledCount || 0;
+  });
   renderReadiness();
 }
 
@@ -1568,6 +1606,7 @@ const WORKSPACE_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 // Set GENIE_SPACE_ID once a dedicated Pattern 4 Genie Space exists; deep link adapts automatically.
 const GENIE_SPACE_ID = "01f1642295b61d6b8849e106f52fc781";
 const GENIE_DEEPLINK = GENIE_SPACE_ID ? `${WORKSPACE_HOST}/genie/rooms/${GENIE_SPACE_ID}` : `${WORKSPACE_HOST}/genie`;
+const LAKEBASE_PROJECT_LINK = `${WORKSPACE_HOST}/database/projects/cobra-v1`;
 
 const GENIE_MODELS = [
   { value: "genie-default", label: "Genie (default)", sub: "AI/BI" },

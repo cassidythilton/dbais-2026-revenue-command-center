@@ -274,9 +274,10 @@
         <div class="panel-head">
           <div>
             <h2>Lakebase Operational State</h2>
-            <p>Low-latency Postgres alongside the lakehouse &mdash; scenario runs and prediction feedback copied from the governed Pattern 4 data, served through Code Engine.</p>
+            <p>Use Lakebase for app-owned operating state: what-if assumptions, saved scenarios, and human prediction feedback that should be read/write, low-latency, and separate from governed analytic gold views.</p>
           </div>
           <div class="toolbar-right">
+            <button class="btn btn-secondary btn-sm" id="lakebaseProjectBtn" type="button">Open Lakebase</button>
             <button class="btn btn-secondary btn-sm" id="lakebaseRefreshBtn" type="button">Refresh</button>
             <button class="btn btn-primary btn-sm" id="lakebaseAddBtn" type="button">+ Add Scenario</button>
             <span class="model-state" id="lakebaseState">Planned</span>
@@ -344,12 +345,12 @@
         <div class="guide-section-head readiness-head">
           <div>
             <h2>AI Readiness Control Plane</h2>
-            <p>Unity Catalog context, tags, and AI-enabled columns mirrored into Domo dataset readiness.</p>
+            <p>Compare what is prepared in Databricks Unity Catalog with what is currently synced into Domo AI Readiness.</p>
           </div>
-          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Mark readiness sync</button>
+          <button class="btn btn-primary" id="readinessSyncBtn" type="button">Stage all column syncs</button>
         </div>
         <div class="readiness-note" id="readinessNote">
-          Pick a dataset to inspect its governed context, open the Domo AI Readiness page, or jump to the source table in Databricks.
+          Domo AI Readiness is not enabled yet. This view shows Unity Catalog metadata that is ready to sync, alongside the current Domo readiness state.
         </div>
         <div class="readiness-layout">
           <div class="readiness-grid" id="readinessGrid"></div>
