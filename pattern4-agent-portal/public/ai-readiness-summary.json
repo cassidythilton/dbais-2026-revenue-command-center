@@ -5,8 +5,8 @@
     "object": "databricks_raptor.pattern4_agent_automation.gold_executive_revenue_health",
     "context": "Executive revenue health dataset for Pattern 4. Use for questions about net revenue, gross margin, expansion ARR, churned ARR, revenue at risk, fiscal periods, region, segment, and tenant.",
     "synonymCount": 16,
-    "aiEnabledCount": 12,
-    "columnCount": 12,
+    "aiEnabledCount": 15,
+    "columnCount": 15,
     "tagCount": 4
   },
   {
@@ -15,8 +15,8 @@
     "object": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
     "context": "Customer renewal risk dataset for Pattern 4. Use for account triage, risk tiers, renewal risk scores, top risk drivers, support pressure, usage drops, and recommended retention actions.",
     "synonymCount": 17,
-    "aiEnabledCount": 15,
-    "columnCount": 21,
+    "aiEnabledCount": 16,
+    "columnCount": 22,
     "tagCount": 4
   },
   {

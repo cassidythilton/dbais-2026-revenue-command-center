@@ -13,8 +13,8 @@
       "regional revenue"
     ],
     "synonymCount": 16,
-    "aiEnabledCount": 12,
-    "columnCount": 12,
+    "aiEnabledCount": 15,
+    "columnCount": 15,
     "tagCount": 4,
     "domoReadinessEnabled": false,
     "domoSyncedColumns": [],
@@ -27,8 +27,15 @@
         "synonyms": []
       },
       {
+        "name": "week_start",
+        "type": "DATETIME",
+        "aiEnabled": true,
+        "context": "week_start column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
         "name": "fiscal_year",
-        "type": "INT",
+        "type": "LONG",
         "aiEnabled": true,
         "context": "fiscal_year column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
@@ -116,6 +123,20 @@
           "ARR at risk",
           "renewal exposure"
         ]
+      },
+      {
+        "name": "seasonal_revenue_index",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "seasonal_revenue_index column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "incident_window_flag",
+        "type": "DOUBLE",
+        "aiEnabled": true,
+        "context": "incident_window_flag column from gold_executive_revenue_health. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
       }
     ]
   },
@@ -133,8 +154,8 @@
       "retention action"
     ],
     "synonymCount": 17,
-    "aiEnabledCount": 15,
-    "columnCount": 21,
+    "aiEnabledCount": 16,
+    "columnCount": 22,
     "tagCount": 4,
     "domoReadinessEnabled": false,
     "domoSyncedColumns": [],
@@ -181,7 +202,7 @@
         "name": "industry",
         "type": "STRING",
         "aiEnabled": false,
-        "context": "",
+        "context": "industry column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
@@ -195,21 +216,28 @@
         "name": "account_owner_name",
         "type": "STRING",
         "aiEnabled": false,
-        "context": "",
+        "context": "account_owner_name column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
         "name": "annual_recurring_revenue",
         "type": "DOUBLE",
         "aiEnabled": false,
-        "context": "",
+        "context": "annual_recurring_revenue column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
         "name": "renewal_date",
         "type": "DATE",
         "aiEnabled": false,
-        "context": "",
+        "context": "renewal_date column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
+        "synonyms": []
+      },
+      {
+        "name": "days_to_renewal",
+        "type": "LONG",
+        "aiEnabled": true,
+        "context": "days_to_renewal column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
@@ -284,14 +312,14 @@
         "name": "negative_cases_90d",
         "type": "LONG",
         "aiEnabled": false,
-        "context": "",
+        "context": "negative_cases_90d column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
         "name": "avg_usage_score_90d",
         "type": "DOUBLE",
         "aiEnabled": false,
-        "context": "",
+        "context": "avg_usage_score_90d column from gold_customer_renewal_risk. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
@@ -423,7 +451,7 @@
         "name": "negative_case_count",
         "type": "LONG",
         "aiEnabled": false,
-        "context": "",
+        "context": "negative_case_count column from gold_incident_revenue_impact. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
@@ -467,7 +495,7 @@
       },
       {
         "name": "created_ts",
-        "type": "TIMESTAMP",
+        "type": "DATETIME",
         "aiEnabled": true,
         "context": "created_ts column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
@@ -577,9 +605,9 @@
       },
       {
         "name": "completed_ts",
-        "type": "TIMESTAMP",
+        "type": "DATETIME",
         "aiEnabled": false,
-        "context": "",
+        "context": "completed_ts column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []
       },
       {
@@ -601,7 +629,7 @@
       },
       {
         "name": "workflow_cycle_days",
-        "type": "INT",
+        "type": "LONG",
         "aiEnabled": true,
         "context": "workflow_cycle_days column from gold_agent_action_queue. Use with Pattern 4 revenue assurance questions.",
         "synonyms": []

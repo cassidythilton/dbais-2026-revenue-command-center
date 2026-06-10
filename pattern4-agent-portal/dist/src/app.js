@@ -1478,6 +1478,9 @@ function getUcReadyColumns(item) {
 }
 
 function getDomoSyncedColumns(item) {
+  if (item?.domoReadinessLoaded) {
+    return new Set(item.domoSyncedColumns || []);
+  }
   const local = state.readinessColumnSync[item.alias];
   const source = Array.isArray(local) ? local : (item.domoSyncedColumns || []);
   return new Set(source);
@@ -1492,12 +1495,12 @@ function setDomoSyncedColumns(alias, columns) {
 function applyDomoReadinessState(item, readiness) {
   if (!item || !readiness) return;
   const columns = Array.isArray(readiness.columns) ? readiness.columns : [];
+  item.domoReadinessLoaded = true;
   item.domoReadinessEnabled = columns.some((col) => col.agentEnabled);
   item.domoSyncedColumns = columns.filter((col) => col.agentEnabled).map((col) => col.name);
   item.domoReadiness = readiness;
-  if (!state.readinessColumnSync[item.alias] && item.domoSyncedColumns.length) {
-    state.readinessColumnSync[item.alias] = item.domoSyncedColumns.slice();
-  }
+  state.readinessColumnSync[item.alias] = item.domoSyncedColumns.slice();
+  persistReadinessLocalState();
 }
 
 async function refreshDomoReadinessForItem(item) {
