@@ -22,6 +22,13 @@ from community_domo_cli.http import DomoApiError, DomoClient  # noqa: E402
 
 FUNCTIONS_JS = REPO / "pattern4-agent-portal/codeengine/functions.js"
 TOKEN_FILE = REPO / "databricks token"
+LAKEBASE_BUNDLE_FILE = REPO / "scripts/lakebase_pg_bundle.b64"
+
+
+def read_lakebase_bundle() -> str:
+    if not LAKEBASE_BUNDLE_FILE.exists():
+        raise SystemExit(f"Missing Lakebase pg bundle: {LAKEBASE_BUNDLE_FILE}")
+    return LAKEBASE_BUNDLE_FILE.read_text().strip()
 
 
 def read_token() -> str:
@@ -142,11 +149,20 @@ def client() -> DomoClient:
 def main() -> int:
     token = read_token()
     domo_token = read_domo_token()
+    lakebase_bundle = read_lakebase_bundle()
     code = (
         FUNCTIONS_JS.read_text()
         .replace("REPLACE_WITH_DATABRICKS_TOKEN", token)
         .replace("REPLACE_WITH_DOMO_DEVELOPER_TOKEN", domo_token)
+        .replace("__LAKEBASE_PG_BUNDLE_B64__", lakebase_bundle)
     )
+    for placeholder in (
+        "__LAKEBASE_PG_BUNDLE_B64__",
+        "REPLACE_WITH_DATABRICKS_TOKEN",
+        "REPLACE_WITH_DOMO_DEVELOPER_TOKEN",
+    ):
+        if placeholder in code:
+            raise SystemExit(f"Placeholder injection failed: {placeholder}")
 
     functions = [
         fn(
@@ -225,8 +241,8 @@ def main() -> int:
             "Sync Domo AI Readiness",
             [
                 text_input("datasetId", False),
-                text_input("desiredState", False),
-                text_input("columns", True),
+                object_input("desiredState", False),
+                object_list_input("columns", True),
             ],
         ),
         fn(
@@ -234,7 +250,7 @@ def main() -> int:
             "Wipe Domo AI Readiness",
             [
                 text_input("datasetId", False),
-                text_input("columns", True),
+                object_list_input("columns", True),
             ],
         ),
         fn(

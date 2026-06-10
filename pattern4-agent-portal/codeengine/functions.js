@@ -27,7 +27,10 @@
  */
 
 var axios = require("axios");
-var pg = require("pg");
+/* NOTE: Domo Code Engine does not provide the 'pg' module. Postgres access is
+ * handled by a self-contained, lazily-evaluated bundle inside lakebaseQuery()
+ * (see the LAKEBASE_PG_BUNDLE base64 blob). Never add a top-level require("pg"):
+ * it throws MODULE_NOT_FOUND at load and crashes EVERY function in the package. */
 
 var DATABRICKS_HOST = "https://dbc-0516e56c-ba3e.cloud.databricks.com";
 var DATABRICKS_TOKEN = "REPLACE_WITH_DATABRICKS_TOKEN";
@@ -39,11 +42,8 @@ var CATALOG = "databricks_raptor";
 var SCHEMA = "pattern4_agent_automation";
 var WRITEBACK_TABLE = "agent_action_writeback";
 var MODEL_SERVING_ENDPOINT = "pattern4-renewal-risk";
-var LAKEBASE_ENDPOINT = "projects/cobra-v1/branches/production/endpoints/primary";
-var LAKEBASE_HOST = "ep-fancy-mud-d2xv4rcd.database.us-east-1.cloud.databricks.com";
-var LAKEBASE_DATABASE = "databricks_postgres";
-var LAKEBASE_USER = "cassidy.hilton@domo.com";
-var lakebaseTokenCache = { token: "", expiresAt: 0 };
+/* Lakebase connectivity (host/db/endpoint/M2M auth) is fully self-contained
+ * inside the bundled lakebaseQuery() implementation below. */
 
 function dbxHeaders() {
   return {
@@ -259,6 +259,47 @@ function selectedColumnSet(columns) {
   return out;
 }
 
+function readinessDetail(err) {
+  try {
+    if (err && err.response && err.response.data) {
+      var data = err.response.data;
+      return typeof data === "string" ? data : JSON.stringify(data);
+    }
+  } catch (ignore) {}
+  if (err && err.message) return err.message;
+  try {
+    return String(err);
+  } catch (ignore2) {
+    return "Unknown error";
+  }
+}
+
+function readinessColumnsFromExisting(existing) {
+  return (existing && existing.columns ? existing.columns : []).map(function (col) {
+    return {
+      name: col.name,
+      description: col.description || "",
+      synonyms: col.synonyms || [],
+      subType: col.subType || null,
+      agentEnabled: !!col.agentEnabled,
+      sampleValues: col.sampleValues || [],
+      beastmodeId: col.beastmodeId || null
+    };
+  });
+}
+
+function baselineFromExisting(datasetId, existing) {
+  var baseline = {
+    datasetId: datasetId,
+    name: existing && existing.name ? existing.name : datasetId,
+    description: existing && existing.description ? existing.description : "",
+    unitOfAnalysis: existing && existing.unitOfAnalysis ? existing.unitOfAnalysis : "",
+    columns: readinessColumnsFromExisting(existing)
+  };
+  if (existing && existing.id) baseline.id = existing.id;
+  return baseline;
+}
+
 function saveDomoReadiness(datasetId, payload) {
   var method = payload.id ? "PUT" : "POST";
   return domoApi(method, "/api/ai/readiness/v1/data-dictionary/dataset/" + datasetId, payload)
@@ -279,58 +320,22 @@ function saveDomoReadiness(datasetId, payload) {
 
 /* ------------------------------ Lakebase PG ------------------------------- */
 
-function getLakebaseToken() {
-  var now = Date.now();
-  if (lakebaseTokenCache.token && lakebaseTokenCache.expiresAt > now + 60000) {
-    return Promise.resolve(lakebaseTokenCache.token);
-  }
-  return axios
-    .post(
-      DATABRICKS_HOST + "/api/2.0/postgres/credentials",
-      { endpoint: LAKEBASE_ENDPOINT },
-      { headers: dbxHeaders() }
-    )
-    .then(function (resp) {
-      var data = resp.data || {};
-      lakebaseTokenCache.token = data.token || "";
-      lakebaseTokenCache.expiresAt = data.expire_time ? Date.parse(data.expire_time) : now + 50 * 60 * 1000;
-      return lakebaseTokenCache.token;
-    });
-}
+/* lakebaseQuery: self-contained Postgres client for the cobra-v1 Lakebase.
+ * The implementation (node-postgres + OAuth M2M credential exchange to the
+ * cobra-v1 endpoint) is bundled as base64 and lazily evaluated on first call,
+ * so the package never depends on Domo CE providing a 'pg' module. Ported from
+ * the released LakebaseQuery package (55a6749a v1.0.3). Returns
+ * { rows, rowCount, fields } on success or { error, rows, rowCount } on failure. */
+var LAKEBASE_PG_BUNDLE = "__LAKEBASE_PG_BUNDLE_B64__";
+var _lakebaseImpl = null;
 
 function lakebaseQuery(sql, params) {
-  console.log("[pattern4ce.lakebaseQuery] start", JSON.stringify({ sqlPreview: String(sql || "").slice(0, 160), paramCount: params ? params.length : 0 }));
-  var client;
-  return getLakebaseToken()
-    .then(function (token) {
-      client = new pg.Client({
-        host: LAKEBASE_HOST,
-        port: 5432,
-        database: LAKEBASE_DATABASE,
-        user: LAKEBASE_USER,
-        password: token,
-        ssl: { rejectUnauthorized: true }
-      });
-      return client.connect();
-    })
-    .then(function () {
-      return client.query(sql, params || []);
-    })
-    .then(function (result) {
-      console.log("[pattern4ce.lakebaseQuery] success", JSON.stringify({ rowCount: result.rowCount || 0 }));
-      return { status: "SUCCEEDED", rows: result.rows || [], rowCount: result.rowCount || 0, fields: result.fields || [] };
-    })
-    .catch(function (err) {
-      var detail = err && err.message ? err.message : String(err);
-      console.error("[pattern4ce.lakebaseQuery] failed", JSON.stringify({ error: detail }));
-      return { status: "FAILED", error: detail, rows: [], rowCount: 0 };
-    })
-    .then(function (out) {
-      if (client) {
-        return client.end().catch(function () {}).then(function () { return out; });
-      }
-      return out;
-    });
+  if (!_lakebaseImpl) {
+    var _m = { exports: {} };
+    new Function("exports", "require", "module", Buffer.from(LAKEBASE_PG_BUNDLE, "base64").toString())(_m.exports, require, _m);
+    _lakebaseImpl = _m.exports.lakebaseQuery;
+  }
+  return Promise.resolve(_lakebaseImpl(sql, params));
 }
 
 function listScenarios() {
@@ -445,94 +450,94 @@ function getUcReadinessState(tableName) {
 function syncDomoAiReadiness(datasetId, desiredState, columns) {
   var desired = parseMaybeJson(desiredState, {});
   var selected = selectedColumnSet(columns);
-  var existing;
-  var datasetInfo;
-  var schemaInfo;
+  var desiredByName = {};
+  (desired.columns || []).forEach(function (col) { desiredByName[col.name] = col; });
+  function applyAndSave(baseline) {
+    baseline.description = desired.context || desired.datasetContext || baseline.description || "";
+    baseline.columns = baseline.columns.map(function (col) {
+      var shouldSync = !Object.keys(selected).length || selected[col.name];
+      var desiredCol = desiredByName[col.name];
+      if (shouldSync && desiredCol) {
+        return {
+          name: col.name,
+          description: desiredCol.context || desiredCol.description || "",
+          synonyms: desiredCol.synonyms || [],
+          subType: col.subType || null,
+          agentEnabled: desiredCol.aiEnabled !== false,
+          sampleValues: col.sampleValues || [],
+          beastmodeId: col.beastmodeId || null
+        };
+      }
+      return col;
+    });
+    return saveDomoReadiness(datasetId, baseline);
+  }
   return getDomoAiReadiness(datasetId)
     .then(function (readinessResp) {
-      existing = readinessResp.readiness || { columns: [] };
-      return getDomoDatasetInfo(datasetId);
-    })
-    .then(function (info) {
-      datasetInfo = info || {};
-      return getDomoDatasetSchema(datasetId);
-    })
-    .then(function (schema) {
-      schemaInfo = schema || {};
-      var baseline = buildReadinessBaseline(datasetId, datasetInfo, schemaInfo, existing);
-      var desiredColumns = desired.columns || [];
-      var desiredByName = {};
-      desiredColumns.forEach(function (col) { desiredByName[col.name] = col; });
-      baseline.description = desired.context || desired.datasetContext || baseline.description || "";
-      baseline.columns = baseline.columns.map(function (col) {
-        var shouldSync = !Object.keys(selected).length || selected[col.name];
-        var desiredCol = desiredByName[col.name];
-        if (shouldSync && desiredCol) {
-          return {
-            name: col.name,
-            description: desiredCol.context || desiredCol.description || "",
-            synonyms: desiredCol.synonyms || [],
-            subType: col.subType || null,
-            agentEnabled: desiredCol.aiEnabled !== false,
-            sampleValues: col.sampleValues || [],
-            beastmodeId: col.beastmodeId || null
-          };
-        }
-        return col;
-      });
-      return saveDomoReadiness(datasetId, baseline);
+      var existing = readinessResp.readiness || { columns: [] };
+      // Common path: the dictionary already lists every column, so reuse it and
+      // avoid extra round-trips to the (slow/flaky) dataset-info + schema APIs.
+      if (existing.columns && existing.columns.length) {
+        return applyAndSave(baselineFromExisting(datasetId, existing));
+      }
+      // First-time creation only: enumerate columns from dataset schema.
+      var datasetInfo;
+      return getDomoDatasetInfo(datasetId)
+        .then(function (info) { datasetInfo = info || {}; return getDomoDatasetSchema(datasetId); })
+        .then(function (schema) {
+          return applyAndSave(buildReadinessBaseline(datasetId, datasetInfo, schema || {}, existing));
+        });
     })
     .then(function (result) {
       return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
     })
     .catch(function (err) {
-      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
-      console.error("[pattern4ce.syncDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail }));
+      var detail = readinessDetail(err);
+      try { console.error("[pattern4ce.syncDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail })); } catch (ignore) {}
       return { status: "FAILED", error: detail, datasetId: datasetId };
     });
 }
 
 function wipeDomoAiReadiness(datasetId, columns) {
   var selected = selectedColumnSet(columns);
-  var existing;
-  var datasetInfo;
-  var schemaInfo;
+  function applyAndSave(baseline) {
+    var wipeAll = !Object.keys(selected).length;
+    if (wipeAll) baseline.description = "";
+    baseline.columns = baseline.columns.map(function (col) {
+      if (wipeAll || selected[col.name]) {
+        return {
+          name: col.name,
+          description: "",
+          synonyms: [],
+          subType: col.subType || null,
+          agentEnabled: false,
+          sampleValues: col.sampleValues || [],
+          beastmodeId: col.beastmodeId || null
+        };
+      }
+      return col;
+    });
+    return saveDomoReadiness(datasetId, baseline);
+  }
   return getDomoAiReadiness(datasetId)
     .then(function (readinessResp) {
-      existing = readinessResp.readiness || { columns: [] };
-      return getDomoDatasetInfo(datasetId);
-    })
-    .then(function (info) {
-      datasetInfo = info || {};
-      return getDomoDatasetSchema(datasetId);
-    })
-    .then(function (schema) {
-      schemaInfo = schema || {};
-      var baseline = buildReadinessBaseline(datasetId, datasetInfo, schemaInfo, existing);
-      var wipeAll = !Object.keys(selected).length;
-      if (wipeAll) baseline.description = "";
-      baseline.columns = baseline.columns.map(function (col) {
-        if (wipeAll || selected[col.name]) {
-          return {
-            name: col.name,
-            description: "",
-            synonyms: [],
-            subType: col.subType || null,
-            agentEnabled: false,
-            sampleValues: col.sampleValues || [],
-            beastmodeId: col.beastmodeId || null
-          };
-        }
-        return col;
-      });
-      return saveDomoReadiness(datasetId, baseline);
+      var existing = readinessResp.readiness || { columns: [] };
+      if (existing.columns && existing.columns.length) {
+        return applyAndSave(baselineFromExisting(datasetId, existing));
+      }
+      var datasetInfo;
+      return getDomoDatasetInfo(datasetId)
+        .then(function (info) { datasetInfo = info || {}; return getDomoDatasetSchema(datasetId); })
+        .then(function (schema) {
+          return applyAndSave(buildReadinessBaseline(datasetId, datasetInfo, schema || {}, existing));
+        });
     })
     .then(function (result) {
       return { status: "SUCCEEDED", readiness: normalizeDomoReadiness(result), datasetId: datasetId };
     })
     .catch(function (err) {
-      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
-      console.error("[pattern4ce.wipeDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail }));
+      var detail = readinessDetail(err);
+      try { console.error("[pattern4ce.wipeDomoAiReadiness] failed", JSON.stringify({ datasetId: datasetId, error: detail })); } catch (ignore) {}
       return { status: "FAILED", error: detail, datasetId: datasetId };
     });
 }

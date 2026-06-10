@@ -3,6 +3,8 @@ databricks token
 *.pat
 .databrickscfg
 **/codeengine/*.local.js
+# Bundled Lakebase pg client (contains embedded M2M service-principal secret)
+scripts/lakebase_pg_bundle.b64
 
 # --- Local tooling / editor / OS ---
 .claude/

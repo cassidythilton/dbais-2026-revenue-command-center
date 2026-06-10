@@ -250,8 +250,8 @@
       "alias": "syncDomoAiReadiness",
       "parameters": [
         { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "desiredState", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "columns", "type": "string", "nullable": true, "isList": false, "children": null }
+        { "alias": "desiredState", "type": "object", "nullable": false, "isList": false, "children": null },
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
       ],
       "output": {
         "alias": "result",
@@ -264,7 +264,7 @@
       "alias": "wipeDomoAiReadiness",
       "parameters": [
         { "alias": "datasetId", "type": "string", "nullable": false, "isList": false, "children": null },
-        { "alias": "columns", "type": "string", "nullable": true, "isList": false, "children": null }
+        { "alias": "columns", "type": "object", "nullable": true, "isList": true, "children": null }
       ],
       "output": {
         "alias": "result",
