@@ -1,9 +1,16 @@
 {
-  "status": "prepared_not_deployed",
+  "status": "created_not_ready",
   "approval_required": true,
-  "approval_note": "Do not create or update this endpoint until the user explicitly approves Databricks Model Serving cost.",
+  "approval_note": "User approved deployment on 2026-06-09. Endpoint was created, but Databricks still reports container provisioning in progress.",
   "workspace": "https://dbc-0516e56c-ba3e.cloud.databricks.com",
   "endpoint_name": "pattern4-renewal-risk",
+  "latest_observed_state": {
+    "ready": "NOT_READY",
+    "config_update": "IN_PROGRESS",
+    "served_entity": "pattern4_renewal_risk_v3",
+    "deployment": "DEPLOYMENT_CREATING",
+    "message": "Container creation pending."
+  },
   "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
   "registered_model_version": "3",
   "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
