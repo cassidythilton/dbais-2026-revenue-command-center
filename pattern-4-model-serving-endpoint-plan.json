@@ -1,7 +1,7 @@
 {
-  "status": "created_not_ready",
+  "status": "ready_validated",
   "approval_required": true,
-  "approval_note": "User approved deployment on 2026-06-09. Endpoint was created, but Databricks still reports container provisioning in progress.",
+  "approval_note": "User approved deployment on 2026-06-09. Endpoint is READY on model version 5 and has passed a dataframe_records invocation test.",
   "workspace": "https://dbc-0516e56c-ba3e.cloud.databricks.com",
   "endpoint_name": "pattern4-renewal-risk",
   "latest_observed_state": {
@@ -9,10 +9,11 @@
     "config_update": "IN_PROGRESS",
     "served_entity": "pattern4_renewal_risk_v3",
     "deployment": "DEPLOYMENT_CREATING",
-    "message": "Container creation pending."
+    "message": "Container creation pending.",
+    "superseded_by": "pattern4_renewal_risk_v5"
   },
   "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
-  "registered_model_version": "3",
+  "registered_model_version": "5",
   "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
   "serving_contract": {
     "method": "POST",
@@ -34,15 +35,18 @@
       ]
     },
     "response_body": {
-      "predictions": [0.0]
+      "predictions": [[0.9999865790695763, 0.000013420930423689801]]
+    },
+    "code_engine_normalized_response": {
+      "predictions": [0.000013420930423689801]
     }
   },
   "create_endpoint_config": {
     "served_entities": [
       {
-        "name": "pattern4_renewal_risk_v3",
+        "name": "pattern4_renewal_risk_v5",
         "entity_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
-        "entity_version": "3",
+        "entity_version": "5",
         "workload_size": "Small",
         "scale_to_zero_enabled": true
       }
@@ -50,11 +54,17 @@
     "traffic_config": {
       "routes": [
         {
-          "served_model_name": "pattern4_renewal_risk_v3",
+          "served_model_name": "pattern4_renewal_risk_v5",
           "traffic_percentage": 100
         }
       ]
     }
+  },
+  "current_endpoint_state": {
+    "ready": "READY",
+    "config_update": "NOT_UPDATING",
+    "served_entity": "pattern4_renewal_risk_v5",
+    "deployment": "DEPLOYMENT_READY"
   },
   "validation_after_approval": [
     "Create endpoint with the config above.",

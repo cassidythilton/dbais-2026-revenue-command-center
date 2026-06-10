@@ -1,8 +1,8 @@
 {
   "status": "registered",
   "registered_model_name": "databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk",
-  "model_uri": "models:/m-fc3e719da5254376993db3b124c650b3",
-  "run_id": "b71a362ca0b140e09cb7efed6b5ee735",
+  "model_uri": "models:/m-0d0db7399fca41aabbac70fe80a1f311",
+  "run_id": "400f208b8e8c43708b0fcaa8fa675c0a",
   "experiment": "/Users/cassidy.hilton@domo.com/pattern4-renewal-risk",
   "source_table": "databricks_raptor.pattern4_agent_automation.gold_customer_renewal_risk",
   "features": [
@@ -113,6 +113,14 @@
       ]
     },
     "response": {
+      "predictions": [
+        [
+          0.9999865790695763,
+          1.3420930423689801e-05
+        ]
+      ]
+    },
+    "code_engine_normalized_response": {
       "predictions": [
         1.3420930423689801e-05
       ]

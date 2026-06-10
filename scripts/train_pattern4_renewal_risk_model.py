@@ -17,7 +17,7 @@ import time
 from pathlib import Path
 
 import mlflow
-import mlflow.pyfunc
+import mlflow.sklearn
 import numpy as np
 import pandas as pd
 from mlflow.models import infer_signature
@@ -53,21 +53,6 @@ NUMERIC_FEATURES = [
 ]
 FEATURES = CATEGORICAL_FEATURES + NUMERIC_FEATURES
 TARGET_COLUMN = "predicted_churn_probability"
-
-
-class RenewalRiskProbabilityModel(mlflow.pyfunc.PythonModel):
-    """Return positive-class churn probability for named-column records."""
-
-    def __init__(self, pipeline: Pipeline):
-        self.pipeline = pipeline
-
-    def predict(self, context, model_input, params=None):  # noqa: D401
-        frame = pd.DataFrame(model_input).copy()
-        for feature in FEATURES:
-            if feature not in frame.columns:
-                frame[feature] = np.nan
-        probabilities = self.pipeline.predict_proba(frame[FEATURES])[:, 1]
-        return probabilities
 
 
 def databricks_api(method: str, path: str, body: dict | None = None) -> dict:
@@ -198,9 +183,11 @@ def main() -> int:
     }
 
     input_example = X.head(5).copy()
-    pyfunc_model = RenewalRiskProbabilityModel(pipeline)
-    example_predictions = pyfunc_model.predict(None, input_example)
-    signature = infer_signature(input_example, example_predictions)
+    example_probabilities = pipeline.predict_proba(input_example)
+    example_predictions = example_probabilities[:, 1]
+    # The endpoint serves sklearn predict_proba, which returns [class_0, class_1].
+    # Code Engine normalizes class_1 into the app's probability array.
+    signature = infer_signature(input_example, example_probabilities)
 
     with mlflow.start_run(run_name="pattern4-renewal-risk-sprint7") as run:
         mlflow.log_params(
@@ -208,30 +195,46 @@ def main() -> int:
                 "source_table": SOURCE_TABLE,
                 "target_column": TARGET_COLUMN,
                 "target_threshold": threshold,
-                "model_family": "sklearn_hist_gradient_boosting",
+                "model_family": "sklearn_hist_gradient_boosting_classifier",
                 "runtime_contract": "dataframe_records_named_columns",
+                "pyfunc_predict_fn": "predict_proba",
             }
         )
         for key, value in metrics.items():
             mlflow.log_metric(key, value)
 
-        model_info = mlflow.pyfunc.log_model(
+        conda_env = {
+            "name": "mlflow-env",
+            "channels": ["conda-forge"],
+            "dependencies": [
+                "python=3.11",
+                "pip",
+                {
+                    "pip": [
+                        f"mlflow=={mlflow.__version__}",
+                        "scikit-learn==1.6.1",
+                        "pandas==2.3.3",
+                        "numpy==2.0.2",
+                        "cloudpickle==3.1.2",
+                    ]
+                },
+            ],
+        }
+
+        model_info = mlflow.sklearn.log_model(
             name="model",
-            python_model=pyfunc_model,
+            sk_model=pipeline,
             input_example=input_example,
             signature=signature,
             registered_model_name=MODEL_NAME,
-            pip_requirements=[
-                f"mlflow=={mlflow.__version__}",
-                "scikit-learn==1.6.1",
-                "pandas==2.3.3",
-                "numpy==2.0.2",
-                "cloudpickle==3.1.2",
-            ],
+            conda_env=conda_env,
+            serialization_format="pickle",
+            pyfunc_predict_fn="predict_proba",
             metadata={
                 "source_table": SOURCE_TABLE,
                 "features": ",".join(FEATURES),
                 "target": TARGET_COLUMN,
+                "positive_class_probability_index": "1",
             },
         )
 
@@ -249,7 +252,8 @@ def main() -> int:
             "example_predictions": [float(x) for x in example_predictions],
             "serving_contract": {
                 "request": {"dataframe_records": [input_example.iloc[0].to_dict()]},
-                "response": {"predictions": [float(example_predictions[0])]},
+                "response": {"predictions": [[float(example_probabilities[0][0]), float(example_probabilities[0][1])]]},
+                "code_engine_normalized_response": {"predictions": [float(example_predictions[0])]},
             },
         }
 

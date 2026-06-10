@@ -616,11 +616,36 @@ The project is complete when a presenter can run this end-to-end flow:
 
 ## Immediate Next Steps
 
-1. DONE — All three expansion spikes resolved (`pattern-4-expansion-spike-findings.md`).
-2. Redesign the app information architecture around Forecast Home, ML Predictions, Lakebase Ops, Genie Workspace, and How It Works; build the forecast-first hero (mock-first), inspired by `forecast line recharts`. (Safe, no external cost — in progress.)
-3. DONE — Genie Workspace chart rendering: `askGenie` source returns columns+rows, the app renders Domo-side KPI/line/bar/scatter/table visuals, and `pattern4ce` v1.0.4 is released. Next validation is an in-Domo app click-test after the user publishes or reloads the latest `dist`.
-4. DONE — Lakebase Ops: `p4_scenario_runs` + `p4_prediction_feedback` are created/seeded in `cobra-v1`; app CRUD UI and `pattern4ce` v1.0.5 live functions are built/released for live reads/writes.
-5. Validate the published Domo app after user publishes latest `dist`: live Lakebase rows should load, scenario CRUD should write to `cobra-v1`, ML prediction feedback should save, and Genie result charts should remain visible.
-6. Sprint 7 next step: wait for Model Serving endpoint `pattern4-renewal-risk` to become READY, test `dataframe_records` inference, then request explicit Code Engine release approval for the staged `pattern4ce.runModelInference(records)` update.
-7. DONE — Databricks external lineage created and verified for all six `gold_*` tables through external metadata object `domo_pattern4_revenue_command_center`.
-8. Keep UC row-filter/PDP alignment and Agent Catalyst/Workflow approval wrapper in scope as supporting governance and automation work.
+1. DONE — AI Readiness live integration: column-level sync AND wipe work end-to-end (UC → Domo) on `pattern4ce` v1.0.12 with the object payload contract. Five dataset dictionaries are provisioned in Domo.
+2. **NOT YET DONE — AI Readiness tab visual/UX redesign (explicitly requested multiple times; functionality is done, the *redesign* is not).** Scope below in "AI Readiness Redesign Scope".
+3. **ML Predictions wiring (READY to finish):** `pattern4ce.runModelInference` is already released in **v1.0.12** and matches the deployed model's serving contract (see "ML Serving Contract"). Endpoint `pattern4-renewal-risk` is **READY** on served entity `pattern4_renewal_risk_v5`. Remaining: bind `runModelInference` to **1.0.12** in the app config, hard-refresh, and click-test live inference on the ML Predictions page; confirm churn probability = `predictions[i]` (index-1 of `predict_proba`).
+4. **Lakebase Ops rebind:** point `listScenarios`, `listPredictionFeedback`, `deleteScenario`, `savePredictionFeedback` at **1.0.12** to clear the `listScenarios` 400 on the Lakebase tab (live rows verified server-side: 4 scenarios, 6 feedback).
+5. DONE — Genie Workspace chart rendering (`askGenie` returns columns+rows; Domo-side KPI/line/bar/scatter/table).
+6. DONE — Databricks external lineage for all six `gold_*` tables via `domo_pattern4_revenue_command_center`.
+7. Keep UC row-filter/PDP alignment and Agent Catalyst/Workflow approval wrapper in scope as supporting governance and automation work.
+
+## AI Readiness Redesign Scope (requested, pending)
+
+Functionality (UC↔Domo compare + per-column/dataset sync/wipe + UC context edit) is live; the remaining ask is a deliberate visual/UX redesign of the AI Readiness tab. Target:
+- A cleaner "control plane" layout: dataset rail/selector + a focused detail panel, less dense than the current grid-of-cards.
+- Minimalistic pill-style controls for per-column Sync / Wipe and dataset-level Sync all / Wipe all, with clear enabled/synced state and disabled affordances.
+- Column-by-column comparison that reads as a single governed table: column name, type, UC-prepared state, Domo-synced state, and inline actions — easy to scan across a dataset.
+- Honest status framing: "Unity Catalog metadata prepared" vs "Domo AI Readiness synced" percentages, no implied 100% when Domo has a subset enabled.
+- Deep links to the Domo AI Readiness page (`/details/ai-readiness`) and the Databricks table.
+- Optional: surface the governed "edit UC column context" path distinctly from "sync to Domo".
+- Keep it visually consistent with the forecast-first hero and the rest of the app theme.
+
+## ML Serving Contract (deployed, live)
+
+- UC model: `databricks_raptor.pattern4_agent_automation.pattern4_renewal_risk`, working version **5**.
+- Endpoint: `pattern4-renewal-risk` (READY), served entity `pattern4_renewal_risk_v5`.
+- Features: `segment, region, industry, annual_recurring_revenue, cases_90d, sla_breaches_90d, negative_cases_90d, avg_usage_score_90d, usage_drop_days_90d, days_to_renewal`.
+- Request: `{ "dataframe_records": [ {<features>} ] }`. Raw response: `{ "predictions": [[class0_prob, class1_prob]] }`.
+- Churn/renewal-risk probability = index 1. `pattern4ce.runModelInference` (v1.0.12) normalizes `[[c0,c1]]→[c1]` and returns `{ predictions, rawPredictions }`.
+- v3/v4 failed on Python env / cloudpickle mismatch; v5 fixed via native `mlflow.sklearn.log_model(..., pyfunc_predict_fn="predict_proba", serialization_format="pickle")`.
+- Domo AI Services `/api/ml/v1/models` returned 404 this session; candidate governance payload captured in `pattern-4-domo-ai-services-model-registration.json`. Runtime inference path stays direct Databricks Model Serving via Code Engine.
+
+## Agent-to-Agent Coordination Note
+
+- `pattern4ce` (`36a18258-...`) is touched by both this workstream (Genie/Lakebase/AI Readiness) and the ML workstream (`runModelInference`). All of it now lives in one `functions.js`; the latest **v1.0.12** is the consolidated released version and includes every function. When either agent releases a new version, rebuild from the full `functions.js` (do not partially overwrite) and re-point app bindings to the new version.
+- `scripts/lakebase_pg_bundle.b64` is gitignored (embeds an M2M secret) and is required locally by `scripts/create_pattern4ce.py`.
