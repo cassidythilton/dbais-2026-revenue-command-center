@@ -2030,7 +2030,7 @@ const FLOW_STAGES = [
   },
   {
     id: "app", name: "Pro-code Portal", sub: "Forecast-first command center", plane: "domo", icon: "app",
-    lead: "This application. A persona-scoped command center across six tabs: Forecast Home, ML Predictions, Lakebase Ops, AI Readiness, Genie Workspace, and How It Works.",
+    lead: "This application. A persona-scoped command center across its tabs: Forecast Home, ML Predictions, Approvals, Lakebase Ops, UC AI Readiness, Genie Workspace, and How It Works.",
     bullets: ["Reads DataSets by alias (Query API)", "Calls Databricks server-side via Code Engine (pattern4ce)", "Domo styleguide UI, Databricks-governed data + intelligence"],
     input: "Domo DataSets + Code Engine",
     output: "Executive command center",
@@ -2083,47 +2083,73 @@ const GUIDE_STEPS = [
   { title: "Read the Forecast Home", desc: "KPIs (Net Revenue, Revenue at Risk, Protected Revenue, SLA Breaches), the Actual-vs-Forecast hero with confidence band, and the Regional Renewal Risk hotspot give your scope at a glance." },
   { title: "Score an account (ML Predictions)", desc: "Databricks predicts: enter account features and Run prediction. The renewal-risk regressor v6 returns a churn probability live via Model Serving; the payload panel shows the exact cURL / Python / SQL." },
   { title: "Ask Genie why", desc: "Genie explains: ask the lakehouse a natural-language question. It returns a cited root cause and generated SQL over the same governed data; Inspect shows the API call." },
-  { title: "Approve an action (writeback)", desc: "Domo acts: the Agent Action Queue lists Genie- and model-informed recommendations. Approve & execute writes status back to the lakehouse and Protected Revenue updates in the portal." },
+  { title: "Inspect the agent & act", desc: "Domo acts: on a pending action, Inspect agent shows the Databricks Retention Supervisor reasoning live (Genie-grounded). Approve & execute starts a governed Domo Workflow — its AI agent tile calls that same Databricks agent." },
+  { title: "Approve (Approvals tab)", desc: "Human-in-the-loop: the workflow routes an approval task. Approve or reject it in the Approvals tab; the decision completes the Domo task, resumes the workflow, and writes status back to agent_action_writeback. The action row auto-updates and Protected Revenue ticks up." },
   { title: "Keep operational state (Lakebase)", desc: "Save what-if scenarios and accept/adjust/reject prediction feedback. These persist in Lakebase Postgres next to the lakehouse, so context survives across sessions." },
   { title: "Govern AI Readiness", desc: "Unity Catalog is the source of truth. Sync prepared column metadata into Domo AI Readiness per column or dataset; editing UC source context is a separate, governed action in the inspector drawer." },
   { title: "Trust the governance", desc: "Lineage shows live federation via Cloud Amplifier — no copies. Unity Catalog, Unity AI Gateway, and Domo PDP enforce access end to end." },
 ];
 
-const ARCH = {
-  dbx: [
-    { name: "Unity Catalog", sub: "Governance, lineage, ABAC · source of truth" },
-    { name: "Delta gold views", sub: "Revenue, risk, incidents, forecast, actions" },
-    { name: "Genie Space", sub: "NL access to governed metrics" },
-    { name: "Model Serving + MLflow", sub: "Renewal-risk regressor v6" },
-    { name: "Agent Bricks Supervisor", sub: "Pattern 4 Retention Supervisor · Genie-backed (live)" },
-    { name: "Unity AI Gateway", sub: "Governs model + MCP calls (roadmap)" },
-    { name: "Lakebase", sub: "Operational state + OLTP (cobra-v1)" },
-    { name: "External lineage", sub: "gold_* → Domo command center" },
-  ],
-  interop: [
-    { name: "Cloud Amplifier", sub: "Databricks Raptor AWS · live query" },
-    { name: "Code Engine (pattern4ce)", sub: "Genie · inference · Lakebase · writeback" },
-    { name: "MCP", sub: "Agent ⇄ agent tool protocol (roadmap)" },
-    { name: "Shared Identity", sub: "SSO / OAuth U2M / OBO" },
-    { name: "Domo PDP ↔ UC filters", sub: "One entitlement model" },
-  ],
-  domo: [
-    { name: "Pro-code App", sub: "6-tab command center · experience + action" },
-    { name: "Domo DataSets", sub: "5 alias-mapped gold views" },
-    { name: "ML Predictions", sub: "Ad hoc scoring + payload panel" },
-    { name: "AI Readiness", sub: "UC → Domo control plane" },
-    { name: "Agent Action Queue", sub: "Recommend → approve → writeback" },
-    { name: "AI Service Layer", sub: "Databricks ML connector in Domo" },
-  ],
-};
+// Context strip (top) — accurate to this demo.
+const ARCH_CONTEXT = [
+  { label: "Industry", value: "B2B SaaS · Revenue Operations" },
+  { label: "Primary users", value: "Exec sponsor · Regional manager · Account owner" },
+  { label: "Trigger", value: "Renewal risk elevated in West (incident INC-0001)" },
+  { label: "Outcome", value: "Forecast + governed, human-approved retention action" },
+];
 
-const REQUIREMENTS = [
-  { k: "Identity", v: "SSO · OAuth U2M · OBO" },
-  { k: "Governance", v: "Unity Catalog + AI Gateway + Domo PDP" },
-  { k: "Prediction", v: "MLflow model v6 · Model Serving" },
-  { k: "Human-in-loop", v: "Sign-off on writes & actions" },
-  { k: "Observability", v: "Audit · lineage · agent eval" },
-  { k: "State", v: "Lakebase scenarios + feedback" },
+// Sources & ingestion strip — how the governed data lands and how Domo reads it.
+const ARCH_INGEST = [
+  { icon: "data", name: "Synthetic generator (Spark + Faker)", sub: "Story-driven revenue / risk / incident data → Unity Catalog gold" },
+  { icon: "sync", name: "Cloud Amplifier live federation", sub: "Domo queries Databricks gold live — no copy" },
+];
+
+// Three planes — every card reflects a capability the app actually uses today.
+const ARCH_PLANES = [
+  {
+    id: "dbx", title: "Databricks · Governed Intelligence",
+    items: [
+      { icon: "data", name: "Unity Catalog", sub: "Governance · lineage · ABAC · source of truth" },
+      { icon: "dataset", name: "Delta gold views", sub: "Revenue · risk · incidents · forecast · actions" },
+      { icon: "genie", name: "Genie Space", sub: "NL → governed SQL over the gold views" },
+      { icon: "agent", name: "Agent Bricks Supervisor", sub: "Pattern 4 Retention Supervisor (MAS) · Genie-grounded" },
+      { icon: "model", name: "Model Serving + MLflow", sub: "Renewal-risk regressor v6 · agent traces" },
+      { icon: "lakebase", name: "Lakebase", sub: "Operational state / OLTP · cobra-v1" },
+      { icon: "gateway", name: "Unity AI Gateway", sub: "Usage · rate limits · guardrails · inference tables" },
+      { icon: "sync", name: "External lineage", sub: "gold_* → Domo command center object" },
+    ],
+  },
+  {
+    id: "interop", title: "Interop & Governance", agent: true,
+    items: [
+      { icon: "sync", name: "Cloud Amplifier", sub: "Databricks Raptor AWS · live federation" },
+      { icon: "app", name: "Code Engine (pattern4ce)", sub: "Genie · inference · Lakebase · writeback · agent bridge" },
+      { icon: "gateway", name: "Unity AI Gateway", sub: "Governs model + LLM tool calls" },
+      { icon: "gateway", name: "Shared Identity", sub: "SSO · OAuth U2M · OBO (documented)" },
+    ],
+  },
+  {
+    id: "domo", title: "Domo · Activation & Action",
+    items: [
+      { icon: "app", name: "Pro-code App (App Studio)", sub: "7-tab command center · experience + action" },
+      { icon: "dataset", name: "Federated DataSets", sub: "5 alias-mapped gold views" },
+      { icon: "action", name: "Domo Workflow + approvals", sub: "Renewal Risk Retention v1.0.3 · sign-off → writeback" },
+      { icon: "agent", name: "AI Agent tile", sub: "Calls the Databricks Supervisor agent (agent ⇄ agent)" },
+      { icon: "action", name: "Approvals · Action Center", sub: "In-app approve / reject completes the task" },
+      { icon: "model", name: "ML Predictions", sub: "Ad hoc scoring + cURL / Python / SQL payload" },
+      { icon: "data", name: "AI Readiness", sub: "Unity Catalog → Domo AI Readiness control plane" },
+      { icon: "gateway", name: "Domo PDP", sub: "Per-persona scope ↔ UC filters" },
+    ],
+  },
+];
+
+const BUILD_REQ = [
+  { icon: "gateway", k: "Identity", v: "SSO · OAuth U2M · OBO" },
+  { icon: "data", k: "Governance", v: "Unity Catalog + AI Gateway + Domo PDP" },
+  { icon: "gateway", k: "Safety", v: "AI Gateway guardrails · PII + content" },
+  { icon: "action", k: "Human-in-loop", v: "Workflow sign-off on writes" },
+  { icon: "model", k: "Observability", v: "MLflow agent traces · lineage · inference tables" },
+  { icon: "lakebase", k: "State", v: "Lakebase scenarios/feedback · run status" },
 ];
 
 function planeLabel(plane) {
@@ -2182,24 +2208,33 @@ function renderGuideSteps() {
 }
 
 function renderArchitecture() {
-  const comps = (list) =>
-    list.map((c) => `<div class="comp"><b>${c.name}</b><span>${c.sub}</span></div>`).join("");
-  document.getElementById("archGrid").innerHTML = `
-    <div class="arch-col dbx">
-      <div class="arch-col-head"><span class="hdot"></span>Databricks · Governed Intelligence</div>
-      ${comps(ARCH.dbx)}
-    </div>
-    <div class="arch-col interop">
-      <div class="arch-col-head"><span class="hdot"></span>Interop &amp; Governance</div>
-      ${comps(ARCH.interop)}
-    </div>
-    <div class="arch-col domo">
-      <div class="arch-col-head"><span class="hdot"></span>Domo · Activation &amp; Action</div>
-      ${comps(ARCH.domo)}
-    </div>`;
-  document.getElementById("reqRow").innerHTML = REQUIREMENTS.map(
-    (r) => `<div class="req"><b>${r.k}</b><span>${r.v}</span></div>`
-  ).join("");
+  const ctx = document.getElementById("archContext");
+  if (ctx) {
+    ctx.innerHTML = ARCH_CONTEXT.map(
+      (c) => `<div class="ac-ctx"><span class="ac-ctx-k">${c.label}</span><span class="ac-ctx-v">${c.value}</span></div>`
+    ).join("");
+  }
+  const ing = document.getElementById("archIngest");
+  if (ing) {
+    ing.innerHTML = `<span class="ac-ing-label">Sources &amp; ingestion</span>` +
+      ARCH_INGEST.map(
+        (c) => `<div class="ac-ing-card"><span class="ac-ic">${ICONS[c.icon] || ""}</span><div><b>${c.name}</b><span>${c.sub}</span></div></div>`
+      ).join('<span class="ac-ing-arrow" aria-hidden="true">→</span>');
+  }
+
+  const card = (it) => `<div class="ac-card"><span class="ac-ic">${ICONS[it.icon] || ""}</span><div class="ac-card-t"><b>${it.name}</b><span>${it.sub}</span></div></div>`;
+  document.getElementById("archGrid").innerHTML = ARCH_PLANES.map((p) => `
+    <div class="ac-plane ${p.id}">
+      <div class="ac-plane-head">${p.title}</div>
+      ${p.agent ? `<div class="ac-agent-tag">AGENT&nbsp;⇄&nbsp;AGENT</div>` : ""}
+      <div class="ac-cards">${p.items.map(card).join("")}</div>
+    </div>`).join("");
+
+  document.getElementById("reqRow").innerHTML =
+    `<span class="ac-req-label">Build requirements</span>` +
+    BUILD_REQ.map(
+      (r) => `<div class="req"><span class="ac-ic">${ICONS[r.icon] || ""}</span><div><b>${r.k}</b><span>${r.v}</span></div></div>`
+    ).join("");
 }
 
 function renderGuide() {

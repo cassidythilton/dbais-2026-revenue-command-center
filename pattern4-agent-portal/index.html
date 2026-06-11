@@ -511,7 +511,7 @@
       <section class="panel guide-section">
         <div class="guide-section-head flow-head">
           <div>
-            <h2>Solution Architecture &mdash; Agent-to-Agent Flow</h2>
+            <h2>Agent-to-Agent Flow</h2>
             <p>Click any stage to see what it does, how it's governed, and its inputs &amp; outputs.</p>
           </div>
           <button class="link-pill dbx" type="button" id="flowLineageLink">View Unity Catalog lineage &rarr;</button>
@@ -528,12 +528,14 @@
         <div class="guide-grid" id="guideGrid"></div>
       </section>
 
-      <section class="panel guide-section">
+      <section class="panel guide-section arch-diagram">
         <div class="guide-section-head">
-          <h2>Component Architecture &mdash; Bill of Requirements</h2>
-          <p>Databricks reasons, Domo acts, governance never forks. Every component needed to stand this up.</p>
+          <h2>Solution Architecture</h2>
+          <p>Build with Databricks &middot; Deliver with Domo &middot; govern everywhere. Every box reflects a capability this app uses today.</p>
         </div>
-        <div class="arch-grid" id="archGrid"></div>
+        <div class="arch-context" id="archContext"></div>
+        <div class="arch-ingest" id="archIngest"></div>
+        <div class="arch-planes" id="archGrid"></div>
         <div class="req-row" id="reqRow"></div>
       </section>
 
