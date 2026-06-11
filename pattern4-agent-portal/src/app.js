@@ -753,11 +753,11 @@ function renderActions(actions) {
           </div>`;
         } else if (run && run.status === "PENDING") {
           actionCell = `<div class="wf-mini">
-              <span class="wf-run">▶ ${run.local ? "local" : escapeHtml(shortId)} · awaiting approval</span>
+              <span class="wf-run">${run.checking || run.polling ? `<span class="wf-live" aria-hidden="true"></span>` : "▶ "}${run.local ? "local" : escapeHtml(shortId)} · ${run.checking ? "checking…" : run.polling ? "listening for approval…" : "awaiting approval"}</span>
               <span class="wf-mini-links">
-                <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh"}</button>
+                <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>Refresh</button>
                 <a class="link-btn" href="#" data-goto-view="approvals">Approve →</a>
-                <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open task ↗</a>
+                <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}" data-wf-version="${escapeHtml(run.version || "")}">Open task ↗</a>
                 ${inspectLink}
                 ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">fallback</span>` : ""}
               </span>
@@ -794,7 +794,7 @@ function renderActions(actions) {
     button.addEventListener("click", () => checkWorkflow(button.getAttribute("data-wf-check")));
   });
   document.querySelectorAll("[data-wf-task]").forEach((link) => {
-    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"))); });
+    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"), link.getAttribute("data-wf-version") || "")); });
   });
   document.querySelectorAll("[data-inspect]").forEach((link) => {
     link.addEventListener("click", (e) => {
@@ -823,13 +823,13 @@ function wireAgentLinks() {
 
 /* ---------- Agent inspector (option C: the Databricks agent's reasoning, in-app) ---------- */
 
-function agentSourceLinks(instance) {
+function agentSourceLinks(instance, version) {
   const links = [
     `<a class="link-btn" href="#" data-agent-build="1">Open agent ↗</a>`,
     `<a class="link-btn" href="#" data-agent-traces="1">Activity log (MLflow) ↗</a>`,
     `<a class="link-btn" href="#" data-writeback-src="1">Writeback table ↗</a>`,
   ];
-  if (instance) links.push(`<a class="link-btn" href="#" data-wf-task="${escapeHtml(instance)}">Workflow run ↗</a>`);
+  if (instance) links.push(`<a class="link-btn" href="#" data-wf-task="${escapeHtml(instance)}" data-wf-version="${escapeHtml(version || "")}">Workflow run ↗</a>`);
   return links.join('<span class="agent-source-sep">·</span>');
 }
 
@@ -860,9 +860,9 @@ function renderAgentInspector() {
       : `<span class="gw-badge dbx" title="Databricks Supervisor Agent (mas-77bd204b) reasoning over Unity Catalog gold views via Genie">◆ Databricks agent · Genie-grounded</span>`;
     bodyHtml = `<div class="agi-meta">${badge}</div><div class="agi-body">${formatGenieAnswer(r.transcript || "")}</div>`;
   }
-  el.innerHTML = head + bodyHtml + `<div class="agi-foot"><span class="agi-foot-label">Go to source:</span> ${agentSourceLinks(r.instance)}</div>`;
+  el.innerHTML = head + bodyHtml + `<div class="agi-foot"><span class="agi-foot-label">Go to source:</span> ${agentSourceLinks(r.instance, r.version)}</div>`;
   el.querySelectorAll("[data-agi-close]").forEach((b) => b.addEventListener("click", () => { state.agentInspect = null; renderAgentInspector(); }));
-  el.querySelectorAll("[data-wf-task]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(b.getAttribute("data-wf-task"))); }));
+  el.querySelectorAll("[data-wf-task]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(b.getAttribute("data-wf-task"), b.getAttribute("data-wf-version") || "")); }));
   el.querySelectorAll("[data-writeback-src]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); }));
   wireAgentLinks();
 }
@@ -870,13 +870,14 @@ function renderAgentInspector() {
 const _agentInspectCache = {};
 
 async function inspectAction(actionId, account, recommendation, instance) {
+  const version = (state.workflowRuns[actionId] || {}).version || WORKFLOW_VERSION;
   // Cached transcript → open instantly.
   if (_agentInspectCache[actionId]) {
-    state.agentInspect = Object.assign({ actionId, account, instance }, _agentInspectCache[actionId]);
+    state.agentInspect = Object.assign({ actionId, account, instance, version }, _agentInspectCache[actionId]);
     renderAgentInspector();
     return;
   }
-  state.agentInspect = { actionId, account, instance, loading: true };
+  state.agentInspect = { actionId, account, instance, version, loading: true };
   renderAgentInspector();
   const prompt = `At-risk account: ${account}. Recommended retention action under review: "${recommendation}". Analyze this account's renewal-risk drivers using the governed gold views and recommend the best retention action with a short rationale and what to watch after executing.`;
   let result = null;
@@ -887,9 +888,9 @@ async function inspectAction(actionId, account, recommendation, instance) {
   }
   if (result && result.status === "SUCCEEDED" && result.recommendation) {
     _agentInspectCache[actionId] = { transcript: result.recommendation, source: result.source || "mas" };
-    state.agentInspect = Object.assign({ actionId, account, instance }, _agentInspectCache[actionId]);
+    state.agentInspect = Object.assign({ actionId, account, instance, version }, _agentInspectCache[actionId]);
   } else {
-    state.agentInspect = { actionId, account, instance, error: (result && result.error) || "unavailable" };
+    state.agentInspect = { actionId, account, instance, version, error: (result && result.error) || "unavailable" };
   }
   renderAgentInspector();
 }
@@ -919,8 +920,9 @@ async function executeAction(button) {
       sourceQuestion: "Why did renewal risk increase for West enterprise accounts this month?",
     });
     if (result?.status === "SUCCEEDED" && result.instanceId) {
-      state.workflowRuns[actionId] = { instanceId: result.instanceId, status: "PENDING", protectedAmt };
+      state.workflowRuns[actionId] = { instanceId: result.instanceId, version: result.version || WORKFLOW_VERSION, status: "PENDING", protectedAmt };
       render();
+      startWorkflowPolling(actionId); // auto-"listen" for approval instead of manual Refresh
       return;
     }
     throw new Error(result?.error ? JSON.stringify(result.error) : "workflow start unavailable");
@@ -959,6 +961,7 @@ async function checkWorkflow(actionId) {
     const decision = String(result.decision || "").toLowerCase();
     if (decision === "approved") {
       const amt = Number(run.protectedAmt) || 0;
+      stopWorkflowPolling(actionId);
       state.executedActionIds[actionId] = amt;
       state.protectedBump = (state.protectedBump || 0) + amt;
       delete state.workflowRuns[actionId];
@@ -967,6 +970,7 @@ async function checkWorkflow(actionId) {
       return;
     }
     if (decision === "rejected") {
+      stopWorkflowPolling(actionId);
       state.rejectedActionIds[actionId] = true;
       delete state.workflowRuns[actionId];
       render();
@@ -975,6 +979,29 @@ async function checkWorkflow(actionId) {
   }
   // Still in progress (or no decision yet) — keep the pending chip.
   render();
+}
+
+// Auto-"listen" for the workflow decision so the user doesn't have to manually Refresh.
+const _actionPollers = {};
+
+function startWorkflowPolling(actionId) {
+  stopWorkflowPolling(actionId);
+  const run = state.workflowRuns[actionId];
+  if (run) run.polling = true;
+  let attempts = 0;
+  const MAX_ATTEMPTS = 45; // ~9 min at 12s, then give up (user can still Refresh)
+  _actionPollers[actionId] = setInterval(() => {
+    const r = state.workflowRuns[actionId];
+    if (!r || r.status !== "PENDING") { stopWorkflowPolling(actionId); return; }
+    if (++attempts > MAX_ATTEMPTS) { r.polling = false; stopWorkflowPolling(actionId); render(); return; }
+    if (!r.checking) checkWorkflow(actionId);
+  }, 12000);
+}
+
+function stopWorkflowPolling(actionId) {
+  if (_actionPollers[actionId]) { clearInterval(_actionPollers[actionId]); delete _actionPollers[actionId]; }
+  const run = state.workflowRuns[actionId];
+  if (run) run.polling = false;
 }
 
 async function startRetentionWorkflow(actionId, ctx) {
@@ -2939,8 +2966,8 @@ const LAKEBASE_TABLES_LINK = `${LAKEBASE_PROJECT_LINK}/branches/br-lingering-cel
 // Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
 // table; shows the downstream Domo Pattern 4 external-lineage node.
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
-// The governed writeback record (Delta, same UC schema as the gold views).
-const WRITEBACK_TABLE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/agent_action_writeback`;
+// The governed writeback record (Delta, same UC schema as the gold views) — land on Sample Data.
+const WRITEBACK_TABLE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/agent_action_writeback?o=8127410670216233&activeTab=sample`;
 // "Go to source" for the Databricks agent the Domo workflow calls: the Agent Bricks
 // build page + its MLflow trace log (every run's reasoning + Genie tool calls).
 const AGENT_BUILD_URL = `${WORKSPACE_HOST}/ml/bricks/sa/build/77bd204b-0051-445c-8434-8a12b65f90e1?o=8127410670216233`;
@@ -2950,14 +2977,14 @@ const AGENT_TRACES_URL = `${WORKSPACE_HOST}/ml/experiments/1772952801684800/trac
 // routes to the demo user's Domo Tasks, then writeActionStatus writes status back.
 const DOMO_INSTANCE_URL = "https://databricks-demo.domo.com";
 const WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
-const WORKFLOW_VERSION = "1.0.0";
+const WORKFLOW_VERSION = "1.0.3"; // fallback for the instance-monitor URL; runs carry their real version
 const WORKFLOW_TASKS_URL = `${DOMO_INSTANCE_URL}/workflows/${WORKFLOW_MODEL_ID}`;
 
-// The human-approval task is actionable from the workflow INSTANCE monitor
-// (it has "View associated task"); the bare model URL is the editor (blank to approvers).
-function workflowInstanceUrl(instanceId) {
+// The human-approval task is actionable from the workflow INSTANCE monitor (keeps the live
+// progress view). Use the run's actual version so it doesn't 404/show the wrong deployment.
+function workflowInstanceUrl(instanceId, version) {
   if (!instanceId) return WORKFLOW_TASKS_URL;
-  return `${DOMO_INSTANCE_URL}/workflows/instances/${WORKFLOW_MODEL_ID}/${WORKFLOW_VERSION}/${instanceId}`;
+  return `${DOMO_INSTANCE_URL}/workflows/instances/${WORKFLOW_MODEL_ID}/${version || WORKFLOW_VERSION}/${instanceId}`;
 }
 
 const GENIE_MODELS = [

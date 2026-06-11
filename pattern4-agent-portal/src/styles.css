@@ -957,7 +957,9 @@ td.num {
 
 /* Minimal, modern execution-cell affordances (lighter than buttons/chips) */
 .wf-mini { display: flex; flex-direction: column; gap: 4px; }
-.wf-run { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; }
+.wf-run { font-size: 10.5px; font-weight: 600; color: var(--muted); letter-spacing: 0; display: inline-flex; align-items: center; gap: 5px; }
+.wf-live { width: 6px; height: 6px; border-radius: 50%; background: var(--status-info); display: inline-block; animation: wf-live-pulse 1.1s infinite ease-in-out; }
+@keyframes wf-live-pulse { 0%, 100% { opacity: 0.3; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.1); } }
 .wf-mini-links { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .link-btn {
   background: none;
