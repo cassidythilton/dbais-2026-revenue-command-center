@@ -138,7 +138,7 @@ Update this section whenever project work changes scope, status, dependencies, r
 
 ### Active Blockers / Prerequisites
 
-- 2026-06-10 GATE (agent-to-agent): the workflow's Domo AI Agent tool `askRetentionAgent` requires a coordinated `pattern4ce` release that includes it (it is in the full `functions.js`, not in released v1.0.14). After release, bump `CE_VERSION` in `scripts/create_pattern4_workflow.py` and re-run to re-PUT the definition, then deploy workflow 1.0.0.
+- 2026-06-10 RESOLVED (agent-to-agent release): user approved release; `pattern4ce` **v1.0.15 released** (`scripts/release_pattern4ce_1015.py`, from the FULL `functions.js` via the single-source `build_functions()`/`build_code()`) — 18 public functions incl. `askRetentionAgent`; verified released source == local and all 18 manifest aliases covered. Workflow definition re-PUT with the AI agent tool + service tasks bound to **v1.0.15** (validated 0 ERRORs). Fixed `rid()` to start ids with a letter (SchemaParameter requires it). Remaining = UI-only: Deploy workflow 1.0.0 + `domo publish` + re-instantiate the App Studio card (18 aliases).
 
 - 2026-06-10 RESOLVED (gateway): Unity AI Gateway is LIVE on `pattern4-renewal-risk` (usage/rate-limit/inference-table) and `pattern4-reasoning-gateway` (guardrails). Per-user **OBO** remains a documented next step (U2M OAuth / token federation) — the embedded Domo app carries a Domo identity, not a Databricks one. See `pattern-4-ai-gateway-and-obo.md`.
 - 2026-06-10 GATE (workflow): the live Domo Workflow is authored + validated but must be **Deployed in the Domo UI** (one click) to register the start trigger; until then the app uses the Code Engine writeback fallback. Requires the new `pattern4ce` release.

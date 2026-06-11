@@ -146,7 +146,8 @@ def client() -> DomoClient:
     )
 
 
-def main() -> int:
+def build_code() -> str:
+    """Read the FULL consolidated functions.js and inject secrets (never persisted)."""
     token = read_token()
     domo_token = read_domo_token()
     lakebase_bundle = read_lakebase_bundle()
@@ -163,7 +164,11 @@ def main() -> int:
     ):
         if placeholder in code:
             raise SystemExit(f"Placeholder injection failed: {placeholder}")
+    return code
 
+
+def build_functions() -> list:
+    """Single source of truth for the pattern4ce function manifest (all 18)."""
     functions = [
         fn(
             "askGenie",
@@ -305,7 +310,12 @@ def main() -> int:
         fn("sqlString", "SQL String", [text_input("value", False)], private=True),
         fn("lakebaseQuery", "Lakebase Query", [text_input("sql", False), text_input("params", True)], private=True),
     ]
+    return functions
 
+
+def main() -> int:
+    code = build_code()
+    functions = build_functions()
     payload = {
         "name": "pattern4ce",
         "description": "Consolidated Pattern 4 Code Engine package: Genie proxy + Databricks action writeback. proxyId for the Pattern 4 Agent Portal.",

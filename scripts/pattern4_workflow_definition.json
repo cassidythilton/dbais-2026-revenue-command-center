@@ -28,9 +28,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "SICM6qdc6Uf6zLR",
+            "id": "JjWstqtvzAA3yTK",
             "isList": false,
-            "mappedTo": "var_5yXSOIFjmFT",
+            "mappedTo": "var_qxD4ydkTHqI",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -45,9 +45,9 @@
             "displayName": "account",
             "entitySubType": null,
             "flag": "input",
-            "id": "hE90AsIwOjNIcum",
+            "id": "ekQwhxpBs0CdcBX",
             "isList": false,
-            "mappedTo": "var_hexEiTDUjvi",
+            "mappedTo": "var_l2tOAPlRBAl",
             "paramName": "account",
             "required": false,
             "value": null,
@@ -62,9 +62,9 @@
             "displayName": "recommendation",
             "entitySubType": null,
             "flag": "input",
-            "id": "xkIi9LOoPv5KwxQ",
+            "id": "BV4pGspEGkCnjhy",
             "isList": false,
-            "mappedTo": "var_qN2B8pUf6k2",
+            "mappedTo": "var_gk11vx3Xr6H",
             "paramName": "recommendation",
             "required": false,
             "value": null,
@@ -79,9 +79,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "fuTgZOOWuyZu16Z",
+            "id": "iiSEhCOk7HU7TWi",
             "isList": false,
-            "mappedTo": "var_rbmGobAUQv5",
+            "mappedTo": "var_NeDl0zhb1OV",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -96,9 +96,9 @@
             "displayName": "predicted",
             "entitySubType": null,
             "flag": "input",
-            "id": "qKKh7qnSbxpDzJl",
+            "id": "xkud3AHLzrNtxks",
             "isList": false,
-            "mappedTo": "var_a8iFUBgQS49",
+            "mappedTo": "var_cVp7HKNrX4d",
             "paramName": "predicted",
             "required": false,
             "value": null,
@@ -113,9 +113,9 @@
             "displayName": "protectedRevenue",
             "entitySubType": null,
             "flag": "input",
-            "id": "hIERVBmxbKzgp41",
+            "id": "QKdjYlHtpmbOauT",
             "isList": false,
-            "mappedTo": "var_4Vk6g7WuAOk",
+            "mappedTo": "var_cKD1bTTojMT",
             "paramName": "protectedRevenue",
             "required": false,
             "value": null,
@@ -130,9 +130,9 @@
             "displayName": "sourceQuestion",
             "entitySubType": null,
             "flag": "input",
-            "id": "M3gpRYFJk7r3kpT",
+            "id": "QnBHIKQ0tMSU0k1",
             "isList": false,
-            "mappedTo": "var_2EbR0yicTGv",
+            "mappedTo": "var_fw2Hs42v3WL",
             "paramName": "sourceQuestion",
             "required": false,
             "value": null,
@@ -148,7 +148,7 @@
       "type": "rootNode"
     },
     {
-      "id": "wVxJPKdz6suPdXT",
+      "id": "eo56F81LmcUtTbC",
       "position": {
         "x": 50,
         "y": 180
@@ -161,7 +161,7 @@
         "title": "Retention triage agent",
         "description": "",
         "prompt": {
-          "id": "glSNwGJtrXEVNAn",
+          "id": "R47bsOpAD2lmNZx",
           "paramName": "prompt",
           "dataType": "text",
           "mappedTo": null,
@@ -188,7 +188,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_hexEiTDUjvi",
+                  "id": "var_l2tOAPlRBAl",
                   "name": "account",
                   "isList": false
                 },
@@ -211,7 +211,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_2EbR0yicTGv",
+                  "id": "var_fw2Hs42v3WL",
                   "name": "sourceQuestion",
                   "isList": false
                 },
@@ -234,7 +234,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_qN2B8pUf6k2",
+                  "id": "var_gk11vx3Xr6H",
                   "name": "recommendation",
                   "isList": false
                 },
@@ -260,19 +260,19 @@
           "aiDescription": null
         },
         "result": {
-          "id": "y0Fw5pHBosv248t",
+          "id": "j7xoTlVZQzeWOsi",
           "paramName": "result",
           "dataType": "object",
-          "mappedTo": "var_ra95Axn4oiK",
+          "mappedTo": "var_hopin83ckrk",
           "value": null,
           "required": true,
           "isList": false,
           "children": [
             {
-              "id": "y0Fw5pHBosv248t.recommendation",
+              "id": "j7xoTlVZQzeWOsi.recommendation",
               "paramName": "recommendation",
               "dataType": "text",
-              "mappedTo": "var_ra95Axn4oiK.recommendation",
+              "mappedTo": "var_hopin83ckrk.recommendation",
               "value": null,
               "required": true,
               "isList": false,
@@ -302,7 +302,7 @@
               "functionDescription": "Ask the Databricks Retention Supervisor Agent (Genie-backed) for a governed retention recommendation for an at-risk account.",
               "inputs": [
                 {
-                  "id": "MDZ1OKyginZuQ7C",
+                  "id": "Ruaabcq5r0cWqHC",
                   "paramName": "prompt",
                   "dataType": "text",
                   "mappedTo": null,
@@ -320,15 +320,15 @@
                 }
               ],
               "inputDescriptions": {
-                "MDZ1OKyginZuQ7C": "The account name and risk context to analyze."
+                "Ruaabcq5r0cWqHC": "The account name and risk context to analyze."
               },
-              "id": "vaBj7kRQRxPWZ9b",
+              "id": "UuUdlsUn6e9EQoB",
               "name": "Ask Retention Agent",
               "description": "Databricks Retention Supervisor Agent (MAS) over the Pattern 4 Genie space.",
               "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
-              "packageVersion": "1.0.14",
+              "packageVersion": "1.0.15",
               "output": {
-                "id": "z3sT25RFPBt9WGv",
+                "id": "dEoVuWFMdFglb7c",
                 "paramName": "result",
                 "dataType": "object",
                 "mappedTo": null,
@@ -365,7 +365,7 @@
       "type": "AI_AGENT"
     },
     {
-      "id": "wAHO3qpXhCDZ6m4",
+      "id": "a08oEZBpgGjdvqO",
       "position": {
         "x": 50,
         "y": 190
@@ -395,9 +395,9 @@
             "flag": "input",
             "formFieldId": "accae7ce-6e3a-4bc4-acee-5b2c94d5d3ea",
             "formFieldType": "SHORT_ANSWER",
-            "id": "3rGIBNoxWAbRY4S",
+            "id": "isloDIypAGQcBQu",
             "isList": false,
-            "mappedTo": "var_hexEiTDUjvi",
+            "mappedTo": "var_l2tOAPlRBAl",
             "paramName": "Account",
             "required": false,
             "value": null,
@@ -418,9 +418,9 @@
             "flag": "input",
             "formFieldId": "85ea00f4-2357-4663-855f-e955aa1a405e",
             "formFieldType": "PARAGRAPH",
-            "id": "6LrP5zi6KAKhwOY",
+            "id": "beKN0YyPGh6SxdJ",
             "isList": false,
-            "mappedTo": "var_qN2B8pUf6k2",
+            "mappedTo": "var_gk11vx3Xr6H",
             "paramName": "Recommendation",
             "required": false,
             "value": null,
@@ -441,9 +441,9 @@
             "flag": "input",
             "formFieldId": "020c00cd-eacd-4010-9b2c-a1aaa0a3fbb4",
             "formFieldType": "PARAGRAPH",
-            "id": "Y9RaKDs4Tg0XWSI",
+            "id": "zCwKcxilodKavFw",
             "isList": false,
-            "mappedTo": "var_ra95Axn4oiK.recommendation",
+            "mappedTo": "var_hopin83ckrk.recommendation",
             "paramName": "Agent_Recommendation",
             "required": false,
             "value": null,
@@ -464,9 +464,9 @@
             "flag": "input",
             "formFieldId": "ab9ba7b6-215a-4bef-a838-efbd24c1ff2c",
             "formFieldType": "SHORT_ANSWER",
-            "id": "zDzFhab7d0L93dc",
+            "id": "CBcggyMliHW8aAh",
             "isList": false,
-            "mappedTo": "var_4Vk6g7WuAOk",
+            "mappedTo": "var_cKD1bTTojMT",
             "paramName": "Protected_Revenue",
             "required": false,
             "value": null,
@@ -487,9 +487,9 @@
             "flag": "input",
             "formFieldId": "fdbfac69-200c-420b-abb9-2ecc77313db4",
             "formFieldType": "PARAGRAPH",
-            "id": "zeOLHgMJLC29f1n",
+            "id": "ZD67SAL3mjy8kHa",
             "isList": false,
-            "mappedTo": "var_2EbR0yicTGv",
+            "mappedTo": "var_fw2Hs42v3WL",
             "paramName": "Source_Question",
             "required": false,
             "value": null,
@@ -510,7 +510,7 @@
             "flag": "input",
             "formFieldId": "a896a74f-ec9a-462d-9402-eee709524ff9",
             "formFieldType": "SINGLE_CHOICE",
-            "id": "AzLYG5UZono0IJ2",
+            "id": "I1e3x53PSI6ofgc",
             "isList": false,
             "mappedTo": null,
             "paramName": "Decision",
@@ -535,9 +535,9 @@
             "flag": "output",
             "formFieldId": "accae7ce-6e3a-4bc4-acee-5b2c94d5d3ea",
             "formFieldType": "SHORT_ANSWER",
-            "id": "V37n7Nbks6danNL",
+            "id": "i7SQwNqUt5Rh6fS",
             "isList": false,
-            "mappedTo": "var_hexEiTDUjvi",
+            "mappedTo": "var_l2tOAPlRBAl",
             "paramName": "Account",
             "required": false,
             "value": null,
@@ -558,9 +558,9 @@
             "flag": "output",
             "formFieldId": "85ea00f4-2357-4663-855f-e955aa1a405e",
             "formFieldType": "PARAGRAPH",
-            "id": "XIjHWwBAkvnaI7J",
+            "id": "YhnYdll3t0MbgOW",
             "isList": false,
-            "mappedTo": "var_qN2B8pUf6k2",
+            "mappedTo": "var_gk11vx3Xr6H",
             "paramName": "Recommendation",
             "required": false,
             "value": null,
@@ -581,9 +581,9 @@
             "flag": "output",
             "formFieldId": "020c00cd-eacd-4010-9b2c-a1aaa0a3fbb4",
             "formFieldType": "PARAGRAPH",
-            "id": "CA0GpV2zfu0pv7L",
+            "id": "wEETgIGZt4xcCo2",
             "isList": false,
-            "mappedTo": "var_ra95Axn4oiK.recommendation",
+            "mappedTo": "var_hopin83ckrk.recommendation",
             "paramName": "Agent_Recommendation",
             "required": false,
             "value": null,
@@ -604,9 +604,9 @@
             "flag": "output",
             "formFieldId": "ab9ba7b6-215a-4bef-a838-efbd24c1ff2c",
             "formFieldType": "SHORT_ANSWER",
-            "id": "pSMDP7mRL0GxGuY",
+            "id": "itdEMrXfPgeAzW6",
             "isList": false,
-            "mappedTo": "var_4Vk6g7WuAOk",
+            "mappedTo": "var_cKD1bTTojMT",
             "paramName": "Protected_Revenue",
             "required": false,
             "value": null,
@@ -627,9 +627,9 @@
             "flag": "output",
             "formFieldId": "fdbfac69-200c-420b-abb9-2ecc77313db4",
             "formFieldType": "PARAGRAPH",
-            "id": "SfzwbehZkG6JyN3",
+            "id": "DIUJcxhuGS9E04l",
             "isList": false,
-            "mappedTo": "var_2EbR0yicTGv",
+            "mappedTo": "var_fw2Hs42v3WL",
             "paramName": "Source_Question",
             "required": false,
             "value": null,
@@ -650,9 +650,9 @@
             "flag": "output",
             "formFieldId": "a896a74f-ec9a-462d-9402-eee709524ff9",
             "formFieldType": "SINGLE_CHOICE",
-            "id": "AKb760dNQrOZdAu",
+            "id": "WGvr3ffObpsEadA",
             "isList": false,
-            "mappedTo": "var_egp9AvsdekF",
+            "mappedTo": "var_ETqFGCAObYG",
             "paramName": "Decision",
             "required": true,
             "value": null,
@@ -673,7 +673,7 @@
           "displayName": "Assigned To",
           "entitySubType": null,
           "flag": "input",
-          "id": "sxEUKwSUW9PxEKl",
+          "id": "jpGWclFk5dJP4E4",
           "isList": false,
           "mappedTo": null,
           "paramName": "DOMO_ASSIGNED_TO_",
@@ -690,7 +690,7 @@
       "type": "userTaskNode"
     },
     {
-      "id": "RvwBaXu7n4NfY2B",
+      "id": "AiUvmAdOgbeS862",
       "position": {
         "x": 50,
         "y": 500
@@ -713,7 +713,7 @@
       "type": "conditionalGatewayNode"
     },
     {
-      "id": "okpqwwexGXdFxnA",
+      "id": "zwpLKfzFaK5xQd8",
       "position": {
         "x": 50,
         "y": 660
@@ -736,9 +736,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "HDXbseAkAnU7U4u",
+            "id": "Oi5luNwcx7KcXup",
             "isList": false,
-            "mappedTo": "var_5yXSOIFjmFT",
+            "mappedTo": "var_qxD4ydkTHqI",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -753,7 +753,7 @@
             "displayName": "decision",
             "entitySubType": null,
             "flag": "input",
-            "id": "2neN1sN9pXAkqKQ",
+            "id": "EvlXk1ukKFk4rCY",
             "isList": false,
             "mappedTo": null,
             "paramName": "decision",
@@ -770,7 +770,7 @@
             "displayName": "executionStatus",
             "entitySubType": null,
             "flag": "input",
-            "id": "VR9IzT8p38u6OmV",
+            "id": "mcIjtr0WAxq2cQp",
             "isList": false,
             "mappedTo": null,
             "paramName": "executionStatus",
@@ -787,7 +787,7 @@
             "displayName": "approvedBy",
             "entitySubType": null,
             "flag": "input",
-            "id": "dqUiMy9P9Y4ENqQ",
+            "id": "SBcKZ5ZtWC8FDK5",
             "isList": false,
             "mappedTo": null,
             "paramName": "approvedBy",
@@ -804,7 +804,7 @@
             "displayName": "note",
             "entitySubType": null,
             "flag": "input",
-            "id": "5meWtpmX0RyxkQc",
+            "id": "XZUCvkhZWCjxuIZ",
             "isList": false,
             "mappedTo": null,
             "paramName": "note",
@@ -821,9 +821,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "0GE88uOEpTdOyxJ",
+            "id": "CbdGJnWF5Am1uvA",
             "isList": false,
-            "mappedTo": "var_rbmGobAUQv5",
+            "mappedTo": "var_NeDl0zhb1OV",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -833,7 +833,7 @@
         "output": [],
         "taskType": "nebulaFunction",
         "metadata": {
-          "version": "1.0.14",
+          "version": "1.0.15",
           "settings": {},
           "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
           "packageName": "pattern4ce",
@@ -851,7 +851,7 @@
       "type": "serviceTaskNode"
     },
     {
-      "id": "RhCDoJvuX9fw1wU",
+      "id": "KfE3XgCbadIZf4g",
       "position": {
         "x": 360,
         "y": 660
@@ -874,9 +874,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "ILgLVccD0ELsmxD",
+            "id": "BlGT806OOaxoxl5",
             "isList": false,
-            "mappedTo": "var_5yXSOIFjmFT",
+            "mappedTo": "var_qxD4ydkTHqI",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -891,7 +891,7 @@
             "displayName": "decision",
             "entitySubType": null,
             "flag": "input",
-            "id": "qqhOWYqdMq98Udz",
+            "id": "eMtcy0QjzAc4zbb",
             "isList": false,
             "mappedTo": null,
             "paramName": "decision",
@@ -908,7 +908,7 @@
             "displayName": "executionStatus",
             "entitySubType": null,
             "flag": "input",
-            "id": "H7xmmR7VrLeWKyJ",
+            "id": "tQ3eo09mmqaxhKV",
             "isList": false,
             "mappedTo": null,
             "paramName": "executionStatus",
@@ -925,7 +925,7 @@
             "displayName": "approvedBy",
             "entitySubType": null,
             "flag": "input",
-            "id": "lWsMy73qXHghukc",
+            "id": "yYotAHTs6yU235c",
             "isList": false,
             "mappedTo": null,
             "paramName": "approvedBy",
@@ -942,7 +942,7 @@
             "displayName": "note",
             "entitySubType": null,
             "flag": "input",
-            "id": "KhC9vMI0Vfzwfvr",
+            "id": "EYoH5yzBHB3s5A5",
             "isList": false,
             "mappedTo": null,
             "paramName": "note",
@@ -959,9 +959,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "Uk3dnIzZMZ2A2sm",
+            "id": "Ew8JVelrSrMk6BS",
             "isList": false,
-            "mappedTo": "var_rbmGobAUQv5",
+            "mappedTo": "var_NeDl0zhb1OV",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -971,7 +971,7 @@
         "output": [],
         "taskType": "nebulaFunction",
         "metadata": {
-          "version": "1.0.14",
+          "version": "1.0.15",
           "settings": {},
           "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
           "packageName": "pattern4ce",
@@ -989,7 +989,7 @@
       "type": "serviceTaskNode"
     },
     {
-      "id": "3HtDhXDF1cbgiYC",
+      "id": "nrOd2oqnmelF8oQ",
       "position": {
         "x": 50,
         "y": 820
@@ -1012,7 +1012,7 @@
       "type": "endNode"
     },
     {
-      "id": "6yp3Cq4ZllRWaTi",
+      "id": "xRqlOfRs42odumR",
       "position": {
         "x": 360,
         "y": 820
@@ -1035,9 +1035,9 @@
       "type": "endNode"
     },
     {
-      "id": "edge-rootNode-wVxJPKdz6suPdXT-ky9AMmG2vhN",
+      "id": "edge-rootNode-eo56F81LmcUtTbC-tn71caQl3ra",
       "source": "rootNode",
-      "target": "wVxJPKdz6suPdXT",
+      "target": "eo56F81LmcUtTbC",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1061,9 +1061,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-wVxJPKdz6suPdXT-wAHO3qpXhCDZ6m4-4QjHSZVTCA5",
-      "source": "wVxJPKdz6suPdXT",
-      "target": "wAHO3qpXhCDZ6m4",
+      "id": "edge-eo56F81LmcUtTbC-a08oEZBpgGjdvqO-C3a7nI2x54B",
+      "source": "eo56F81LmcUtTbC",
+      "target": "a08oEZBpgGjdvqO",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1087,9 +1087,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-wAHO3qpXhCDZ6m4-RvwBaXu7n4NfY2B-Yjj7wMqsigE",
-      "source": "wAHO3qpXhCDZ6m4",
-      "target": "RvwBaXu7n4NfY2B",
+      "id": "edge-a08oEZBpgGjdvqO-AiUvmAdOgbeS862-RPcBn6KS1x4",
+      "source": "a08oEZBpgGjdvqO",
+      "target": "AiUvmAdOgbeS862",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1113,9 +1113,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-RvwBaXu7n4NfY2B-okpqwwexGXdFxnA-VuFupNrsID9",
-      "source": "RvwBaXu7n4NfY2B",
-      "target": "okpqwwexGXdFxnA",
+      "id": "edge-AiUvmAdOgbeS862-zwpLKfzFaK5xQd8-SExlvwm2xde",
+      "source": "AiUvmAdOgbeS862",
+      "target": "zwpLKfzFaK5xQd8",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1134,7 +1134,7 @@
         "description": "",
         "title": "Approved",
         "type": "Basic",
-        "nodeId": "RXLOdLdwzOsyY05",
+        "nodeId": "LcvSaBAevNysIKa",
         "position": {
           "x": 50,
           "y": 430
@@ -1149,7 +1149,7 @@
           [
             {
               "variable": {
-                "id": "var_egp9AvsdekF",
+                "id": "var_ETqFGCAObYG",
                 "paramName": "decision",
                 "dataType": "text",
                 "isList": false,
@@ -1172,9 +1172,9 @@
       "type": "conditionEdge"
     },
     {
-      "id": "edge-RvwBaXu7n4NfY2B-RhCDoJvuX9fw1wU-T2YVtUnQ4iv",
-      "source": "RvwBaXu7n4NfY2B",
-      "target": "RhCDoJvuX9fw1wU",
+      "id": "edge-AiUvmAdOgbeS862-KfE3XgCbadIZf4g-vgeiRrd8RxM",
+      "source": "AiUvmAdOgbeS862",
+      "target": "KfE3XgCbadIZf4g",
       "data": {
         "sourcePosition": "right",
         "targetPosition": "top",
@@ -1197,7 +1197,7 @@
         "description": "",
         "title": "Rejected",
         "type": "Default",
-        "nodeId": "dEBbRXY016cYhn2",
+        "nodeId": "dcrSgH3ZAWvDUT7",
         "position": {
           "x": 50,
           "y": 430
@@ -1215,9 +1215,9 @@
       "type": "conditionEdge"
     },
     {
-      "id": "edge-okpqwwexGXdFxnA-3HtDhXDF1cbgiYC-hWHRkxEHodN",
-      "source": "okpqwwexGXdFxnA",
-      "target": "3HtDhXDF1cbgiYC",
+      "id": "edge-zwpLKfzFaK5xQd8-nrOd2oqnmelF8oQ-z2PvecOO28t",
+      "source": "zwpLKfzFaK5xQd8",
+      "target": "nrOd2oqnmelF8oQ",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1241,9 +1241,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-RhCDoJvuX9fw1wU-6yp3Cq4ZllRWaTi-UVaKJIQI0AZ",
-      "source": "RhCDoJvuX9fw1wU",
-      "target": "6yp3Cq4ZllRWaTi",
+      "id": "edge-KfE3XgCbadIZf4g-xRqlOfRs42odumR-XuUMES7nNYq",
+      "source": "KfE3XgCbadIZf4g",
+      "target": "xRqlOfRs42odumR",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1269,7 +1269,7 @@
   ],
   "dataList": [
     {
-      "id": "var_5yXSOIFjmFT",
+      "id": "var_qxD4ydkTHqI",
       "paramName": "actionId",
       "dataType": "text",
       "isList": false,
@@ -1280,7 +1280,7 @@
       "isOutput": false
     },
     {
-      "id": "var_hexEiTDUjvi",
+      "id": "var_l2tOAPlRBAl",
       "paramName": "account",
       "dataType": "text",
       "isList": false,
@@ -1291,7 +1291,7 @@
       "isOutput": false
     },
     {
-      "id": "var_qN2B8pUf6k2",
+      "id": "var_gk11vx3Xr6H",
       "paramName": "recommendation",
       "dataType": "text",
       "isList": false,
@@ -1302,7 +1302,7 @@
       "isOutput": false
     },
     {
-      "id": "var_rbmGobAUQv5",
+      "id": "var_NeDl0zhb1OV",
       "paramName": "persona",
       "dataType": "text",
       "isList": false,
@@ -1313,7 +1313,7 @@
       "isOutput": false
     },
     {
-      "id": "var_a8iFUBgQS49",
+      "id": "var_cVp7HKNrX4d",
       "paramName": "predicted",
       "dataType": "decimal",
       "isList": false,
@@ -1324,7 +1324,7 @@
       "isOutput": false
     },
     {
-      "id": "var_4Vk6g7WuAOk",
+      "id": "var_cKD1bTTojMT",
       "paramName": "protectedRevenue",
       "dataType": "decimal",
       "isList": false,
@@ -1335,7 +1335,7 @@
       "isOutput": false
     },
     {
-      "id": "var_2EbR0yicTGv",
+      "id": "var_fw2Hs42v3WL",
       "paramName": "sourceQuestion",
       "dataType": "text",
       "isList": false,
@@ -1346,7 +1346,7 @@
       "isOutput": false
     },
     {
-      "id": "var_egp9AvsdekF",
+      "id": "var_ETqFGCAObYG",
       "paramName": "decision",
       "dataType": "text",
       "isList": false,
@@ -1357,13 +1357,13 @@
       "isOutput": true
     },
     {
-      "id": "var_ra95Axn4oiK",
+      "id": "var_hopin83ckrk",
       "paramName": "agentRecommendation",
       "dataType": "object",
       "isList": false,
       "children": [
         {
-          "id": "var_ra95Axn4oiK.recommendation",
+          "id": "var_hopin83ckrk.recommendation",
           "paramName": "recommendation",
           "dataType": "text",
           "isList": false,
@@ -1382,73 +1382,73 @@
   ],
   "schema": {
     "inputs": {
-      "SICM6qdc6Uf6zLR": {
+      "JjWstqtvzAA3yTK": {
         "name": "actionId",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": false,
-        "id": "SICM6qdc6Uf6zLR",
+        "id": "JjWstqtvzAA3yTK",
         "parent": null,
         "isChild": false
       },
-      "hE90AsIwOjNIcum": {
+      "ekQwhxpBs0CdcBX": {
         "name": "account",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "hE90AsIwOjNIcum",
+        "id": "ekQwhxpBs0CdcBX",
         "parent": null,
         "isChild": false
       },
-      "xkIi9LOoPv5KwxQ": {
+      "BV4pGspEGkCnjhy": {
         "name": "recommendation",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "xkIi9LOoPv5KwxQ",
+        "id": "BV4pGspEGkCnjhy",
         "parent": null,
         "isChild": false
       },
-      "fuTgZOOWuyZu16Z": {
+      "iiSEhCOk7HU7TWi": {
         "name": "persona",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "fuTgZOOWuyZu16Z",
+        "id": "iiSEhCOk7HU7TWi",
         "parent": null,
         "isChild": false
       },
-      "qKKh7qnSbxpDzJl": {
+      "xkud3AHLzrNtxks": {
         "name": "predicted",
         "type": "decimal",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "qKKh7qnSbxpDzJl",
+        "id": "xkud3AHLzrNtxks",
         "parent": null,
         "isChild": false
       },
-      "hIERVBmxbKzgp41": {
+      "QKdjYlHtpmbOauT": {
         "name": "protectedRevenue",
         "type": "decimal",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "hIERVBmxbKzgp41",
+        "id": "QKdjYlHtpmbOauT",
         "parent": null,
         "isChild": false
       },
-      "M3gpRYFJk7r3kpT": {
+      "QnBHIKQ0tMSU0k1": {
         "name": "sourceQuestion",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "M3gpRYFJk7r3kpT",
+        "id": "QnBHIKQ0tMSU0k1",
         "parent": null,
         "isChild": false
       }

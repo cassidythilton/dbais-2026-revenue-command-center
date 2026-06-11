@@ -31,9 +31,11 @@ def client() -> DomoClient:
 
 
 def rid(n: int = 15) -> str:
-    """Random alphanumeric id (workflow node/var ids must be 15-char alnum)."""
+    """Random alphanumeric id. Workflow/schema ids must START WITH A LETTER
+    (the SchemaParameter validator rejects ids beginning with a digit)."""
     alphabet = string.ascii_letters + string.digits
-    return "".join(random.choice(alphabet) for _ in range(n))
+    first = random.choice(string.ascii_letters)
+    return first + "".join(random.choice(alphabet) for _ in range(n - 1))
 
 
 def pretty(obj) -> str:
