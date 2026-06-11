@@ -335,7 +335,8 @@
         </div>
         <div class="approvals-foot">
           <button id="approvalsRefresh" class="action-btn" type="button">Refresh</button>
-          <span class="approvals-note">Open tasks are awaiting approval; completing one resumes the workflow → <code>writeActionStatus</code> writeback.</span>
+          <a id="approvalsWritebackLink" class="link-btn" href="#">View writeback in Databricks ↗</a>
+          <span class="approvals-note">Completing a task resumes the workflow → <code>writeActionStatus</code> writeback to <code>agent_action_writeback</code> (Unity Catalog).</span>
         </div>
       </section>
     </div>

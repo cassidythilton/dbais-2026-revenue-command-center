@@ -761,7 +761,10 @@ function renderActions(actions) {
               </span>
             </div>`;
         } else if (a.justActioned) {
-          actionCell = `<span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>`;
+          actionCell = `<div class="exec-actions">
+              <span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>
+              ${run && run.local ? "" : `<a class="link-btn" href="#" data-writeback-src="1" title="View agent_action_writeback in Databricks">View in Databricks ↗</a>`}
+            </div>`;
         }
         return `
         <tr class="${a.justActioned ? "row-actioned" : ""}">
@@ -788,6 +791,9 @@ function renderActions(actions) {
   });
   document.querySelectorAll("[data-wf-task]").forEach((link) => {
     link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"))); });
+  });
+  document.querySelectorAll("[data-writeback-src]").forEach((link) => {
+    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); });
   });
   document.querySelectorAll("[data-explain]").forEach((button) => {
     button.addEventListener("click", () => explainAction(
@@ -2839,6 +2845,8 @@ function wireTabs() {
   });
   const ar = document.getElementById("approvalsRefresh");
   if (ar) ar.addEventListener("click", loadApprovals);
+  const awl = document.getElementById("approvalsWritebackLink");
+  if (awl) awl.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); });
 }
 
 function wireForecastControls() {
@@ -2882,6 +2890,8 @@ const LAKEBASE_TABLES_LINK = `${LAKEBASE_PROJECT_LINK}/branches/br-lingering-cel
 // Unity Catalog lineage graph (Catalog Explorer → Lineage tab) for a representative gold
 // table; shows the downstream Domo Pattern 4 external-lineage node.
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
+// The governed writeback record (Delta, same UC schema as the gold views).
+const WRITEBACK_TABLE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/agent_action_writeback`;
 // Live Domo Workflow (Renewal Risk Retention). Approve & execute starts this governed
 // workflow server-side via pattern4ce.startRetentionWorkflow; the human approval task
 // routes to the demo user's Domo Tasks, then writeActionStatus writes status back.
