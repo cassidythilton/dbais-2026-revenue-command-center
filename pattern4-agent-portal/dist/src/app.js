@@ -746,16 +746,20 @@ function renderActions(actions) {
             data-protected="${Number(a.protected) || 0}"
             data-account="${escapeHtml(a.account || "")}"
             data-recommendation="${escapeHtml(a.recommendation || "")}">Approve &amp; execute</button>
-            <button class="action-btn wf-explain" type="button"
+            <button class="link-btn" type="button"
             data-explain="${escapeHtml(a.actionId)}"
             data-account="${escapeHtml(a.account || "")}"
             data-recommendation="${escapeHtml(a.recommendation || "")}">AI rationale ↗</button>`;
         } else if (run && run.status === "PENDING") {
           actionCell = `
-            <span class="wf-chip" title="Live Domo Workflow instance">▶ workflow ${run.local ? "(local)" : escapeHtml(shortId)} · awaiting approval</span>
-            <button class="action-btn wf-check" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh status"}</button>
-            <a class="wf-link" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open approval task ↗</a>
-            ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">trigger fallback</span>` : ""}`;
+            <div class="wf-mini">
+              <span class="wf-run">▶ ${run.local ? "local" : escapeHtml(shortId)} · awaiting approval</span>
+              <span class="wf-mini-links">
+                <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh"}</button>
+                <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open task ↗</a>
+                ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">fallback</span>` : ""}
+              </span>
+            </div>`;
         } else if (a.justActioned) {
           actionCell = `<span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>`;
         }

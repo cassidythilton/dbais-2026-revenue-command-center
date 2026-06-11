@@ -194,7 +194,7 @@ def build_definition(model_id, form, queue_id) -> dict:
         }
 
     root = {
-        "id": "rootNode", "position": {"x": 50, "y": 30},
+        "id": "rootNode", "position": {"x": 320, "y": 40},
         "data": {
             "dimensions": {"width": 200, "height": 60},
             "title": f"Start {MODEL_NAME}", "description": "", "type": "Start",
@@ -258,7 +258,7 @@ def build_definition(model_id, form, queue_id) -> dict:
 
     ut_id = rid()
     user_task = {
-        "id": ut_id, "position": {"x": 50, "y": 190},
+        "id": ut_id, "position": {"x": 320, "y": 360},
         "data": {
             "dimensions": {"width": 200, "height": 60}, "title": "Approve retention action", "description": "",
             "_designNode": "userTaskNode", "configType": "form",
@@ -288,7 +288,7 @@ def build_definition(model_id, form, queue_id) -> dict:
     result_id = rid()
     tool_in_id = rid()
     ai_agent = {
-        "id": ai_id, "position": {"x": 50, "y": 180},
+        "id": ai_id, "position": {"x": 320, "y": 200},
         "data": {
             "dimensions": {"width": 200, "height": 60},
             "title": "Retention triage agent", "description": "",
@@ -356,7 +356,7 @@ def build_definition(model_id, form, queue_id) -> dict:
 
     gateway_id = rid()
     gateway = {
-        "id": gateway_id, "position": {"x": 50, "y": 500},
+        "id": gateway_id, "position": {"x": 320, "y": 520},
         "data": {
             "dimensions": {"width": 200, "height": 60}, "title": "Approved?",
             "description": "Route on the approval decision.",
@@ -401,17 +401,17 @@ def build_definition(model_id, form, queue_id) -> dict:
         }
 
     approve_id, reject_id = rid(), rid()
-    approve_task = service_task(approve_id, 4, 50, 660, "Write Approved status",
+    approve_task = service_task(approve_id, 4, 180, 700, "Write Approved status",
                                 "Approved", "Executed", "Approved via Domo Workflow")
-    reject_task = service_task(reject_id, 5, 360, 660, "Write Rejected status",
+    reject_task = service_task(reject_id, 5, 460, 700, "Write Rejected status",
                                "Rejected", "Rejected", "Rejected via Domo Workflow")
 
     end1_id, end2_id = rid(), rid()
-    end1 = {"id": end1_id, "position": {"x": 50, "y": 820},
+    end1 = {"id": end1_id, "position": {"x": 180, "y": 860},
             "data": {"dimensions": {"width": 200, "height": 60}, "title": "Done (approved)", "description": "",
                      "_designNode": "endNode", "terminating": False},
             "style": {"zIndex": 4, "outline": "none"}, "index": 6, "type": "endNode"}
-    end2 = {"id": end2_id, "position": {"x": 360, "y": 820},
+    end2 = {"id": end2_id, "position": {"x": 460, "y": 860},
             "data": {"dimensions": {"width": 200, "height": 60}, "title": "Done (rejected)", "description": "",
                      "_designNode": "endNode", "terminating": False},
             "style": {"zIndex": 4, "outline": "none"}, "index": 7, "type": "endNode"}
@@ -421,11 +421,11 @@ def build_definition(model_id, form, queue_id) -> dict:
                 "data": {"sourcePosition": sp, "targetPosition": tp, "path": path, "title": ""},
                 "style": {"zIndex": 5}, "index": idx, "arrowHeadType": "arrow", "type": "defaultEdge"}
 
-    def condition_edge(idx, src, tgt, title, kind, rules, sp, tp, path, ex, en):
+    def condition_edge(idx, src, tgt, title, kind, rules, sp, tp, path, ex, en, pill):
         data = {
             "sourcePosition": sp, "targetPosition": tp, "path": path,
             "entryPosition": en, "exitPosition": ex, "description": "", "title": title,
-            "type": kind, "nodeId": rid(), "position": {"x": 50, "y": 430},
+            "type": kind, "nodeId": rid(), "position": pill,
             "dimensions": {"width": 200, "height": 40}, "splitIndex": 2, "_designNode": "condition",
         }
         if rules is not None:
@@ -440,16 +440,19 @@ def build_definition(model_id, form, queue_id) -> dict:
         "operator": "Equals", "valueType": "Custom", "value": "Approved",
     }]]
 
+    # Trunk nodes centered at x=420; branches at approve=280 / reject=560 (symmetric).
     edges = [
-        default_edge(8, "rootNode", ai_id, "bottom", "top", [[150, 90], [150, 179]]),
-        default_edge(9, ai_id, ut_id, "bottom", "top", [[150, 240], [150, 339]]),
-        default_edge(10, ut_id, gateway_id, "bottom", "top", [[150, 410], [150, 499]]),
+        default_edge(8, "rootNode", ai_id, "bottom", "top", [[420, 100], [420, 199]]),
+        default_edge(9, ai_id, ut_id, "bottom", "top", [[420, 260], [420, 359]]),
+        default_edge(10, ut_id, gateway_id, "bottom", "top", [[420, 420], [420, 519]]),
         condition_edge(11, gateway_id, approve_id, "Approved", "Basic", approve_rules,
-                       "bottom", "top", [[150, 560], [150, 659]], "bottom", "top"),
+                       "bottom", "top", [[420, 580], [280, 640], [280, 699]], "bottom", "top",
+                       {"x": 280, "y": 620}),
         condition_edge(12, gateway_id, reject_id, "Rejected", "Default", None,
-                       "right", "top", [[250, 530], [460, 530], [460, 659]], "right", "top"),
-        default_edge(13, approve_id, end1_id, "bottom", "top", [[150, 720], [150, 819]]),
-        default_edge(14, reject_id, end2_id, "bottom", "top", [[460, 720], [460, 819]]),
+                       "bottom", "top", [[420, 580], [560, 640], [560, 699]], "bottom", "top",
+                       {"x": 560, "y": 620}),
+        default_edge(13, approve_id, end1_id, "bottom", "top", [[280, 760], [280, 859]]),
+        default_edge(14, reject_id, end2_id, "bottom", "top", [[560, 760], [560, 859]]),
     ]
 
     return {
