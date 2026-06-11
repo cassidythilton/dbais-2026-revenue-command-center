@@ -900,6 +900,12 @@ td.num {
   color: var(--status-good);
 }
 
+/* Approvals · Action Center */
+.approvals-id { font-size: 10px; color: var(--muted); font-family: var(--font-mono, monospace); margin-top: 2px; }
+.approvals-foot { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.approvals-note { font-size: 11px; color: var(--muted); }
+.approvals-note code { font-size: 10.5px; }
+
 /* Execution cell: keep the status pill and action affordances from bunching up */
 .exec-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
 .exec-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }

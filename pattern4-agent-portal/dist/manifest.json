@@ -92,6 +92,56 @@
       }
     },
     {
+      "alias": "listApprovalTasks",
+      "parameters": [
+        {
+          "alias": "limit",
+          "type": "number",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
+      "alias": "completeApprovalTask",
+      "parameters": [
+        {
+          "alias": "taskId",
+          "type": "string",
+          "nullable": false,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "decision",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        },
+        {
+          "alias": "version",
+          "type": "string",
+          "nullable": true,
+          "isList": false,
+          "children": null
+        }
+      ],
+      "output": {
+        "alias": "result",
+        "type": "object",
+        "isList": false,
+        "children": null
+      }
+    },
+    {
       "alias": "askReasoningModel",
       "parameters": [
         {

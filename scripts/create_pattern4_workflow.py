@@ -24,12 +24,12 @@ REPO = Path(__file__).resolve().parents[1]
 STATE_FILE = REPO / "scripts/pattern4_workflow.json"
 
 MODEL_NAME = "Pattern 4 - Renewal Risk Retention"
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 ASSIGNEE_USER_ID = "1433178023"          # Cassidy Hilton (Admin)
 CE_PACKAGE_ID = "36a18258-0fb7-407a-b268-4a326c5b73c3"
 CE_PACKAGE_NAME = "pattern4ce"
 CE_FUNCTION = "writeActionStatus"
-CE_VERSION = "1.0.15"            # released package version the workflow binds to (adds askRetentionAgent)
+CE_VERSION = "1.0.16"            # released package version the workflow binds to (bounded askRetentionAgent)
 AGENT_TOOL_FUNCTION = "askRetentionAgent"   # Domo AI agent's tool -> Databricks MAS
 FORM_VERSION = 2                 # bump to force the approval form to be recreated
 

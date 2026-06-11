@@ -222,6 +222,7 @@ const state = {
   workflowRuns: {}, // actionId -> { instanceId, status: PENDING|APPROVED|REJECTED, checking, error, local }
   rejectedActionIds: {}, // actionId -> true once a workflow approval was rejected
   actionRationale: null, // { actionId, account, loading|content|error, usage } from the AI Gateway reasoning endpoint
+  approvals: { tasks: [], loading: false, live: false, busyId: null, error: "" }, // in-app workflow task approvals
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
     scenarios: LAKEBASE_MOCK.scenarios.slice(),
@@ -2677,6 +2678,7 @@ async function syncReadinessDemo() {
 const VIEW_IDS = {
   forecast: "viewForecast",
   ml: "viewMl",
+  approvals: "viewApprovals",
   lakebase: "viewLakebase",
   readiness: "viewReadiness",
   genie: "viewGenie",
@@ -2701,6 +2703,101 @@ function activateView(view) {
   // Warm the scale-to-zero Model Serving endpoint as soon as the user opens ML,
   // so the first real "Run prediction" doesn't hit a ~20-30s cold start.
   if (view === "ml") warmModelEndpoint();
+  if (view === "approvals") loadApprovals();
+}
+
+/* ---------- Approvals · Action Center (in-app workflow task approval) ---------- */
+
+function renderApprovalsRows() {
+  const body = document.getElementById("approvalsRows");
+  if (!body) return;
+  const a = state.approvals;
+  if (a.loading) {
+    body.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:22px;">Loading approval tasks…</td></tr>`;
+    return;
+  }
+  if (!a.tasks.length) {
+    body.innerHTML = `<tr><td colspan="5" style="color:var(--muted);text-align:center;padding:22px;">${a.live ? "No approval tasks yet. Approve &amp; execute an action to create one." : "Approval tasks load in the published app (Code Engine context required)."}</td></tr>`;
+    return;
+  }
+  body.innerHTML = a.tasks.map((t) => {
+    const open = t.status === "OPEN";
+    const busy = a.busyId === t.id;
+    const statusClass = open ? "pending" : (t.status === "COMPLETED" ? "executed" : "cancelled");
+    let action = "";
+    if (open && a.live) {
+      action = busy
+        ? `<span class="wf-chip">Submitting…</span>`
+        : `<div class="exec-actions">
+             <button class="action-btn" type="button" data-approve="${escapeHtml(t.id)}" data-version="${escapeHtml(String(t.version || "1"))}">Approve</button>
+             <button class="action-btn wf-explain" type="button" data-reject="${escapeHtml(t.id)}" data-version="${escapeHtml(String(t.version || "1"))}">Reject</button>
+           </div>`;
+    } else if (open) {
+      action = `<span class="approvals-note">approve in published app</span>`;
+    } else {
+      action = `<span class="action-writeback">✓ ${escapeHtml(t.status.toLowerCase())}</span>`;
+    }
+    return `<tr>
+      <td><strong>${escapeHtml(t.title || "Approve renewal-risk retention")}</strong><div class="approvals-id">${escapeHtml(t.id)}</div></td>
+      <td><span class="status ${statusClass}">${escapeHtml(t.status)}</span></td>
+      <td>${t.createdOn ? escapeHtml(fmtTaskDate(t.createdOn)) : "—"}</td>
+      <td>${t.completedOn ? escapeHtml(fmtTaskDate(t.completedOn)) : "—"}</td>
+      <td>${action}</td>
+    </tr>`;
+  }).join("");
+  body.querySelectorAll("[data-approve]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-approve"), "Approved", b.getAttribute("data-version"))));
+  body.querySelectorAll("[data-reject]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-reject"), "Rejected", b.getAttribute("data-version"))));
+}
+
+function fmtTaskDate(iso) {
+  try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+}
+
+function approvalsBanner(type, msg) {
+  const el = document.getElementById("approvalsBanner");
+  if (!el) return;
+  if (!msg) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="lb-banner ${type === "error" ? "error" : "success"}">${escapeHtml(msg)}</div>`;
+}
+
+async function loadApprovals() {
+  state.approvals.loading = true;
+  renderApprovalsRows();
+  let res = null;
+  try {
+    res = await callPattern4ce("listApprovalTasks", { limit: 50 });
+  } catch (e) {
+    state.approvals.error = String(e);
+  }
+  state.approvals.loading = false;
+  if (res && res.status === "SUCCEEDED" && Array.isArray(res.tasks)) {
+    state.approvals.tasks = res.tasks;
+    state.approvals.live = true;
+    approvalsBanner(null);
+  } else {
+    state.approvals.live = false;
+    if (res && res.error) approvalsBanner("error", "Could not load tasks: " + (typeof res.error === "string" ? res.error : JSON.stringify(res.error)));
+  }
+  renderApprovalsRows();
+}
+
+async function completeApproval(taskId, decision, version) {
+  state.approvals.busyId = taskId;
+  renderApprovalsRows();
+  let res = null;
+  try {
+    res = await callPattern4ce("completeApprovalTask", { taskId, decision, version: version || "1" });
+  } catch (e) {
+    res = { status: "FAILED", error: String(e) };
+  }
+  state.approvals.busyId = null;
+  if (res && res.status === "SUCCEEDED") {
+    approvalsBanner("ok", `Task ${decision.toLowerCase()} — workflow resumed; status writing back to the lakehouse.`);
+    await loadApprovals();
+  } else {
+    approvalsBanner("error", `Could not ${decision.toLowerCase()} task: ` + (res && res.error ? (typeof res.error === "string" ? res.error : JSON.stringify(res.error)) : "unknown"));
+    renderApprovalsRows();
+  }
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -2736,6 +2833,8 @@ function wireTabs() {
   document.querySelectorAll("[data-goto-view]").forEach((el) => {
     el.addEventListener("click", () => activateView(el.getAttribute("data-goto-view")));
   });
+  const ar = document.getElementById("approvalsRefresh");
+  if (ar) ar.addEventListener("click", loadApprovals);
 }
 
 function wireForecastControls() {

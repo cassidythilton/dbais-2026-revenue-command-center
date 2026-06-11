@@ -52,6 +52,9 @@
       <button class="view-tab" type="button" data-view="ml" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> ML Predictions
       </button>
+      <button class="view-tab" type="button" data-view="approvals" role="tab" aria-selected="false">
+        <span class="tab-dot" aria-hidden="true"></span> Approvals
+      </button>
       <button class="view-tab" type="button" data-view="lakebase" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Lakebase Ops
       </button>
@@ -306,6 +309,37 @@
     </div><!-- /viewMl -->
 
     <!-- ============================ LAKEBASE OPS ============================ -->
+    <div id="viewApprovals" class="view is-hidden">
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <h2>Approvals · Action Center</h2>
+            <p>Human-in-the-loop approvals for the governed Renewal Risk Retention workflow. Approve or reject here — the decision completes the Domo task and writes status back to the lakehouse.</p>
+          </div>
+          <span class="panel-tag">Renewal Risk Approvals queue</span>
+        </div>
+        <div id="approvalsBanner"></div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Completed</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="approvalsRows"></tbody>
+          </table>
+        </div>
+        <div class="approvals-foot">
+          <button id="approvalsRefresh" class="action-btn" type="button">Refresh</button>
+          <span class="approvals-note">Open tasks are awaiting approval; completing one resumes the workflow → <code>writeActionStatus</code> writeback.</span>
+        </div>
+      </section>
+    </div>
+
     <div id="viewLakebase" class="view is-hidden">
       <section class="panel lakebase-status-panel">
         <div class="panel-head">

@@ -208,6 +208,22 @@ def build_functions() -> list:
             ],
         ),
         fn(
+            "listApprovalTasks",
+            "List Approval Tasks",
+            [
+                number_input("limit", True),
+            ],
+        ),
+        fn(
+            "completeApprovalTask",
+            "Complete Approval Task",
+            [
+                text_input("taskId", False),
+                text_input("decision", True),
+                text_input("version", True),
+            ],
+        ),
+        fn(
             "startRetentionWorkflow",
             "Start Retention Workflow",
             [

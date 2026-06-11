@@ -56,8 +56,11 @@ var RETENTION_AGENT_ENDPOINT = "mas-77bd204b-endpoint";
  * governed workflow server-side via the product API; the workflow routes a human
  * approval, then its service task calls writeActionStatus to write status back. */
 var WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
-var WORKFLOW_VERSION = "1.0.0";
+var WORKFLOW_VERSION = "1.0.2";
 var WORKFLOW_START_MESSAGE = "Start Pattern 4 - Renewal Risk Retention";
+/* Approval queue for the Renewal Risk Retention userTask. The in-app Approvals tab
+ * lists these tasks and completes them (Approve/Reject) so the loop stays in-app. */
+var APPROVAL_QUEUE_ID = "55c37364-de76-47a3-8ba6-b5415e063e58";
 /* Lakebase connectivity (host/db/endpoint/M2M auth) is fully self-contained
  * inside the bundled lakebaseQuery() implementation below. */
 
@@ -1013,16 +1016,22 @@ function extractResponsesText(data) {
   return text;
 }
 
+// The Domo AI-agent tile that calls this tool has a tool-call timeout (~60s). The
+// Genie-backed MAS is ~45s warm but can exceed the budget when cold/slow, which hangs
+// the agent tile. So we BOUND the MAS call and fall back to the fast guardrailed
+// reasoning LLM (pattern4-reasoning-gateway, ~4s) so the tool ALWAYS returns quickly.
+var RETENTION_AGENT_BUDGET_MS = 48000;
+
 function askRetentionAgent(prompt) {
   console.log("[pattern4ce.askRetentionAgent] start", JSON.stringify({ promptPreview: String(prompt || "").slice(0, 140) }));
   var url = DATABRICKS_HOST + "/serving-endpoints/" + RETENTION_AGENT_ENDPOINT + "/invocations";
   var body = { input: [{ role: "user", content: String(prompt || "") }] };
-  // The MAS calls Genie as a tool, which can take 30-120s on a cold path; allow time.
-  return axios.post(url, body, { headers: dbxHeaders(), timeout: 220000 })
+  return axios.post(url, body, { headers: dbxHeaders(), timeout: RETENTION_AGENT_BUDGET_MS })
     .then(function (resp) {
       var data = resp.data || {};
       var recommendation = extractResponsesText(data);
-      console.log("[pattern4ce.askRetentionAgent] success", JSON.stringify({ status: data.status || null, usage: data.usage || null, chars: recommendation.length }));
+      if (!recommendation) throw new Error("empty MAS response");
+      console.log("[pattern4ce.askRetentionAgent] success", JSON.stringify({ status: data.status || null, chars: recommendation.length }));
       return {
         status: "SUCCEEDED",
         recommendation: recommendation,
@@ -1030,13 +1039,78 @@ function askRetentionAgent(prompt) {
         usage: data.usage || null,
         endpoint: RETENTION_AGENT_ENDPOINT,
         agent: "Pattern 4 Retention Supervisor (Databricks Agent Bricks)",
+        source: "mas",
         governedBy: "Unity Catalog + Genie + Model Serving"
       };
     })
     .catch(function (err) {
+      var detail = err && err.message ? err.message : String(err);
+      console.warn("[pattern4ce.askRetentionAgent] MAS exceeded budget/failed; using fast governed fallback", JSON.stringify({ error: detail }));
+      // Fast, guardrailed fallback so the Domo agent tile never hangs.
+      return askReasoningModel(prompt, "Executive Sponsor").then(function (rm) {
+        if (rm && rm.status === "SUCCEEDED") {
+          return {
+            status: "SUCCEEDED",
+            recommendation: rm.content,
+            endpoint: REASONING_ENDPOINT,
+            agent: "Pattern 4 Retention Supervisor (fast governed fallback)",
+            source: "reasoning-gateway-fallback",
+            note: "MAS exceeded the agent latency budget; returned a fast Unity AI Gateway-guardrailed recommendation.",
+            governedBy: "Unity AI Gateway (guardrails)"
+          };
+        }
+        return { status: "FAILED", error: (rm && rm.error) || detail, endpoint: RETENTION_AGENT_ENDPOINT };
+      });
+    });
+}
+
+/* ----------------- In-app approval queue (Task Center) bridge ----------------- */
+
+function listApprovalTasks(limit) {
+  console.log("[pattern4ce.listApprovalTasks] start", JSON.stringify({ limit: limit || null }));
+  return domoApi("GET", "/api/queues/v1/" + APPROVAL_QUEUE_ID + "/tasks")
+    .then(function (data) {
+      var rows = Array.isArray(data) ? data : (data && data.tasks ? data.tasks : []);
+      var tasks = rows.map(function (t) {
+        var attrs = t.attributes || [];
+        return {
+          id: t.id,
+          title: Array.isArray(attrs) && attrs.length ? attrs[0] : "Approve renewal-risk retention",
+          status: t.status,
+          version: t.version,
+          assignedTo: t.assignedTo,
+          createdOn: t.createdOn,
+          completedOn: t.completedOn,
+          completedBy: t.completedBy
+        };
+      });
+      tasks.sort(function (a, b) { return String(b.createdOn || "").localeCompare(String(a.createdOn || "")); });
+      if (limit && Number(limit) > 0) tasks = tasks.slice(0, Number(limit));
+      console.log("[pattern4ce.listApprovalTasks] ok", JSON.stringify({ count: tasks.length }));
+      return { status: "SUCCEEDED", tasks: tasks, queueId: APPROVAL_QUEUE_ID };
+    })
+    .catch(function (err) {
       var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
-      console.error("[pattern4ce.askRetentionAgent] failed", JSON.stringify({ error: detail }));
-      return { status: "FAILED", error: detail, endpoint: RETENTION_AGENT_ENDPOINT };
+      console.error("[pattern4ce.listApprovalTasks] failed", JSON.stringify({ error: detail }));
+      return { status: "FAILED", error: detail };
+    });
+}
+
+function completeApprovalTask(taskId, decision, version) {
+  var dec = decision === "Approved" || decision === "Rejected" ? decision : "Approved";
+  var ver = version === null || version === undefined || version === "" ? "1" : String(version);
+  console.log("[pattern4ce.completeApprovalTask] start", JSON.stringify({ taskId: taskId, decision: dec, version: ver }));
+  var path = "/api/queues/v1/" + APPROVAL_QUEUE_ID + "/tasks/" + encodeURIComponent(taskId) + "/complete?version=" + encodeURIComponent(ver);
+  // Body = form output aliases. Decision drives the workflow gateway (Approved/Rejected).
+  return domoApi("POST", path, { Decision: dec })
+    .then(function (data) {
+      console.log("[pattern4ce.completeApprovalTask] ok", JSON.stringify({ taskId: taskId, decision: dec }));
+      return { status: "SUCCEEDED", taskId: taskId, decision: dec, task: data || null };
+    })
+    .catch(function (err) {
+      var detail = err && err.response && err.response.data ? err.response.data : err && err.message ? err.message : String(err);
+      console.error("[pattern4ce.completeApprovalTask] failed", JSON.stringify({ taskId: taskId, error: detail }));
+      return { status: "FAILED", error: detail, taskId: taskId };
     });
 }
 
@@ -1168,6 +1242,8 @@ module.exports = {
   askGenie: askGenie,
   askReasoningModel: askReasoningModel,
   askRetentionAgent: askRetentionAgent,
+  listApprovalTasks: listApprovalTasks,
+  completeApprovalTask: completeApprovalTask,
   writeActionStatus: writeActionStatus,
   startRetentionWorkflow: startRetentionWorkflow,
   getRetentionWorkflowResult: getRetentionWorkflowResult,

@@ -28,9 +28,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "JjWstqtvzAA3yTK",
+            "id": "vN806plOHFjPAwE",
             "isList": false,
-            "mappedTo": "var_qxD4ydkTHqI",
+            "mappedTo": "var_oacULD2lqNU",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -45,9 +45,9 @@
             "displayName": "account",
             "entitySubType": null,
             "flag": "input",
-            "id": "ekQwhxpBs0CdcBX",
+            "id": "pmKqcS2gzkYopx3",
             "isList": false,
-            "mappedTo": "var_l2tOAPlRBAl",
+            "mappedTo": "var_LSTKPacQTPJ",
             "paramName": "account",
             "required": false,
             "value": null,
@@ -62,9 +62,9 @@
             "displayName": "recommendation",
             "entitySubType": null,
             "flag": "input",
-            "id": "BV4pGspEGkCnjhy",
+            "id": "jueTgRAk3Icr2Ed",
             "isList": false,
-            "mappedTo": "var_gk11vx3Xr6H",
+            "mappedTo": "var_YQTjQ2UDPzQ",
             "paramName": "recommendation",
             "required": false,
             "value": null,
@@ -79,9 +79,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "iiSEhCOk7HU7TWi",
+            "id": "W8b0SBV4k1mboIU",
             "isList": false,
-            "mappedTo": "var_NeDl0zhb1OV",
+            "mappedTo": "var_cUfUKhrJpvw",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -96,9 +96,9 @@
             "displayName": "predicted",
             "entitySubType": null,
             "flag": "input",
-            "id": "xkud3AHLzrNtxks",
+            "id": "QrjVoLOWj9b35EH",
             "isList": false,
-            "mappedTo": "var_cVp7HKNrX4d",
+            "mappedTo": "var_oKoqazQtepX",
             "paramName": "predicted",
             "required": false,
             "value": null,
@@ -113,9 +113,9 @@
             "displayName": "protectedRevenue",
             "entitySubType": null,
             "flag": "input",
-            "id": "QKdjYlHtpmbOauT",
+            "id": "MIqQrZ6vNGR3f2B",
             "isList": false,
-            "mappedTo": "var_cKD1bTTojMT",
+            "mappedTo": "var_CP0Uywwvpfq",
             "paramName": "protectedRevenue",
             "required": false,
             "value": null,
@@ -130,9 +130,9 @@
             "displayName": "sourceQuestion",
             "entitySubType": null,
             "flag": "input",
-            "id": "QnBHIKQ0tMSU0k1",
+            "id": "Fx6gnLBhrLHYKZ7",
             "isList": false,
-            "mappedTo": "var_fw2Hs42v3WL",
+            "mappedTo": "var_lXPT4hXfxn7",
             "paramName": "sourceQuestion",
             "required": false,
             "value": null,
@@ -148,7 +148,7 @@
       "type": "rootNode"
     },
     {
-      "id": "eo56F81LmcUtTbC",
+      "id": "TpX86RT7Zw8DV8Q",
       "position": {
         "x": 50,
         "y": 180
@@ -161,7 +161,7 @@
         "title": "Retention triage agent",
         "description": "",
         "prompt": {
-          "id": "R47bsOpAD2lmNZx",
+          "id": "qxaozmbm400kUT7",
           "paramName": "prompt",
           "dataType": "text",
           "mappedTo": null,
@@ -188,7 +188,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_l2tOAPlRBAl",
+                  "id": "var_LSTKPacQTPJ",
                   "name": "account",
                   "isList": false
                 },
@@ -211,7 +211,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_fw2Hs42v3WL",
+                  "id": "var_lXPT4hXfxn7",
                   "name": "sourceQuestion",
                   "isList": false
                 },
@@ -234,7 +234,7 @@
                     }
                   ],
                   "dataType": "text",
-                  "id": "var_gk11vx3Xr6H",
+                  "id": "var_YQTjQ2UDPzQ",
                   "name": "recommendation",
                   "isList": false
                 },
@@ -260,19 +260,19 @@
           "aiDescription": null
         },
         "result": {
-          "id": "j7xoTlVZQzeWOsi",
+          "id": "V6nlpvXrCA0vuau",
           "paramName": "result",
           "dataType": "object",
-          "mappedTo": "var_hopin83ckrk",
+          "mappedTo": "var_jEnLscLdC6v",
           "value": null,
           "required": true,
           "isList": false,
           "children": [
             {
-              "id": "j7xoTlVZQzeWOsi.recommendation",
+              "id": "V6nlpvXrCA0vuau.recommendation",
               "paramName": "recommendation",
               "dataType": "text",
-              "mappedTo": "var_hopin83ckrk.recommendation",
+              "mappedTo": "var_jEnLscLdC6v.recommendation",
               "value": null,
               "required": true,
               "isList": false,
@@ -302,7 +302,7 @@
               "functionDescription": "Ask the Databricks Retention Supervisor Agent (Genie-backed) for a governed retention recommendation for an at-risk account.",
               "inputs": [
                 {
-                  "id": "Ruaabcq5r0cWqHC",
+                  "id": "qBBOiyf1P5stZtT",
                   "paramName": "prompt",
                   "dataType": "text",
                   "mappedTo": null,
@@ -320,15 +320,15 @@
                 }
               ],
               "inputDescriptions": {
-                "Ruaabcq5r0cWqHC": "The account name and risk context to analyze."
+                "qBBOiyf1P5stZtT": "The account name and risk context to analyze."
               },
-              "id": "UuUdlsUn6e9EQoB",
+              "id": "hzQmjBjdhdNFyIp",
               "name": "Ask Retention Agent",
               "description": "Databricks Retention Supervisor Agent (MAS) over the Pattern 4 Genie space.",
               "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
-              "packageVersion": "1.0.15",
+              "packageVersion": "1.0.16",
               "output": {
-                "id": "dEoVuWFMdFglb7c",
+                "id": "jWCTglNrkXYZ1CL",
                 "paramName": "result",
                 "dataType": "object",
                 "mappedTo": null,
@@ -365,7 +365,7 @@
       "type": "AI_AGENT"
     },
     {
-      "id": "a08oEZBpgGjdvqO",
+      "id": "Jcf7b92WgoTUHnx",
       "position": {
         "x": 50,
         "y": 190
@@ -375,7 +375,7 @@
           "width": 200,
           "height": 60
         },
-        "title": "",
+        "title": "Approve retention action",
         "description": "",
         "_designNode": "userTaskNode",
         "configType": "form",
@@ -395,9 +395,9 @@
             "flag": "input",
             "formFieldId": "accae7ce-6e3a-4bc4-acee-5b2c94d5d3ea",
             "formFieldType": "SHORT_ANSWER",
-            "id": "isloDIypAGQcBQu",
+            "id": "Sb3Okm6CfaPkBiR",
             "isList": false,
-            "mappedTo": "var_l2tOAPlRBAl",
+            "mappedTo": "var_LSTKPacQTPJ",
             "paramName": "Account",
             "required": false,
             "value": null,
@@ -418,9 +418,9 @@
             "flag": "input",
             "formFieldId": "85ea00f4-2357-4663-855f-e955aa1a405e",
             "formFieldType": "PARAGRAPH",
-            "id": "beKN0YyPGh6SxdJ",
+            "id": "zt44hkuwZ1F5GFM",
             "isList": false,
-            "mappedTo": "var_gk11vx3Xr6H",
+            "mappedTo": "var_YQTjQ2UDPzQ",
             "paramName": "Recommendation",
             "required": false,
             "value": null,
@@ -441,9 +441,9 @@
             "flag": "input",
             "formFieldId": "020c00cd-eacd-4010-9b2c-a1aaa0a3fbb4",
             "formFieldType": "PARAGRAPH",
-            "id": "zCwKcxilodKavFw",
+            "id": "R7ioTA1I75rfTUt",
             "isList": false,
-            "mappedTo": "var_hopin83ckrk.recommendation",
+            "mappedTo": "var_jEnLscLdC6v.recommendation",
             "paramName": "Agent_Recommendation",
             "required": false,
             "value": null,
@@ -464,9 +464,9 @@
             "flag": "input",
             "formFieldId": "ab9ba7b6-215a-4bef-a838-efbd24c1ff2c",
             "formFieldType": "SHORT_ANSWER",
-            "id": "CBcggyMliHW8aAh",
+            "id": "froYzhUR52zDDiO",
             "isList": false,
-            "mappedTo": "var_cKD1bTTojMT",
+            "mappedTo": "var_CP0Uywwvpfq",
             "paramName": "Protected_Revenue",
             "required": false,
             "value": null,
@@ -487,9 +487,9 @@
             "flag": "input",
             "formFieldId": "fdbfac69-200c-420b-abb9-2ecc77313db4",
             "formFieldType": "PARAGRAPH",
-            "id": "ZD67SAL3mjy8kHa",
+            "id": "ShocJ1O3EKXWs0q",
             "isList": false,
-            "mappedTo": "var_fw2Hs42v3WL",
+            "mappedTo": "var_lXPT4hXfxn7",
             "paramName": "Source_Question",
             "required": false,
             "value": null,
@@ -510,7 +510,7 @@
             "flag": "input",
             "formFieldId": "a896a74f-ec9a-462d-9402-eee709524ff9",
             "formFieldType": "SINGLE_CHOICE",
-            "id": "I1e3x53PSI6ofgc",
+            "id": "ku2TEZkKZu6SbP1",
             "isList": false,
             "mappedTo": null,
             "paramName": "Decision",
@@ -535,9 +535,9 @@
             "flag": "output",
             "formFieldId": "accae7ce-6e3a-4bc4-acee-5b2c94d5d3ea",
             "formFieldType": "SHORT_ANSWER",
-            "id": "i7SQwNqUt5Rh6fS",
+            "id": "dZ06Q6pPgIIsn6G",
             "isList": false,
-            "mappedTo": "var_l2tOAPlRBAl",
+            "mappedTo": "var_LSTKPacQTPJ",
             "paramName": "Account",
             "required": false,
             "value": null,
@@ -558,9 +558,9 @@
             "flag": "output",
             "formFieldId": "85ea00f4-2357-4663-855f-e955aa1a405e",
             "formFieldType": "PARAGRAPH",
-            "id": "YhnYdll3t0MbgOW",
+            "id": "FLu6upNdnqb7gAE",
             "isList": false,
-            "mappedTo": "var_gk11vx3Xr6H",
+            "mappedTo": "var_YQTjQ2UDPzQ",
             "paramName": "Recommendation",
             "required": false,
             "value": null,
@@ -581,9 +581,9 @@
             "flag": "output",
             "formFieldId": "020c00cd-eacd-4010-9b2c-a1aaa0a3fbb4",
             "formFieldType": "PARAGRAPH",
-            "id": "wEETgIGZt4xcCo2",
+            "id": "iUx47N6mknWV3hy",
             "isList": false,
-            "mappedTo": "var_hopin83ckrk.recommendation",
+            "mappedTo": "var_jEnLscLdC6v.recommendation",
             "paramName": "Agent_Recommendation",
             "required": false,
             "value": null,
@@ -604,9 +604,9 @@
             "flag": "output",
             "formFieldId": "ab9ba7b6-215a-4bef-a838-efbd24c1ff2c",
             "formFieldType": "SHORT_ANSWER",
-            "id": "itdEMrXfPgeAzW6",
+            "id": "r7oFZm1h9lb2Nsh",
             "isList": false,
-            "mappedTo": "var_cKD1bTTojMT",
+            "mappedTo": "var_CP0Uywwvpfq",
             "paramName": "Protected_Revenue",
             "required": false,
             "value": null,
@@ -627,9 +627,9 @@
             "flag": "output",
             "formFieldId": "fdbfac69-200c-420b-abb9-2ecc77313db4",
             "formFieldType": "PARAGRAPH",
-            "id": "DIUJcxhuGS9E04l",
+            "id": "SmTN61h8zPGLfXs",
             "isList": false,
-            "mappedTo": "var_fw2Hs42v3WL",
+            "mappedTo": "var_lXPT4hXfxn7",
             "paramName": "Source_Question",
             "required": false,
             "value": null,
@@ -650,9 +650,9 @@
             "flag": "output",
             "formFieldId": "a896a74f-ec9a-462d-9402-eee709524ff9",
             "formFieldType": "SINGLE_CHOICE",
-            "id": "WGvr3ffObpsEadA",
+            "id": "Cx7DqHAeQRIbGM1",
             "isList": false,
-            "mappedTo": "var_ETqFGCAObYG",
+            "mappedTo": "var_LTJCsxDudiX",
             "paramName": "Decision",
             "required": true,
             "value": null,
@@ -673,7 +673,7 @@
           "displayName": "Assigned To",
           "entitySubType": null,
           "flag": "input",
-          "id": "jpGWclFk5dJP4E4",
+          "id": "stxa6iouTsTMg2v",
           "isList": false,
           "mappedTo": null,
           "paramName": "DOMO_ASSIGNED_TO_",
@@ -690,7 +690,7 @@
       "type": "userTaskNode"
     },
     {
-      "id": "AiUvmAdOgbeS862",
+      "id": "F45Y1j9DvfU1poi",
       "position": {
         "x": 50,
         "y": 500
@@ -713,7 +713,7 @@
       "type": "conditionalGatewayNode"
     },
     {
-      "id": "zwpLKfzFaK5xQd8",
+      "id": "au14OPZs6p4SS6Z",
       "position": {
         "x": 50,
         "y": 660
@@ -736,9 +736,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "Oi5luNwcx7KcXup",
+            "id": "sUwscml53hRNKaJ",
             "isList": false,
-            "mappedTo": "var_qxD4ydkTHqI",
+            "mappedTo": "var_oacULD2lqNU",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -753,7 +753,7 @@
             "displayName": "decision",
             "entitySubType": null,
             "flag": "input",
-            "id": "EvlXk1ukKFk4rCY",
+            "id": "OaPx8Z1162x37AF",
             "isList": false,
             "mappedTo": null,
             "paramName": "decision",
@@ -770,7 +770,7 @@
             "displayName": "executionStatus",
             "entitySubType": null,
             "flag": "input",
-            "id": "mcIjtr0WAxq2cQp",
+            "id": "G9VX9igBlNOoE3I",
             "isList": false,
             "mappedTo": null,
             "paramName": "executionStatus",
@@ -787,7 +787,7 @@
             "displayName": "approvedBy",
             "entitySubType": null,
             "flag": "input",
-            "id": "SBcKZ5ZtWC8FDK5",
+            "id": "hLb4oFqAAUvVmra",
             "isList": false,
             "mappedTo": null,
             "paramName": "approvedBy",
@@ -804,7 +804,7 @@
             "displayName": "note",
             "entitySubType": null,
             "flag": "input",
-            "id": "XZUCvkhZWCjxuIZ",
+            "id": "OpAGw2s6hFHcxjs",
             "isList": false,
             "mappedTo": null,
             "paramName": "note",
@@ -821,9 +821,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "CbdGJnWF5Am1uvA",
+            "id": "xyvlkRQJhB3XfoO",
             "isList": false,
-            "mappedTo": "var_NeDl0zhb1OV",
+            "mappedTo": "var_cUfUKhrJpvw",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -833,7 +833,7 @@
         "output": [],
         "taskType": "nebulaFunction",
         "metadata": {
-          "version": "1.0.15",
+          "version": "1.0.16",
           "settings": {},
           "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
           "packageName": "pattern4ce",
@@ -851,7 +851,7 @@
       "type": "serviceTaskNode"
     },
     {
-      "id": "KfE3XgCbadIZf4g",
+      "id": "kFvZdJiEdPYC7AB",
       "position": {
         "x": 360,
         "y": 660
@@ -874,9 +874,9 @@
             "displayName": "actionId",
             "entitySubType": null,
             "flag": "input",
-            "id": "BlGT806OOaxoxl5",
+            "id": "J6kzR8SGE6mkmnr",
             "isList": false,
-            "mappedTo": "var_qxD4ydkTHqI",
+            "mappedTo": "var_oacULD2lqNU",
             "paramName": "actionId",
             "required": true,
             "value": null,
@@ -891,7 +891,7 @@
             "displayName": "decision",
             "entitySubType": null,
             "flag": "input",
-            "id": "eMtcy0QjzAc4zbb",
+            "id": "OhpzsIjjsU5EAm8",
             "isList": false,
             "mappedTo": null,
             "paramName": "decision",
@@ -908,7 +908,7 @@
             "displayName": "executionStatus",
             "entitySubType": null,
             "flag": "input",
-            "id": "tQ3eo09mmqaxhKV",
+            "id": "tlLuHSQS6ddaxiA",
             "isList": false,
             "mappedTo": null,
             "paramName": "executionStatus",
@@ -925,7 +925,7 @@
             "displayName": "approvedBy",
             "entitySubType": null,
             "flag": "input",
-            "id": "yYotAHTs6yU235c",
+            "id": "Bfu2QWPTC6spmHH",
             "isList": false,
             "mappedTo": null,
             "paramName": "approvedBy",
@@ -942,7 +942,7 @@
             "displayName": "note",
             "entitySubType": null,
             "flag": "input",
-            "id": "EYoH5yzBHB3s5A5",
+            "id": "BHUOR8Uf0zCX8Qw",
             "isList": false,
             "mappedTo": null,
             "paramName": "note",
@@ -959,9 +959,9 @@
             "displayName": "persona",
             "entitySubType": null,
             "flag": "input",
-            "id": "Ew8JVelrSrMk6BS",
+            "id": "YKGpe24Ca8DdSSe",
             "isList": false,
-            "mappedTo": "var_NeDl0zhb1OV",
+            "mappedTo": "var_cUfUKhrJpvw",
             "paramName": "persona",
             "required": false,
             "value": null,
@@ -971,7 +971,7 @@
         "output": [],
         "taskType": "nebulaFunction",
         "metadata": {
-          "version": "1.0.15",
+          "version": "1.0.16",
           "settings": {},
           "packageId": "36a18258-0fb7-407a-b268-4a326c5b73c3",
           "packageName": "pattern4ce",
@@ -989,7 +989,7 @@
       "type": "serviceTaskNode"
     },
     {
-      "id": "nrOd2oqnmelF8oQ",
+      "id": "Od0O003QPs7wMXG",
       "position": {
         "x": 50,
         "y": 820
@@ -1012,7 +1012,7 @@
       "type": "endNode"
     },
     {
-      "id": "xRqlOfRs42odumR",
+      "id": "kpUv39Sj3XqTNvu",
       "position": {
         "x": 360,
         "y": 820
@@ -1035,9 +1035,9 @@
       "type": "endNode"
     },
     {
-      "id": "edge-rootNode-eo56F81LmcUtTbC-tn71caQl3ra",
+      "id": "edge-rootNode-TpX86RT7Zw8DV8Q-S0ma4droBsQ",
       "source": "rootNode",
-      "target": "eo56F81LmcUtTbC",
+      "target": "TpX86RT7Zw8DV8Q",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1061,9 +1061,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-eo56F81LmcUtTbC-a08oEZBpgGjdvqO-C3a7nI2x54B",
-      "source": "eo56F81LmcUtTbC",
-      "target": "a08oEZBpgGjdvqO",
+      "id": "edge-TpX86RT7Zw8DV8Q-Jcf7b92WgoTUHnx-olNAlTDm3Mk",
+      "source": "TpX86RT7Zw8DV8Q",
+      "target": "Jcf7b92WgoTUHnx",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1087,9 +1087,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-a08oEZBpgGjdvqO-AiUvmAdOgbeS862-RPcBn6KS1x4",
-      "source": "a08oEZBpgGjdvqO",
-      "target": "AiUvmAdOgbeS862",
+      "id": "edge-Jcf7b92WgoTUHnx-F45Y1j9DvfU1poi-npv10cm2TXs",
+      "source": "Jcf7b92WgoTUHnx",
+      "target": "F45Y1j9DvfU1poi",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1113,9 +1113,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-AiUvmAdOgbeS862-zwpLKfzFaK5xQd8-SExlvwm2xde",
-      "source": "AiUvmAdOgbeS862",
-      "target": "zwpLKfzFaK5xQd8",
+      "id": "edge-F45Y1j9DvfU1poi-au14OPZs6p4SS6Z-T2mkOmiu32O",
+      "source": "F45Y1j9DvfU1poi",
+      "target": "au14OPZs6p4SS6Z",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1134,7 +1134,7 @@
         "description": "",
         "title": "Approved",
         "type": "Basic",
-        "nodeId": "LcvSaBAevNysIKa",
+        "nodeId": "Z4UYls3IC0jhbRX",
         "position": {
           "x": 50,
           "y": 430
@@ -1149,7 +1149,7 @@
           [
             {
               "variable": {
-                "id": "var_ETqFGCAObYG",
+                "id": "var_LTJCsxDudiX",
                 "paramName": "decision",
                 "dataType": "text",
                 "isList": false,
@@ -1172,9 +1172,9 @@
       "type": "conditionEdge"
     },
     {
-      "id": "edge-AiUvmAdOgbeS862-KfE3XgCbadIZf4g-vgeiRrd8RxM",
-      "source": "AiUvmAdOgbeS862",
-      "target": "KfE3XgCbadIZf4g",
+      "id": "edge-F45Y1j9DvfU1poi-kFvZdJiEdPYC7AB-f89Ibi5g5YT",
+      "source": "F45Y1j9DvfU1poi",
+      "target": "kFvZdJiEdPYC7AB",
       "data": {
         "sourcePosition": "right",
         "targetPosition": "top",
@@ -1197,7 +1197,7 @@
         "description": "",
         "title": "Rejected",
         "type": "Default",
-        "nodeId": "dcrSgH3ZAWvDUT7",
+        "nodeId": "Y4ROdJtMbFmui8z",
         "position": {
           "x": 50,
           "y": 430
@@ -1215,9 +1215,9 @@
       "type": "conditionEdge"
     },
     {
-      "id": "edge-zwpLKfzFaK5xQd8-nrOd2oqnmelF8oQ-z2PvecOO28t",
-      "source": "zwpLKfzFaK5xQd8",
-      "target": "nrOd2oqnmelF8oQ",
+      "id": "edge-au14OPZs6p4SS6Z-Od0O003QPs7wMXG-lmO8nSYu7TT",
+      "source": "au14OPZs6p4SS6Z",
+      "target": "Od0O003QPs7wMXG",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1241,9 +1241,9 @@
       "type": "defaultEdge"
     },
     {
-      "id": "edge-KfE3XgCbadIZf4g-xRqlOfRs42odumR-XuUMES7nNYq",
-      "source": "KfE3XgCbadIZf4g",
-      "target": "xRqlOfRs42odumR",
+      "id": "edge-kFvZdJiEdPYC7AB-kpUv39Sj3XqTNvu-IwfLoYlMQ4D",
+      "source": "kFvZdJiEdPYC7AB",
+      "target": "kpUv39Sj3XqTNvu",
       "data": {
         "sourcePosition": "bottom",
         "targetPosition": "top",
@@ -1269,7 +1269,7 @@
   ],
   "dataList": [
     {
-      "id": "var_qxD4ydkTHqI",
+      "id": "var_oacULD2lqNU",
       "paramName": "actionId",
       "dataType": "text",
       "isList": false,
@@ -1280,7 +1280,7 @@
       "isOutput": false
     },
     {
-      "id": "var_l2tOAPlRBAl",
+      "id": "var_LSTKPacQTPJ",
       "paramName": "account",
       "dataType": "text",
       "isList": false,
@@ -1291,7 +1291,7 @@
       "isOutput": false
     },
     {
-      "id": "var_gk11vx3Xr6H",
+      "id": "var_YQTjQ2UDPzQ",
       "paramName": "recommendation",
       "dataType": "text",
       "isList": false,
@@ -1302,7 +1302,7 @@
       "isOutput": false
     },
     {
-      "id": "var_NeDl0zhb1OV",
+      "id": "var_cUfUKhrJpvw",
       "paramName": "persona",
       "dataType": "text",
       "isList": false,
@@ -1313,7 +1313,7 @@
       "isOutput": false
     },
     {
-      "id": "var_cVp7HKNrX4d",
+      "id": "var_oKoqazQtepX",
       "paramName": "predicted",
       "dataType": "decimal",
       "isList": false,
@@ -1324,7 +1324,7 @@
       "isOutput": false
     },
     {
-      "id": "var_cKD1bTTojMT",
+      "id": "var_CP0Uywwvpfq",
       "paramName": "protectedRevenue",
       "dataType": "decimal",
       "isList": false,
@@ -1335,7 +1335,7 @@
       "isOutput": false
     },
     {
-      "id": "var_fw2Hs42v3WL",
+      "id": "var_lXPT4hXfxn7",
       "paramName": "sourceQuestion",
       "dataType": "text",
       "isList": false,
@@ -1346,7 +1346,7 @@
       "isOutput": false
     },
     {
-      "id": "var_ETqFGCAObYG",
+      "id": "var_LTJCsxDudiX",
       "paramName": "decision",
       "dataType": "text",
       "isList": false,
@@ -1357,13 +1357,13 @@
       "isOutput": true
     },
     {
-      "id": "var_hopin83ckrk",
+      "id": "var_jEnLscLdC6v",
       "paramName": "agentRecommendation",
       "dataType": "object",
       "isList": false,
       "children": [
         {
-          "id": "var_hopin83ckrk.recommendation",
+          "id": "var_jEnLscLdC6v.recommendation",
           "paramName": "recommendation",
           "dataType": "text",
           "isList": false,
@@ -1382,73 +1382,73 @@
   ],
   "schema": {
     "inputs": {
-      "JjWstqtvzAA3yTK": {
+      "vN806plOHFjPAwE": {
         "name": "actionId",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": false,
-        "id": "JjWstqtvzAA3yTK",
+        "id": "vN806plOHFjPAwE",
         "parent": null,
         "isChild": false
       },
-      "ekQwhxpBs0CdcBX": {
+      "pmKqcS2gzkYopx3": {
         "name": "account",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "ekQwhxpBs0CdcBX",
+        "id": "pmKqcS2gzkYopx3",
         "parent": null,
         "isChild": false
       },
-      "BV4pGspEGkCnjhy": {
+      "jueTgRAk3Icr2Ed": {
         "name": "recommendation",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "BV4pGspEGkCnjhy",
+        "id": "jueTgRAk3Icr2Ed",
         "parent": null,
         "isChild": false
       },
-      "iiSEhCOk7HU7TWi": {
+      "W8b0SBV4k1mboIU": {
         "name": "persona",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "iiSEhCOk7HU7TWi",
+        "id": "W8b0SBV4k1mboIU",
         "parent": null,
         "isChild": false
       },
-      "xkud3AHLzrNtxks": {
+      "QrjVoLOWj9b35EH": {
         "name": "predicted",
         "type": "decimal",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "xkud3AHLzrNtxks",
+        "id": "QrjVoLOWj9b35EH",
         "parent": null,
         "isChild": false
       },
-      "QKdjYlHtpmbOauT": {
+      "MIqQrZ6vNGR3f2B": {
         "name": "protectedRevenue",
         "type": "decimal",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "QKdjYlHtpmbOauT",
+        "id": "MIqQrZ6vNGR3f2B",
         "parent": null,
         "isChild": false
       },
-      "QnBHIKQ0tMSU0k1": {
+      "Fx6gnLBhrLHYKZ7": {
         "name": "sourceQuestion",
         "type": "text",
         "subType": null,
         "isList": false,
         "isNullable": true,
-        "id": "QnBHIKQ0tMSU0k1",
+        "id": "Fx6gnLBhrLHYKZ7",
         "parent": null,
         "isChild": false
       }
