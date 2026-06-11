@@ -225,6 +225,12 @@
             </table>
           </div>
           <div id="actionRationale" class="action-rationale" hidden></div>
+          <div class="agent-source">
+            <span class="agent-source-label">Databricks agent (called from Domo):</span>
+            <a class="link-btn" href="#" data-agent-build="1">Pattern 4 Retention Supervisor ↗</a>
+            <span class="agent-source-sep">·</span>
+            <a class="link-btn" href="#" data-agent-traces="1">Agent activity log (MLflow traces) ↗</a>
+          </div>
         </article>
 
         <article class="panel col-12">
@@ -336,6 +342,7 @@
         <div class="approvals-foot">
           <button id="approvalsRefresh" class="action-btn" type="button">Refresh</button>
           <a id="approvalsWritebackLink" class="link-btn" href="#">View writeback in Databricks ↗</a>
+          <a class="link-btn" href="#" data-agent-traces="1">Agent activity log ↗</a>
           <span class="approvals-note">Completing a task resumes the workflow → <code>writeActionStatus</code> writeback to <code>agent_action_writeback</code> (Unity Catalog).</span>
         </div>
       </section>

@@ -900,6 +900,19 @@ td.num {
   color: var(--status-good);
 }
 
+/* "Go to source" — Databricks agent + activity log links */
+.agent-source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.agent-source-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+.agent-source-sep { color: var(--line-strong); }
+
 /* Approvals · Action Center */
 .approvals-id { font-size: 10px; color: var(--muted); font-family: var(--font-mono, monospace); margin-top: 2px; }
 .approvals-foot { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }

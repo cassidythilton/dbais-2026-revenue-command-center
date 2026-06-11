@@ -764,6 +764,7 @@ function renderActions(actions) {
           actionCell = `<div class="exec-actions">
               <span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>
               ${run && run.local ? "" : `<a class="link-btn" href="#" data-writeback-src="1" title="View agent_action_writeback in Databricks">View in Databricks ↗</a>`}
+              ${run && run.local ? "" : `<a class="link-btn" href="#" data-agent-traces="1" title="The Databricks agent's reasoning trace in MLflow">Agent activity ↗</a>`}
             </div>`;
         }
         return `
@@ -795,6 +796,7 @@ function renderActions(actions) {
   document.querySelectorAll("[data-writeback-src]").forEach((link) => {
     link.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); });
   });
+  wireAgentLinks();
   document.querySelectorAll("[data-explain]").forEach((button) => {
     button.addEventListener("click", () => explainAction(
       button.getAttribute("data-explain"),
@@ -803,6 +805,19 @@ function renderActions(actions) {
     ));
   });
   renderActionRationale();
+}
+
+// "Go to source" → the Databricks agent + its MLflow activity log. Static + dynamic
+// links across the action queue / approvals; guarded so we wire each element once.
+function wireAgentLinks() {
+  document.querySelectorAll("[data-agent-build]:not([data-wired])").forEach((el) => {
+    el.dataset.wired = "1";
+    el.addEventListener("click", (e) => { e.preventDefault(); openExternal(AGENT_BUILD_URL); });
+  });
+  document.querySelectorAll("[data-agent-traces]:not([data-wired])").forEach((el) => {
+    el.dataset.wired = "1";
+    el.addEventListener("click", (e) => { e.preventDefault(); openExternal(AGENT_TRACES_URL); });
+  });
 }
 
 function renderActionRationale() {
@@ -1957,7 +1972,7 @@ const FLOW_STAGES = [
   {
     id: "act", name: "Agent ⇄ Agent + Workflow", sub: "Domo agent calls a Databricks agent", plane: "domo", icon: "action",
     lead: "Agent-to-agent. Approve & execute starts a live, governed Domo Workflow (Renewal Risk Retention). Inside it, a Domo AI Agent tile calls a Databricks Agent Bricks Supervisor Agent (which reasons over governed gold views via Genie) to produce a retention recommendation; a human approves it in Domo Tasks; then a service task writes status back to the lakehouse.",
-    bullets: ["Domo AI Agent tile → pattern4ce.askRetentionAgent → Databricks Supervisor Agent (mas-…, Genie-backed)", "Approve & execute → startRetentionWorkflow starts the workflow server-side (run id captured)", "Human approval → writeActionStatus writes Approved/Executed or Rejected to agent_action_writeback (Delta); CE writeback is the fallback"],
+    bullets: ["Domo AI Agent tile → pattern4ce.askRetentionAgent → Databricks Supervisor Agent (mas-…, Genie-backed)", "Approve & execute → startRetentionWorkflow starts the workflow server-side (run id captured)", "Human approval → writeActionStatus writes Approved/Executed or Rejected to agent_action_writeback (Delta); CE writeback is the fallback", "Go to source: every agent decision is traced in MLflow; open the agent + its activity log straight from the Agent Action Queue"],
     input: "Genie reasoning + model scores",
     output: "Approved action + status writeback",
     governed: "Domo RBAC + approval gates",
@@ -2757,6 +2772,7 @@ function renderApprovalsRows() {
   }).join("");
   body.querySelectorAll("[data-approve]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-approve"), "Approved", b.getAttribute("data-version"))));
   body.querySelectorAll("[data-reject]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-reject"), "Rejected", b.getAttribute("data-version"))));
+  wireAgentLinks();
 }
 
 function fmtTaskDate(iso) {
@@ -2892,6 +2908,10 @@ const LAKEBASE_TABLES_LINK = `${LAKEBASE_PROJECT_LINK}/branches/br-lingering-cel
 const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/gold_incident_revenue_impact?o=8127410670216233&activeTab=lineage`;
 // The governed writeback record (Delta, same UC schema as the gold views).
 const WRITEBACK_TABLE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_agent_automation/agent_action_writeback`;
+// "Go to source" for the Databricks agent the Domo workflow calls: the Agent Bricks
+// build page + its MLflow trace log (every run's reasoning + Genie tool calls).
+const AGENT_BUILD_URL = `${WORKSPACE_HOST}/ml/bricks/sa/build/77bd204b-0051-445c-8434-8a12b65f90e1?o=8127410670216233`;
+const AGENT_TRACES_URL = `${WORKSPACE_HOST}/ml/experiments/1772952801684800/traces?o=8127410670216233`;
 // Live Domo Workflow (Renewal Risk Retention). Approve & execute starts this governed
 // workflow server-side via pattern4ce.startRetentionWorkflow; the human approval task
 // routes to the demo user's Domo Tasks, then writeActionStatus writes status back.
