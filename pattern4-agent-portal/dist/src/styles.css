@@ -900,6 +900,15 @@ td.num {
   color: var(--status-good);
 }
 
+/* Execution cell: keep the status pill and action affordances from bunching up */
+.exec-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.exec-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.exec-actions .action-btn,
+.exec-actions .wf-chip,
+.exec-actions .wf-link,
+.exec-actions .wf-err,
+.exec-actions .action-writeback { margin-left: 0; }
+
 /* Live Domo Workflow run affordances */
 .status.in-workflow { color: var(--status-info); background: var(--status-info-bg); }
 

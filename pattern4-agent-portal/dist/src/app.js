@@ -751,9 +751,9 @@ function renderActions(actions) {
             data-recommendation="${escapeHtml(a.recommendation || "")}">AI rationale ↗</button>`;
         } else if (run && run.status === "PENDING") {
           actionCell = `
-            <span class="wf-chip" title="Live Domo Workflow instance">▶ workflow ${run.local ? "(local)" : escapeHtml(shortId)}</span>
+            <span class="wf-chip" title="Live Domo Workflow instance">▶ workflow ${run.local ? "(local)" : escapeHtml(shortId)} · awaiting approval</span>
             <button class="action-btn wf-check" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh status"}</button>
-            <a class="wf-link" href="#" data-wf-task="1">Open approval task ↗</a>
+            <a class="wf-link" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open approval task ↗</a>
             ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">trigger fallback</span>` : ""}`;
         } else if (a.justActioned) {
           actionCell = `<span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>`;
@@ -764,8 +764,10 @@ function renderActions(actions) {
           <td>${escapeHtml(a.recommendation)}</td>
           <td><span class="status ${a.approval.toLowerCase()}">${a.approval}</span></td>
           <td>
-            <span class="status ${a.execution.toLowerCase().replace(/\s+/g, "-")}">${a.execution}</span>
-            ${actionCell}
+            <div class="exec-cell">
+              <span class="status ${a.execution.toLowerCase().replace(/\s+/g, "-")}">${a.execution}</span>
+              ${actionCell ? `<div class="exec-actions">${actionCell}</div>` : ""}
+            </div>
           </td>
           <td class="num">${fmtCurrency(a.protected)}</td>
         </tr>
@@ -780,7 +782,7 @@ function renderActions(actions) {
     button.addEventListener("click", () => checkWorkflow(button.getAttribute("data-wf-check")));
   });
   document.querySelectorAll("[data-wf-task]").forEach((link) => {
-    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(WORKFLOW_TASKS_URL); });
+    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"))); });
   });
   document.querySelectorAll("[data-explain]").forEach((button) => {
     button.addEventListener("click", () => explainAction(
@@ -1171,7 +1173,7 @@ function mockPredict(f) {
 }
 
 function startRunLog(log, steps) {
-  if (!log) return { finish: function () {} };
+  if (!log) return { finish: function () {}, note: function () {} };
   log.hidden = false;
   log.classList.add("running");
   log.innerHTML = `<div class="run-log-rows">${steps
@@ -1187,6 +1189,14 @@ function startRunLog(log, steps) {
   const holdAt = Math.max(0, steps.length - 2);
   const timer = setInterval(() => { if (active < holdAt) { active++; setActive(active); } }, 850);
   return {
+    note(msg) {
+      const rowsHost = log.querySelector(".run-log-rows");
+      if (!rowsHost) return;
+      const row = document.createElement("div");
+      row.className = "run-step active";
+      row.innerHTML = `<span class="run-dot"></span><span class="run-text">${escapeHtml(msg)}</span>`;
+      rowsHost.appendChild(row);
+    },
     finish(msg, ok) {
       clearInterval(timer);
       rows.forEach((row) => { row.classList.remove("active"); row.classList.add("done"); });
@@ -1216,21 +1226,23 @@ async function runInference() {
     "Awaiting predictions — scale-to-zero cold start can take ~20–30s",
     "Parsing predictions[]",
   ]);
-  // Live path (when serving + CE function exist): pattern4ce.runModelInference
+  // Live path (when serving + CE function exist): pattern4ce.runModelInference.
+  // The endpoint is scale-to-zero, so the first call may cold-start (~20-30s) and
+  // return no prediction; retry once (the replica is warming) before falling back.
   let r = null;
   if (window.domo && typeof window.domo.post === "function" && state.mlInferenceBridge) {
     try {
-      const out = await callPattern4ce("runModelInference", { records: [f] });
-      if (out && Array.isArray(out.predictions) && out.predictions.length) {
-        const prob = Number(out.predictions[0]);
-        const arr = Number(f.annual_recurring_revenue || 0);
-        const t = riskTier(prob);
-        state.mlServing = true;
-        r = { probability: prob, revenueAtRisk: arr * prob, tier: t.tier, drivers: riskDrivers(f), action: t.action, live: true };
+      r = await liveInfer(f);
+      if (!r) {
+        anim.note("Endpoint warming (scale-to-zero) — retrying…");
+        await sleep(2000);
+        r = await liveInfer(f);
       }
+      state.mlServing = !!r;
     } catch (e) {
-      console.warn("runModelInference failed; using local model", e);
-      state.mlServing = false;
+      console.warn("runModelInference failed; retrying once before fallback", e);
+      try { await sleep(2000); r = await liveInfer(f); state.mlServing = !!r; }
+      catch (e2) { console.warn("runModelInference retry failed; using local model", e2); state.mlServing = false; }
     }
   }
   if (!r) r = mockPredict(f);
@@ -2686,6 +2698,35 @@ function activateView(view) {
   // The forecast SVG needs a measured width; (re)render when its view becomes visible.
   if (view === "forecast") renderForecast(personaView());
   if (view === "readiness") renderReadiness();
+  // Warm the scale-to-zero Model Serving endpoint as soon as the user opens ML,
+  // so the first real "Run prediction" doesn't hit a ~20-30s cold start.
+  if (view === "ml") warmModelEndpoint();
+}
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function warmModelEndpoint() {
+  if (state.mlWarmStarted || !(window.domo && typeof window.domo.post === "function") || !state.mlInferenceBridge) return;
+  state.mlWarmStarted = true;
+  try {
+    const f = collectMlFeatures();
+    const out = await callPattern4ce("runModelInference", { records: [f] });
+    if (out && Array.isArray(out.predictions) && out.predictions.length) state.mlServing = true;
+  } catch (e) {
+    // Warm-up is best-effort; the real run will retry.
+    state.mlWarmStarted = false;
+  }
+}
+
+async function liveInfer(f) {
+  const out = await callPattern4ce("runModelInference", { records: [f] });
+  if (out && Array.isArray(out.predictions) && out.predictions.length) {
+    const prob = Number(out.predictions[0]);
+    const arr = Number(f.annual_recurring_revenue || 0);
+    const t = riskTier(prob);
+    return { probability: prob, revenueAtRisk: arr * prob, tier: t.tier, drivers: riskDrivers(f), action: t.action, live: true };
+  }
+  return null;
 }
 
 function wireTabs() {
@@ -2743,7 +2784,15 @@ const LINEAGE_URL = `${WORKSPACE_HOST}/explore/data/databricks_raptor/pattern4_a
 // routes to the demo user's Domo Tasks, then writeActionStatus writes status back.
 const DOMO_INSTANCE_URL = "https://databricks-demo.domo.com";
 const WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
+const WORKFLOW_VERSION = "1.0.0";
 const WORKFLOW_TASKS_URL = `${DOMO_INSTANCE_URL}/workflows/${WORKFLOW_MODEL_ID}`;
+
+// The human-approval task is actionable from the workflow INSTANCE monitor
+// (it has "View associated task"); the bare model URL is the editor (blank to approvers).
+function workflowInstanceUrl(instanceId) {
+  if (!instanceId) return WORKFLOW_TASKS_URL;
+  return `${DOMO_INSTANCE_URL}/workflows/instances/${WORKFLOW_MODEL_ID}/${WORKFLOW_VERSION}/${instanceId}`;
+}
 
 const GENIE_MODELS = [
   { value: "genie-default", label: "Genie (default)", sub: "AI/BI" },

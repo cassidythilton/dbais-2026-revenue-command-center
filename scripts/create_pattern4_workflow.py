@@ -260,7 +260,7 @@ def build_definition(model_id, form, queue_id) -> dict:
     user_task = {
         "id": ut_id, "position": {"x": 50, "y": 190},
         "data": {
-            "dimensions": {"width": 200, "height": 60}, "title": "", "description": "",
+            "dimensions": {"width": 200, "height": 60}, "title": "Approve retention action", "description": "",
             "_designNode": "userTaskNode", "configType": "form",
             "selectedUserTaskTitle": "Approve renewal-risk retention",
             "selectedUserTaskDescription": "",
@@ -496,7 +496,12 @@ def main() -> int:
     try:
         put_definition(c, model_id, definition)
     except DomoApiError as e:
-        print("PUT definition ERR", e.status_code, pretty(e.payload) if e.payload else str(e))
+        msg = json.dumps(e.payload) if e.payload else str(e)
+        if "released model version" in msg:
+            print(f"NOTE: version {VERSION} is deployed/locked; definition changes require a NEW version "
+                  f"(bump VERSION here + CE WORKFLOW_VERSION + re-release). Leaving the live version as-is.")
+            return 0
+        print("PUT definition ERR", e.status_code, pretty(e.payload) if e.payload else msg)
         return 1
 
     allv, errs = validate(c, model_id)
