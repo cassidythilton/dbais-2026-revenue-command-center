@@ -221,7 +221,7 @@ const state = {
   protectedBump: 0, // running protected-revenue added by approvals this session
   workflowRuns: {}, // actionId -> { instanceId, status: PENDING|APPROVED|REJECTED, checking, error, local }
   rejectedActionIds: {}, // actionId -> true once a workflow approval was rejected
-  actionRationale: null, // { actionId, account, loading|content|error, usage } from the AI Gateway reasoning endpoint
+  agentInspect: null, // { actionId, account, instance, loading|transcript|error, source } — in-app Databricks agent reasoning
   approvals: { tasks: [], loading: false, live: false, busyId: null, error: "" }, // in-app workflow task approvals
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
@@ -739,33 +739,35 @@ function renderActions(actions) {
         const run = a.run;
         const pending = !run && (a.execution === "Waiting" || a.approval === "Pending");
         const shortId = run && run.instanceId ? String(run.instanceId).slice(0, 8) : "";
+        const inspectAttrs = `data-inspect="${escapeHtml(a.actionId)}" data-account="${escapeHtml(a.account || "")}" data-recommendation="${escapeHtml(a.recommendation || "")}" data-instance="${escapeHtml((run && run.instanceId) || "")}"`;
+        const inspectLink = `<a class="link-btn inspect-link" href="#" ${inspectAttrs}>Inspect agent ▸</a>`;
         let actionCell = "";
         if (pending) {
-          actionCell = `<button class="action-btn" type="button"
-            data-action-id="${escapeHtml(a.actionId)}"
-            data-protected="${Number(a.protected) || 0}"
-            data-account="${escapeHtml(a.account || "")}"
-            data-recommendation="${escapeHtml(a.recommendation || "")}">Approve &amp; execute</button>
-            <button class="link-btn" type="button"
-            data-explain="${escapeHtml(a.actionId)}"
-            data-account="${escapeHtml(a.account || "")}"
-            data-recommendation="${escapeHtml(a.recommendation || "")}">AI rationale ↗</button>`;
+          actionCell = `<div class="exec-actions">
+            <button class="action-btn" type="button"
+              data-action-id="${escapeHtml(a.actionId)}"
+              data-protected="${Number(a.protected) || 0}"
+              data-account="${escapeHtml(a.account || "")}"
+              data-recommendation="${escapeHtml(a.recommendation || "")}">Approve &amp; execute</button>
+            ${inspectLink}
+          </div>`;
         } else if (run && run.status === "PENDING") {
-          actionCell = `
-            <div class="wf-mini">
+          actionCell = `<div class="wf-mini">
               <span class="wf-run">▶ ${run.local ? "local" : escapeHtml(shortId)} · awaiting approval</span>
               <span class="wf-mini-links">
                 <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh"}</button>
                 <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open task ↗</a>
+                ${inspectLink}
                 ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">fallback</span>` : ""}
               </span>
             </div>`;
         } else if (a.justActioned) {
           actionCell = `<div class="exec-actions">
               <span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>
-              ${run && run.local ? "" : `<a class="link-btn" href="#" data-writeback-src="1" title="View agent_action_writeback in Databricks">View in Databricks ↗</a>`}
-              ${run && run.local ? "" : `<a class="link-btn" href="#" data-agent-traces="1" title="The Databricks agent's reasoning trace in MLflow">Agent activity ↗</a>`}
+              ${inspectLink}
             </div>`;
+        } else {
+          actionCell = `<div class="exec-actions">${inspectLink}</div>`;
         }
         return `
         <tr class="${a.justActioned ? "row-actioned" : ""}">
@@ -775,7 +777,7 @@ function renderActions(actions) {
           <td>
             <div class="exec-cell">
               <span class="status ${a.execution.toLowerCase().replace(/\s+/g, "-")}">${a.execution}</span>
-              ${actionCell ? `<div class="exec-actions">${actionCell}</div>` : ""}
+              ${actionCell}
             </div>
           </td>
           <td class="num">${fmtCurrency(a.protected)}</td>
@@ -793,18 +795,13 @@ function renderActions(actions) {
   document.querySelectorAll("[data-wf-task]").forEach((link) => {
     link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"))); });
   });
-  document.querySelectorAll("[data-writeback-src]").forEach((link) => {
-    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); });
+  document.querySelectorAll("[data-inspect]").forEach((link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      inspectAction(link.getAttribute("data-inspect"), link.getAttribute("data-account") || "", link.getAttribute("data-recommendation") || "", link.getAttribute("data-instance") || "");
+    });
   });
-  wireAgentLinks();
-  document.querySelectorAll("[data-explain]").forEach((button) => {
-    button.addEventListener("click", () => explainAction(
-      button.getAttribute("data-explain"),
-      button.getAttribute("data-account") || "",
-      button.getAttribute("data-recommendation") || ""
-    ));
-  });
-  renderActionRationale();
+  renderAgentInspector();
 }
 
 // "Go to source" → the Databricks agent + its MLflow activity log. Static + dynamic
@@ -820,52 +817,84 @@ function wireAgentLinks() {
   });
 }
 
-function renderActionRationale() {
-  const el = document.getElementById("actionRationale");
-  if (!el) return;
-  const r = state.actionRationale;
-  if (!r) { el.hidden = true; el.innerHTML = ""; return; }
-  el.hidden = false;
-  const badge = `<span class="gw-badge" title="Governed by Unity AI Gateway: usage tracking, rate limits, guardrails (input safety + PII block · output safety + PII mask), inference-table audit">⛨ Unity AI Gateway · guardrails on</span>`;
-  if (r.loading) {
-    el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale</strong> ${badge}</div><div class="rationale-body muted">Scoring through the governed reasoning endpoint…</div>`;
-    return;
-  }
-  if (r.error) {
-    el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale</strong> ${badge}</div><div class="rationale-body err">Governed reasoning unavailable in this context (${escapeHtml(String(r.error)).slice(0, 160)}).</div>`;
-    return;
-  }
-  el.innerHTML = `<div class="rationale-head"><strong>AI triage rationale — ${escapeHtml(r.account)}</strong> ${badge}</div>
-    <div class="rationale-body">${escapeHtml(r.content)}</div>
-    <div class="rationale-foot">via <code>pattern4ce.askReasoningModel</code> → serving endpoint <code>pattern4-reasoning-gateway</code>${r.usage ? ` · ${r.usage.total_tokens || "?"} tokens` : ""}</div>`;
+/* ---------- Agent inspector (option C: the Databricks agent's reasoning, in-app) ---------- */
+
+function agentSourceLinks(instance) {
+  const links = [
+    `<a class="link-btn" href="#" data-agent-build="1">Open agent ↗</a>`,
+    `<a class="link-btn" href="#" data-agent-traces="1">Activity log (MLflow) ↗</a>`,
+    `<a class="link-btn" href="#" data-writeback-src="1">Writeback table ↗</a>`,
+  ];
+  if (instance) links.push(`<a class="link-btn" href="#" data-wf-task="${escapeHtml(instance)}">Workflow run ↗</a>`);
+  return links.join('<span class="agent-source-sep">·</span>');
 }
 
-async function explainAction(actionId, account, recommendation) {
-  state.actionRationale = { actionId, account, loading: true };
-  renderActionRationale();
-  const prompt = `Account "${account}" has elevated renewal risk tied to incident INC-0001 (West enterprise; SLA breaches up, usage down). The recommended retention action is "${recommendation}". In 2-3 sentences, explain why this action fits and what to watch after executing it.`;
+function renderAgentInspector() {
+  const el = document.getElementById("actionRationale");
+  if (!el) return;
+  const r = state.agentInspect;
+  if (!r) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const close = `<button class="agi-close link-btn" type="button" data-agi-close="1" aria-label="Close">✕</button>`;
+  const head = `<div class="agi-head">
+      <span class="agi-bot" aria-hidden="true">🤖</span>
+      <div class="agi-title"><strong>Retention Supervisor</strong><span class="agi-sub">Databricks Agent Bricks · reasoning over governed UC data via Genie</span></div>
+      ${close}
+    </div>`;
+  let bodyHtml;
+  if (r.loading) {
+    bodyHtml = `<div class="agi-think">
+        <span class="agi-dots"><i></i><i></i><i></i></span>
+        <span>Agent reasoning over governed Unity Catalog data — querying Genie, scoring renewal risk for <strong>${escapeHtml(r.account)}</strong>…</span>
+      </div>`;
+  } else if (r.error) {
+    bodyHtml = `<div class="agi-body err">Agent reasoning unavailable in this context (${escapeHtml(String(r.error)).slice(0, 180)}). Open the activity log to view past runs.</div>`;
+  } else {
+    const fallback = r.source === "reasoning-gateway-fallback";
+    const badge = fallback
+      ? `<span class="gw-badge" title="MAS exceeded the latency budget; returned a fast Unity AI Gateway-guardrailed recommendation">⛨ AI Gateway · fast governed fallback</span>`
+      : `<span class="gw-badge dbx" title="Databricks Supervisor Agent (mas-77bd204b) reasoning over Unity Catalog gold views via Genie">◆ Databricks agent · Genie-grounded</span>`;
+    bodyHtml = `<div class="agi-meta">${badge}</div><div class="agi-body">${formatGenieAnswer(r.transcript || "")}</div>`;
+  }
+  el.innerHTML = head + bodyHtml + `<div class="agi-foot"><span class="agi-foot-label">Go to source:</span> ${agentSourceLinks(r.instance)}</div>`;
+  el.querySelectorAll("[data-agi-close]").forEach((b) => b.addEventListener("click", () => { state.agentInspect = null; renderAgentInspector(); }));
+  el.querySelectorAll("[data-wf-task]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(b.getAttribute("data-wf-task"))); }));
+  el.querySelectorAll("[data-writeback-src]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); }));
+  wireAgentLinks();
+}
+
+const _agentInspectCache = {};
+
+async function inspectAction(actionId, account, recommendation, instance) {
+  // Cached transcript → open instantly.
+  if (_agentInspectCache[actionId]) {
+    state.agentInspect = Object.assign({ actionId, account, instance }, _agentInspectCache[actionId]);
+    renderAgentInspector();
+    return;
+  }
+  state.agentInspect = { actionId, account, instance, loading: true };
+  renderAgentInspector();
+  const prompt = `At-risk account: ${account}. Recommended retention action under review: "${recommendation}". Analyze this account's renewal-risk drivers using the governed gold views and recommend the best retention action with a short rationale and what to watch after executing.`;
   let result = null;
   try {
-    result = await askReasoningModel(prompt, state.persona);
+    result = await askRetentionAgentCall(prompt);
   } catch (error) {
     result = { status: "FAILED", error: String(error) };
   }
-  if (result && result.status === "SUCCEEDED") {
-    state.actionRationale = { actionId, account, content: result.content || "", usage: result.usage || null };
+  if (result && result.status === "SUCCEEDED" && result.recommendation) {
+    _agentInspectCache[actionId] = { transcript: result.recommendation, source: result.source || "mas" };
+    state.agentInspect = Object.assign({ actionId, account, instance }, _agentInspectCache[actionId]);
   } else {
-    state.actionRationale = { actionId, account, error: (result && result.error) || "unavailable" };
+    state.agentInspect = { actionId, account, instance, error: (result && result.error) || "unavailable" };
   }
-  renderActionRationale();
+  renderAgentInspector();
 }
 
-async function askReasoningModel(prompt, persona) {
+async function askRetentionAgentCall(prompt) {
   if (!window.domo || typeof window.domo.post !== "function") {
-    return { status: "FAILED", error: "Domo runtime unavailable" };
+    return { status: "FAILED", error: "Domo runtime unavailable (open the published app to inspect the live agent)" };
   }
-  const response = await window.domo.post("/domo/codeengine/v2/packages/askReasoningModel", {
-    prompt,
-    persona: persona || "",
-  });
+  const response = await window.domo.post("/domo/codeengine/v2/packages/askRetentionAgent", { prompt });
   return unwrapCodeEngineResponse(response);
 }
 
