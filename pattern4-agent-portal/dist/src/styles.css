@@ -900,6 +900,8 @@ td.num {
   color: var(--status-good);
 }
 
+.panel-head-actions { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
 /* "Go to source" — Databricks agent + activity log links */
 .agent-source {
   display: flex;
@@ -1171,7 +1173,13 @@ td.num {
 
 @media (max-width: 1040px) {
   .kpi-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .col-8, .col-7, .col-5, .col-4 { grid-column: span 12; }
+  /* col-4 stays 3-up at typical App Studio widths (Regional / Insight / Incident on one row);
+     only the wider asymmetric panels collapse here. */
+  .col-8, .col-7, .col-5 { grid-column: span 12; }
+}
+
+@media (max-width: 760px) {
+  .col-4 { grid-column: span 12; }
 }
 
 @media (max-width: 680px) {

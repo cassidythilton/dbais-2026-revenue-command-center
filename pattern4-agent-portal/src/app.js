@@ -756,6 +756,7 @@ function renderActions(actions) {
               <span class="wf-run">▶ ${run.local ? "local" : escapeHtml(shortId)} · awaiting approval</span>
               <span class="wf-mini-links">
                 <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>${run.checking ? "Checking…" : "Refresh"}</button>
+                <a class="link-btn" href="#" data-goto-view="approvals">Approve →</a>
                 <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}">Open task ↗</a>
                 ${inspectLink}
                 ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">fallback</span>` : ""}
@@ -800,6 +801,9 @@ function renderActions(actions) {
       e.preventDefault();
       inspectAction(link.getAttribute("data-inspect"), link.getAttribute("data-account") || "", link.getAttribute("data-recommendation") || "", link.getAttribute("data-instance") || "");
     });
+  });
+  document.querySelectorAll("#actionRows [data-goto-view]").forEach((link) => {
+    link.addEventListener("click", (e) => { e.preventDefault(); activateView(link.getAttribute("data-goto-view")); });
   });
   renderAgentInspector();
 }
