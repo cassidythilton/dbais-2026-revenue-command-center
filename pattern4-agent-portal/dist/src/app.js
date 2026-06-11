@@ -823,6 +823,44 @@ function wireAgentLinks() {
 
 /* ---------- Agent inspector (option C: the Databricks agent's reasoning, in-app) ---------- */
 
+// Strip the agent's verbose internal transcript noise (tool name tags, raw Genie
+// pipe-row dumps, transient retry errors) so we render the meaningful narrative.
+function cleanAgentTranscript(raw) {
+  let t = String(raw || "").replace(/<name>[\s\S]*?<\/name>/g, "");
+  const kept = t.split(/\r?\n/).filter((line) => {
+    const l = line.trim();
+    if (!l) return true;
+    if (/^\|.*\|?$/.test(l)) return false;                 // raw pipe table row
+    if (/^\|?[\s|:-]+\|?$/.test(l)) return false;          // table separator
+    if (/genie query failed/i.test(l)) return false;       // transient retry noise
+    if (/unrecognized error|GENERIC_CHAT_COMPLETION|INTERNAL_ERROR/i.test(l)) return false;
+    return true;
+  });
+  return kept.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// Lightweight markdown → HTML for the agent transcript (headings, bullets, bold, code).
+function mdToHtml(md) {
+  const inline = (s) => escapeHtml(s)
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/`([^`]+)`/g, "<code>$1</code>");
+  let html = "";
+  let inList = false;
+  const closeList = () => { if (inList) { html += "</ul>"; inList = false; } };
+  String(md || "").split(/\r?\n/).forEach((rawLine) => {
+    const line = rawLine.replace(/^\s*>\s?/, "").trim();   // drop blockquote markers
+    if (!line) { closeList(); return; }
+    const h = line.match(/^(#{1,4})\s+(.*)$/);
+    if (h) { closeList(); html += `<h4>${inline(h[2])}</h4>`; return; }
+    const li = line.match(/^[-*]\s+(.*)$/);
+    if (li) { if (!inList) { html += "<ul>"; inList = true; } html += `<li>${inline(li[1])}</li>`; return; }
+    closeList();
+    html += `<p>${inline(line)}</p>`;
+  });
+  closeList();
+  return html;
+}
+
 function agentSourceLinks(instance, version) {
   const links = [
     `<a class="link-btn" href="#" data-agent-build="1">Open agent ↗</a>`,
@@ -841,7 +879,7 @@ function renderAgentInspector() {
   el.hidden = false;
   const close = `<button class="agi-close link-btn" type="button" data-agi-close="1" aria-label="Close">✕</button>`;
   const head = `<div class="agi-head">
-      <span class="agi-bot" aria-hidden="true">🤖</span>
+      <span class="agi-bot" aria-hidden="true">${ICONS.agent}</span>
       <div class="agi-title"><strong>Retention Supervisor</strong><span class="agi-sub">Databricks Agent Bricks · reasoning over governed UC data via Genie</span></div>
       ${close}
     </div>`;
@@ -858,7 +896,7 @@ function renderAgentInspector() {
     const badge = fallback
       ? `<span class="gw-badge" title="MAS exceeded the latency budget; returned a fast Unity AI Gateway-guardrailed recommendation">⛨ AI Gateway · fast governed fallback</span>`
       : `<span class="gw-badge dbx" title="Databricks Supervisor Agent (mas-77bd204b) reasoning over Unity Catalog gold views via Genie">◆ Databricks agent · Genie-grounded</span>`;
-    bodyHtml = `<div class="agi-meta">${badge}</div><div class="agi-body">${formatGenieAnswer(r.transcript || "")}</div>`;
+    bodyHtml = `<div class="agi-meta">${badge}</div><div class="agi-body">${mdToHtml(cleanAgentTranscript(r.transcript || ""))}</div>`;
   }
   el.innerHTML = head + bodyHtml + `<div class="agi-foot"><span class="agi-foot-label">Go to source:</span> ${agentSourceLinks(r.instance, r.version)}</div>`;
   el.querySelectorAll("[data-agi-close]").forEach((b) => b.addEventListener("click", () => { state.agentInspect = null; renderAgentInspector(); }));
@@ -1962,6 +2000,7 @@ const ICONS = {
   action: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 13h5l-1 8 8-10h-5l1-8Z"/></svg>',
   model: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 4-6"/><circle cx="20" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>',
   lakebase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7" ry="2.6"/><path d="M5 5.5v13c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6v-13"/><path d="M5 12c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6"/><path d="m11 15 1.6 1.6L16 13"/></svg>',
+  agent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M12 4.5V8"/><circle cx="12" cy="3.4" r="1.2" fill="currentColor" stroke="none"/><path d="M9.5 13h.01"/><path d="M14.5 13h.01"/><path d="M2.5 12v3"/><path d="M21.5 12v3"/></svg>',
 };
 
 const FLOW_STAGES = [

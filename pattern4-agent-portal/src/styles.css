@@ -1026,14 +1026,28 @@ td.num {
 
 /* Agent inspector (option C) */
 .agi-head { display: flex; align-items: flex-start; gap: 9px; margin-bottom: 8px; }
-.agi-bot { font-size: 16px; line-height: 1.2; }
-.agi-title { display: flex; flex-direction: column; gap: 1px; flex: 1; }
+.agi-bot { width: 18px; height: 18px; flex-shrink: 0; color: var(--dbx-red, #ff3621); margin-top: 1px; }
+.agi-bot svg { width: 100%; height: 100%; display: block; }
+.agi-title { display: flex; flex-direction: column; gap: 1px; flex: 1; min-width: 0; }
 .agi-title strong { font-size: 12.5px; }
 .agi-sub { font-size: 10.5px; color: var(--muted); }
 .agi-close { font-size: 12px; color: var(--muted); }
 .agi-meta { margin-bottom: 6px; }
-.agi-body { font-size: 12.5px; line-height: 1.55; color: var(--ink, #1a1f29); }
+.agi-body {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--ink, #1a1f29);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  max-height: 360px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
 .agi-body p { margin: 0 0 8px; }
+.agi-body h4 { font-size: 11.5px; font-weight: 800; letter-spacing: 0.01em; margin: 11px 0 4px; color: var(--ink, #1a1f29); }
+.agi-body ul { margin: 4px 0 9px; padding-left: 17px; }
+.agi-body li { margin: 2px 0; }
+.agi-body code { font-family: var(--font-mono, monospace); font-size: 11px; background: var(--n-050, #f4f6f8); padding: 1px 4px; border-radius: 4px; overflow-wrap: anywhere; }
 .agi-body.err { color: var(--status-warn); }
 .agi-think { display: flex; align-items: center; gap: 9px; font-size: 12px; color: var(--muted); padding: 4px 0; }
 .agi-dots { display: inline-flex; gap: 3px; }
