@@ -26,8 +26,8 @@ account → human-approved agent action with writeback → governed AI Readiness
 | App Studio app / view | `105910661` / `1913185115` |
 | App design id | `e8a0b5da-d20b-450d-8790-de7ef1634ea7` |
 | Live app instance | `793a830f-db93-468d-98a9-5447d3847bdb` |
-| Code Engine package | `pattern4ce` (`36a18258-0fb7-407a-b268-4a326c5b73c3`), released **v1.0.16** (20 fns; bounded askRetentionAgent + listApprovalTasks/completeApprovalTask) |
-| Live Domo Workflow version | **v1.0.2** (deploy this; 1.0.0 is locked/superseded). Agent tile bound to pattern4ce v1.0.16. |
+| Code Engine package | `pattern4ce` (`36a18258-0fb7-407a-b268-4a326c5b73c3`), released **v1.0.18** (writeback INSERT…SELECT fix + dynamic workflow-version resolution + bounded agent + approval-task fns) |
+| Live Domo Workflow version | **v1.0.3** (deploy this; tiles/CE bound to pattern4ce v1.0.18). startRetentionWorkflow auto-starts the highest active version. |
 | Databricks workspace | `https://dbc-0516e56c-ba3e.cloud.databricks.com` (CLI profile `pattern4`) |
 | Catalog / schema | `databricks_raptor.pattern4_agent_automation` |
 | SQL warehouse | `ea829ba58bcae093` |

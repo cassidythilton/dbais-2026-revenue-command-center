@@ -56,7 +56,7 @@ var RETENTION_AGENT_ENDPOINT = "mas-77bd204b-endpoint";
  * governed workflow server-side via the product API; the workflow routes a human
  * approval, then its service task calls writeActionStatus to write status back. */
 var WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
-var WORKFLOW_VERSION = "1.0.2";
+var WORKFLOW_VERSION = "1.0.3";  // fallback only; startRetentionWorkflow resolves the active version dynamically
 var WORKFLOW_START_MESSAGE = "Start Pattern 4 - Renewal Risk Retention";
 /* Approval queue for the Renewal Risk Retention userTask. The in-app Approvals tab
  * lists these tasks and completes them (Approve/Reject) so the loop stays in-app. */
@@ -923,6 +923,8 @@ function writeActionStatus(actionId, decision, executionStatus, approvedBy, note
     sqlString("Pattern 4 Agent Portal"),
     "current_timestamp()"
   ];
+  // Databricks rejects non-deterministic functions (uuid(), current_timestamp())
+  // inside an INSERT ... VALUES inline table, so use INSERT ... SELECT instead.
   var stmt =
     "INSERT INTO " +
     CATALOG +
@@ -932,9 +934,8 @@ function writeActionStatus(actionId, decision, executionStatus, approvedBy, note
     WRITEBACK_TABLE +
     " (" +
     cols.join(", ") +
-    ") VALUES (" +
-    vals.join(", ") +
-    ")";
+    ") SELECT " +
+    vals.join(", ");
 
   return runSql(stmt)
     .then(function (data) {
@@ -1116,15 +1117,39 @@ function completeApprovalTask(taskId, decision, version) {
 
 /* ----------------------- Live Domo Workflow trigger ----------------------- */
 
+function cmpSemver(a, b) {
+  var pa = String(a).split(".").map(Number);
+  var pb = String(b).split(".").map(Number);
+  for (var i = 0; i < 3; i++) {
+    if ((pa[i] || 0) !== (pb[i] || 0)) return (pa[i] || 0) - (pb[i] || 0);
+  }
+  return 0;
+}
+
+// Resolve the highest deployed/active workflow version so we never hardcode it
+// (avoids re-releasing this package every time the workflow is re-versioned).
+function resolveActiveWorkflowVersion() {
+  return domoApi("GET", "/api/workflow/v1/models/" + WORKFLOW_MODEL_ID)
+    .then(function (model) {
+      var vs = (model && model.versions) || [];
+      var active = vs.filter(function (v) { return v.active === true || v.deployedOn; });
+      if (!active.length) return WORKFLOW_VERSION;
+      active.sort(function (a, b) { return cmpSemver(b.version, a.version); });
+      return active[0].version || WORKFLOW_VERSION;
+    })
+    .catch(function () { return WORKFLOW_VERSION; });
+}
+
 function startRetentionWorkflow(actionId, account, recommendation, persona, predicted, protectedRevenue, sourceQuestion) {
   console.log("[pattern4ce.startRetentionWorkflow] start", JSON.stringify({
     actionId: actionId, persona: persona || ""
   }));
   var predictedNum = predicted === null || predicted === undefined || predicted === "" ? null : Number(predicted);
   var protectedNum = protectedRevenue === null || protectedRevenue === undefined || protectedRevenue === "" ? null : Number(protectedRevenue);
+  return resolveActiveWorkflowVersion().then(function (activeVersion) {
   var startBody = {
     messageName: WORKFLOW_START_MESSAGE,
-    version: WORKFLOW_VERSION,
+    version: activeVersion,
     modelId: WORKFLOW_MODEL_ID,
     data: {
       actionId: actionId,
@@ -1136,6 +1161,7 @@ function startRetentionWorkflow(actionId, account, recommendation, persona, pred
       sourceQuestion: sourceQuestion || ""
     }
   };
+  console.log("[pattern4ce.startRetentionWorkflow] starting version", JSON.stringify({ version: activeVersion }));
   // Server-side start via the product API (developer token) — no app context /
   // workflowMapping, so it is immune to the App Studio stale-context failure mode.
   return domoApi("POST", "/api/workflow/v1/instances/message", startBody)
@@ -1151,14 +1177,14 @@ function startRetentionWorkflow(actionId, account, recommendation, persona, pred
             status: "SUCCEEDED",
             instanceId: instanceId,
             modelId: WORKFLOW_MODEL_ID,
-            version: WORKFLOW_VERSION,
+            version: activeVersion,
             workflowStatus: instance ? instance.status : null
           };
         })
         .catch(function (traceErr) {
           // The workflow started; a trace-row failure should not fail the trigger.
           console.error("[pattern4ce.startRetentionWorkflow] trace write failed", JSON.stringify({ error: String(traceErr) }));
-          return { status: "SUCCEEDED", instanceId: instanceId, modelId: WORKFLOW_MODEL_ID, version: WORKFLOW_VERSION, traceWritten: false };
+          return { status: "SUCCEEDED", instanceId: instanceId, modelId: WORKFLOW_MODEL_ID, version: activeVersion, traceWritten: false };
         });
     })
     .catch(function (err) {
@@ -1166,6 +1192,7 @@ function startRetentionWorkflow(actionId, account, recommendation, persona, pred
       console.error("[pattern4ce.startRetentionWorkflow] failed", JSON.stringify({ actionId: actionId, error: detail }));
       return { status: "FAILED", error: detail };
     });
+  });
 }
 
 function writeTraceRow(actionId, persona, recommendation, sourceQuestion, predicted, protectedRevenue, instanceId) {
@@ -1194,8 +1221,9 @@ function writeTraceRow(actionId, persona, recommendation, sourceQuestion, predic
     sqlString("Pending"),
     sqlString("workflow")
   ];
+  // INSERT ... SELECT (uuid()/current_timestamp() are not allowed in VALUES inline tables).
   var stmt = "INSERT INTO " + CATALOG + "." + SCHEMA + "." + WRITEBACK_TABLE +
-    " (" + cols.join(", ") + ") VALUES (" + vals.join(", ") + ")";
+    " (" + cols.join(", ") + ") SELECT " + vals.join(", ");
   return runSqlChecked(stmt);
 }
 

@@ -10,7 +10,7 @@
     "Source_Question": "fdbfac69-200c-420b-abb9-2ecc77313db4",
     "Decision": "a896a74f-ec9a-462d-9402-eee709524ff9"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "start_message_name": "Start Pattern 4 - Renewal Risk Retention",
   "start_endpoint": "/api/workflow/v1/instances/message",
   "assignee_user_id": "1433178023",
