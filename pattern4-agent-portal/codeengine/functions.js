@@ -1074,6 +1074,7 @@ function listApprovalTasks(limit) {
       var rows = Array.isArray(data) ? data : (data && data.tasks ? data.tasks : []);
       var tasks = rows.map(function (t) {
         var attrs = t.attributes || [];
+        var src = t.sourceInfo || {};
         return {
           id: t.id,
           title: Array.isArray(attrs) && attrs.length ? attrs[0] : "Approve renewal-risk retention",
@@ -1082,7 +1083,12 @@ function listApprovalTasks(limit) {
           assignedTo: t.assignedTo,
           createdOn: t.createdOn,
           completedOn: t.completedOn,
-          completedBy: t.completedBy
+          completedBy: t.completedBy,
+          // sourceInfo links the Task Center task to its workflow instance, so the
+          // app can match a task to a specific run (live Action Journey timeline).
+          instanceId: src.instanceId || null,
+          flowNodeId: src.flowNodeId || null,
+          modelVersion: src.modelVersion || null
         };
       });
       tasks.sort(function (a, b) { return String(b.createdOn || "").localeCompare(String(a.createdOn || "")); });

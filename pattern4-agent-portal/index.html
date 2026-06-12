@@ -64,9 +64,6 @@
       <button class="view-tab" type="button" data-view="genieEmbed" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> Genie Workspace
       </button>
-      <button class="view-tab deprecated" type="button" data-view="genie" role="tab" aria-selected="false" title="Legacy Code Engine Genie panel — superseded by the native Genie Workspace">
-        <span class="tab-dot" aria-hidden="true"></span> Genie (legacy)
-      </button>
       <button class="view-tab" type="button" data-view="guide" role="tab" aria-selected="false">
         <span class="tab-dot" aria-hidden="true"></span> How It Works
       </button>
@@ -164,7 +161,7 @@
 
       <!-- Main grid -->
       <section class="grid">
-        <article class="panel col-4">
+        <article class="panel col-6">
           <div class="panel-head">
             <div>
               <h2>Regional Renewal Risk</h2>
@@ -175,7 +172,7 @@
           <div class="bar-chart" id="riskChart"></div>
         </article>
 
-        <article class="panel col-4 insight-panel">
+        <article class="panel col-6 insight-panel">
           <div class="panel-head">
             <div>
               <h2>Insight Rail</h2>
@@ -186,23 +183,7 @@
           <div class="insight-rail" id="insightRail"></div>
         </article>
 
-        <article class="panel col-4">
-          <div class="panel-head">
-            <div>
-              <h2>Incident Root Cause</h2>
-              <p>The reliability event behind the West exposure.</p>
-            </div>
-            <span class="panel-tag">gold_incident_revenue_impact</span>
-          </div>
-          <div class="incident-headline">
-            <span class="sev-badge" id="incidentSev">&mdash;</span>
-            <span class="incident-id" id="incidentId">&mdash;</span>
-          </div>
-          <p class="root-cause" id="incidentRoot">&mdash;</p>
-          <dl class="metric-list" id="incidentMetrics"></dl>
-        </article>
-
-        <article class="panel col-12">
+        <article class="panel col-12" id="actionQueuePanel">
           <div class="panel-head">
             <div>
               <h2>Agent Action Queue</h2>
@@ -230,9 +211,9 @@
           <div id="actionRationale" class="action-rationale" hidden></div>
           <div class="agent-source">
             <span class="agent-source-label">Databricks agent (called from Domo):</span>
-            <a class="link-btn" href="#" data-agent-build="1">Pattern 4 Retention Supervisor ↗</a>
+            <a class="link-btn" href="#" data-agent-build="1" data-tip-title="Databricks agent" data-tip="Open the Agent Bricks Supervisor (Pattern 4 Retention Supervisor) build page in Databricks">Pattern 4 Retention Supervisor ↗</a>
             <span class="agent-source-sep">·</span>
-            <a class="link-btn" href="#" data-agent-traces="1">Agent activity log (MLflow traces) ↗</a>
+            <a class="link-btn" href="#" data-agent-traces="1" data-tip-title="MLflow traces" data-tip="The agent's MLflow activity log — every run's reasoning + Genie tool calls">Agent activity log (MLflow traces) ↗</a>
           </div>
         </article>
 
@@ -326,7 +307,7 @@
             <p>Human-in-the-loop approvals for the governed Renewal Risk Retention workflow. Approve or reject here — the decision completes the Domo task and writes status back to the lakehouse.</p>
           </div>
           <div class="panel-head-actions">
-            <a class="link-btn" href="#" data-goto-view="forecast">← Forecast Home</a>
+            <a class="link-btn" href="#" data-goto-view="forecast" data-scroll-to="#actionQueuePanel" title="Back to the Agent Action Queue on Forecast Home">← Forecast Home</a>
             <span class="panel-tag">Renewal Risk Approvals queue</span>
           </div>
         </div>
@@ -347,8 +328,8 @@
         </div>
         <div class="approvals-foot">
           <button id="approvalsRefresh" class="action-btn" type="button">Refresh</button>
-          <a id="approvalsWritebackLink" class="link-btn" href="#">View writeback in Databricks ↗</a>
-          <a class="link-btn" href="#" data-agent-traces="1">Agent activity log ↗</a>
+          <a id="approvalsWritebackLink" class="link-btn" href="#" data-tip-title="Writeback table" data-tip="Open agent_action_writeback (Delta) in Unity Catalog — the governed record of every approval decision">View writeback in Databricks ↗</a>
+          <a class="link-btn" href="#" data-agent-traces="1" data-tip-title="MLflow traces" data-tip="The Databricks agent's MLflow activity log — every run's reasoning + Genie tool calls">Agent activity log ↗</a>
           <span class="approvals-note">Completing a task resumes the workflow → <code>writeActionStatus</code> writeback to <code>agent_action_writeback</code> (Unity Catalog).</span>
         </div>
       </section>
@@ -491,8 +472,12 @@
             Open in Databricks
           </a>
         </div>
-        <div class="embed-note">
-          Alpha comparison: the native embed can show Databricks-rendered result tables and plots when the platform allows embedding. The custom Genie Workspace remains the controlled app-native path for Code Engine routing, inspector metadata, and Domo-side chart reconstruction from returned rows.
+        <div class="genie-starter" id="genieStarter">
+          <span class="genie-starter-label">Suggested starter</span>
+          <button type="button" class="genie-starter-q" id="genieStarterQ" data-q="Why did renewal risk increase for West enterprise accounts?">
+            &ldquo;Why did renewal risk increase for West enterprise accounts?&rdquo;
+          </button>
+          <span class="genie-starter-hint" id="genieStarterHint">Tap to copy, then paste into Genie below &mdash; or click the matching suggestion inside the chat.</span>
         </div>
         <iframe
           class="genie-embed-frame"
@@ -501,23 +486,30 @@
           height="640"
           frameborder="0"
           allow="clipboard-write"
-          title="Databricks Genie room embed alpha"
+          title="Databricks Genie room embed"
         ></iframe>
+        <p class="genie-embed-foot">
+          Need the Code Engine inspector, generated SQL, or Domo-side chart reconstruction?
+          <button type="button" class="legacy-link" data-goto-view="genie">Open the legacy Genie panel</button>
+        </p>
       </section>
     </div><!-- /viewGenieEmbed -->
 
     <!-- ============================ HOW IT WORKS ============================ -->
     <div id="viewGuide" class="view is-hidden">
-      <section class="panel guide-section">
+      <section class="panel guide-section arch-diagram">
         <div class="guide-section-head flow-head">
           <div>
-            <h2>Agent-to-Agent Flow</h2>
-            <p>Click any stage to see what it does, how it's governed, and its inputs &amp; outputs.</p>
+            <h2>Solution Architecture</h2>
+            <p>Build with Databricks &middot; Deliver with Domo &middot; govern everywhere. Click any tile to see what it does, how it's governed, and its inputs &amp; outputs.</p>
           </div>
           <button class="link-pill dbx" type="button" id="flowLineageLink">View Unity Catalog lineage &rarr;</button>
         </div>
-        <div class="flow-rail" id="flowRail"></div>
-        <div class="flow-detail" id="flowDetail"></div>
+        <div class="arch-context" id="archContext"></div>
+        <div class="arch-ingest" id="archIngest"></div>
+        <div class="arch-planes" id="archGrid"></div>
+        <div class="flow-detail arch-detail" id="archDetail"></div>
+        <div class="req-row" id="reqRow"></div>
       </section>
 
       <section class="panel guide-section">
@@ -528,20 +520,10 @@
         <div class="guide-grid" id="guideGrid"></div>
       </section>
 
-      <section class="panel guide-section arch-diagram">
-        <div class="guide-section-head">
-          <h2>Solution Architecture</h2>
-          <p>Build with Databricks &middot; Deliver with Domo &middot; govern everywhere. Every box reflects a capability this app uses today.</p>
-        </div>
-        <div class="arch-context" id="archContext"></div>
-        <div class="arch-ingest" id="archIngest"></div>
-        <div class="arch-planes" id="archGrid"></div>
-        <div class="req-row" id="reqRow"></div>
-      </section>
-
     </div><!-- /viewGuide -->
 
     <footer class="app-footer">
+      <img class="footer-lockup" src="./public/brand/domo-databricks-logo.svg" alt="Databricks + Domo" />
       <span class="powered">Build with Databricks &middot; Deliver with Domo &middot; Govern everywhere</span>
     </footer>
 

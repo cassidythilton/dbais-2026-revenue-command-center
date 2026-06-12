@@ -22,3 +22,10 @@ npm-debug.log*
 
 # --- Local Python environments ---
 .venv/
+
+# --- Scratch / local working artifacts (not part of the app) ---
+screencapture-*.png
+domo-databricks-reskin-kit/
+domo-databricks-reskin-kit.zip
+analyzer.html
+pattern4-agent-portal/**/dbx-domo-logo.png

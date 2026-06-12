@@ -222,6 +222,7 @@ const state = {
   workflowRuns: {}, // actionId -> { instanceId, status: PENDING|APPROVED|REJECTED, checking, error, local }
   rejectedActionIds: {}, // actionId -> true once a workflow approval was rejected
   agentInspect: null, // { actionId, account, instance, loading|transcript|error, source } — in-app Databricks agent reasoning
+  journey: null, // { actionId, account, recommendation, instanceId, version, showReasoning } — focused Action Journey timeline
   approvals: { tasks: [], loading: false, live: false, busyId: null, error: "" }, // in-app workflow task approvals
   lakebaseLive: false, // flip true once cobra-v1 tables + CE Lakebase functions are wired
   lakebase: {
@@ -619,7 +620,7 @@ function renderInsightRail(view) {
       body: inc
         ? `Model attributes the dip to ${inc.incident} (${inc.severity}). West renewal-risk is ${top ? top.risk.toFixed(1) : "—"} vs ~40 elsewhere; ${fmtCurrency(view.kpis.revenueAtRisk)} of renewals sit in the exposed cohort.`
         : `No active incident in scope — forecast trends to plan with renewal risk near baseline.`,
-      cta: { label: "Ask Genie why", view: "genie", q: "Why did renewal risk increase for West enterprise accounts?" },
+      cta: { label: "Ask Genie why", view: "genieEmbed", q: "Why did renewal risk increase for West enterprise accounts?" },
     },
     {
       tone: "info",
@@ -650,7 +651,10 @@ function renderInsightRail(view) {
       const v = btn.getAttribute("data-go-view");
       const q = btn.getAttribute("data-go-q");
       activateView(v);
-      if (v === "genie" && q) setTimeout(() => askGenie(q), 60);
+      // The native Genie embed is cross-origin, so we can't type into it. Prime the
+      // exact question on the clipboard + highlight the starter chip so the user can
+      // paste it (or tap the matching seeded suggestion inside Genie) in one step.
+      if (v === "genieEmbed" && q) setTimeout(() => primeGenieStarter(q), 80);
     });
   });
 }
@@ -678,6 +682,7 @@ function renderRiskChart(regions) {
 
 function renderIncident(incident) {
   const sev = document.getElementById("incidentSev");
+  if (!sev) return; // Incident Root Cause panel removed from Forecast Home
   const id = document.getElementById("incidentId");
   const root = document.getElementById("incidentRoot");
   const metrics = document.getElementById("incidentMetrics");
@@ -738,9 +743,8 @@ function renderActions(actions) {
       (a) => {
         const run = a.run;
         const pending = !run && (a.execution === "Waiting" || a.approval === "Pending");
-        const shortId = run && run.instanceId ? String(run.instanceId).slice(0, 8) : "";
-        const inspectAttrs = `data-inspect="${escapeHtml(a.actionId)}" data-account="${escapeHtml(a.account || "")}" data-recommendation="${escapeHtml(a.recommendation || "")}" data-instance="${escapeHtml((run && run.instanceId) || "")}"`;
-        const inspectLink = `<a class="link-btn inspect-link" href="#" ${inspectAttrs}>Inspect agent ▸</a>`;
+        const jAttrs = `data-journey="${escapeHtml(a.actionId)}" data-account="${escapeHtml(a.account || "")}" data-recommendation="${escapeHtml(a.recommendation || "")}" data-instance="${escapeHtml((run && run.instanceId) || "")}"`;
+        const inspectLink = `<a class="link-btn" href="#" ${jAttrs} data-jreason="1" data-tip-title="Inspect agent" data-tip="See the Databricks Retention Supervisor's live reasoning (Genie-grounded) for this account, and its action-journey timeline">Inspect agent ▸</a>`;
         let actionCell = "";
         if (pending) {
           actionCell = `<div class="exec-actions">
@@ -752,20 +756,20 @@ function renderActions(actions) {
             ${inspectLink}
           </div>`;
         } else if (run && run.status === "PENDING") {
-          actionCell = `<div class="wf-mini">
-              <span class="wf-run">${run.checking || run.polling ? `<span class="wf-live" aria-hidden="true"></span>` : "▶ "}${run.local ? "local" : escapeHtml(shortId)} · ${run.checking ? "checking…" : run.polling ? "listening for approval…" : "awaiting approval"}</span>
-              <span class="wf-mini-links">
-                <button class="link-btn" type="button" data-wf-check="${escapeHtml(a.actionId)}" ${run.checking ? "disabled" : ""}>Refresh</button>
-                <a class="link-btn" href="#" data-goto-view="approvals">Approve →</a>
-                <a class="link-btn" href="#" data-wf-task="${escapeHtml(run.instanceId || "")}" data-wf-version="${escapeHtml(run.version || "")}">Open task ↗</a>
-                ${inspectLink}
-                ${run.error ? `<span class="wf-err" title="${escapeHtml(run.error)}">fallback</span>` : ""}
-              </span>
+          const stg = typeof run.stage === "number" ? run.stage : 2;
+          const chipText = stg === 0 ? "Starting workflow…" : stg === 1 ? "Agent reasoning…" : "Awaiting approval";
+          actionCell = `<div class="exec-actions">
+              <button class="aj-chip pending" type="button" ${jAttrs} data-tip-title="Action Journey" data-tip="Track this action live across Domo + Databricks — workflow, agent reasoning, approval, and writeback"><span class="wf-live" aria-hidden="true"></span>${chipText} · Track ▸</button>
+              ${stg >= 2 ? `<a class="link-btn" href="#" data-goto-view="approvals" data-tip-title="Approvals · Action Center" data-tip="Approve or reject this workflow task in-app — it completes the Domo task and writes status back">Approve →</a>` : ""}
+              ${run.startError ? `<span class="wf-err" title="${escapeHtml(run.startError)}">unconfirmed</span>` : ""}
             </div>`;
         } else if (a.justActioned) {
           actionCell = `<div class="exec-actions">
-              <span class="action-writeback" title="Status written back to agent_action_writeback (Databricks)">✓ writeback${run && run.local ? " (local)" : ""}</span>
-              ${inspectLink}
+              <button class="aj-chip done" type="button" ${jAttrs} data-tip-title="Action Journey" data-tip="Replay this action's completed timeline across Domo + Databricks, with go-to-source on every step">✓ Journey complete · Track ▸</button>
+            </div>`;
+        } else if (a.approval === "Rejected") {
+          actionCell = `<div class="exec-actions">
+              <button class="aj-chip rejected" type="button" ${jAttrs} data-tip-title="Action Journey" data-tip="Review this rejected action's timeline and where it was declined">✕ Rejected · Track ▸</button>
             </div>`;
         } else {
           actionCell = `<div class="exec-actions">${inspectLink}</div>`;
@@ -790,22 +794,28 @@ function renderActions(actions) {
   document.querySelectorAll(".action-btn[data-action-id]").forEach((button) => {
     button.addEventListener("click", () => executeAction(button));
   });
-  document.querySelectorAll("[data-wf-check]").forEach((button) => {
-    button.addEventListener("click", () => checkWorkflow(button.getAttribute("data-wf-check")));
-  });
-  document.querySelectorAll("[data-wf-task]").forEach((link) => {
-    link.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(link.getAttribute("data-wf-task"), link.getAttribute("data-wf-version") || "")); });
-  });
-  document.querySelectorAll("[data-inspect]").forEach((link) => {
-    link.addEventListener("click", (e) => {
+  document.querySelectorAll("#actionRows [data-journey]").forEach((el) => {
+    el.addEventListener("click", (e) => {
       e.preventDefault();
-      inspectAction(link.getAttribute("data-inspect"), link.getAttribute("data-account") || "", link.getAttribute("data-recommendation") || "", link.getAttribute("data-instance") || "");
+      const aid = el.getAttribute("data-journey");
+      focusJourney(aid, {
+        account: el.getAttribute("data-account") || "",
+        recommendation: el.getAttribute("data-recommendation") || "",
+        instanceId: el.getAttribute("data-instance") || "",
+      });
+      if (el.hasAttribute("data-jreason")) {
+        state.journey.showReasoning = true;
+        ensureReasoning(aid, state.journey.account, state.journey.recommendation, state.journey.instanceId);
+      }
+      renderJourney();
+      const panel = document.getElementById("actionRationale");
+      if (panel && panel.scrollIntoView) panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
   });
   document.querySelectorAll("#actionRows [data-goto-view]").forEach((link) => {
-    link.addEventListener("click", (e) => { e.preventDefault(); activateView(link.getAttribute("data-goto-view")); });
+    link.addEventListener("click", (e) => { e.preventDefault(); activateView(link.getAttribute("data-goto-view"), { scrollTo: link.getAttribute("data-scroll-to") || null }); });
   });
-  renderAgentInspector();
+  renderJourney();
 }
 
 // "Go to source" → the Databricks agent + its MLflow activity log. Static + dynamic
@@ -861,62 +871,259 @@ function mdToHtml(md) {
   return html;
 }
 
-function agentSourceLinks(instance, version) {
-  const links = [
-    `<a class="link-btn" href="#" data-agent-build="1">Open agent ↗</a>`,
-    `<a class="link-btn" href="#" data-agent-traces="1">Activity log (MLflow) ↗</a>`,
-    `<a class="link-btn" href="#" data-writeback-src="1">Writeback table ↗</a>`,
-  ];
-  if (instance) links.push(`<a class="link-btn" href="#" data-wf-task="${escapeHtml(instance)}" data-wf-version="${escapeHtml(version || "")}">Workflow run ↗</a>`);
-  return links.join('<span class="agent-source-sep">·</span>');
+/* ===================== Action Journey (Shape C) =====================
+   One full-width animated timeline tracing a recommended action across Domo
+   (workflow + AI agent) and Databricks (agent + Genie + Unity Catalog), with
+   the pending human approval pulsing and a fully-complete timeline on approval.
+   The Databricks agent's reasoning folds into step 3. Renders into the
+   #actionRationale slot (which absorbs the old standalone agent inspector). */
+
+const JOURNEY_PLANES = {
+  dbx: { label: "Databricks", cls: "p-dbx", brand: "databricks" },
+  domo: { label: "Domo", cls: "p-domo", brand: "domo" },
+  agent: { label: "Agent ⇄ Agent", cls: "p-agent", brand: "dbxdomo" }, // Domo + Databricks lockup on a gray disc
+  human: { label: "Human", cls: "p-human" },          // glyph (person)
+  uc: { label: "Unity Catalog", cls: "p-uc", brand: "unity-catalog" },
+};
+// Brand icon registry (Shape B). Specific official Databricks product SVGs where we
+// have them; the platform main logo as the fallback for concepts with no specific mark
+// (per direction). markerHtml() renders a brand <img> when a key resolves, else the
+// inline glyph — so coverage gaps still look intentional.
+const BRAND_DIR = "./public/brand/";
+const BRAND_ICONS = {
+  "unity-catalog": BRAND_DIR + "unity-catalog-logo.svg",
+  "delta-lake": BRAND_DIR + "delta-lake-logo.svg",
+  "mlflow": BRAND_DIR + "mlflow-logo.svg",
+  "dbx-sql": BRAND_DIR + "dbx-sql-logo.svg",
+  "spark": BRAND_DIR + "spark-logo.svg",
+  "genie": BRAND_DIR + "genie-logo.svg",
+  "agent-bricks": BRAND_DIR + "agent-bricks-logo.svg",
+  "lakebase": BRAND_DIR + "lakebase-logo.svg",
+  "ai-gateway": BRAND_DIR + "ai-gateway.svg",
+  "domo-workflows": BRAND_DIR + "domo-workflows.svg",
+  "domo-ai-agent": BRAND_DIR + "domo-ai-agent.svg",
+  "domo-pdp": BRAND_DIR + "domo-pdp.svg",
+  "domo-pro-code": BRAND_DIR + "domo-pro-code.svg",
+  "domo-mcp": BRAND_DIR + "domo-mcp-integrations.svg",
+  "domo-cloud-amplifier": BRAND_DIR + "domo-cloud-amplifier.svg",
+  "domo-approvals": BRAND_DIR + "domo-approvals.svg",
+  "dbxdomo": BRAND_DIR + "domo-databricks-logo.svg",
+  // platform main logos — fallback for Databricks/Domo concepts without a specific icon
+  "databricks": "./public/databricks-logo.png",
+  "domo": "./public/domo-logo.png",
+};
+
+function markerHtml(brandKey, glyphKey, imgCls, glyphCls) {
+  if (brandKey && BRAND_ICONS[brandKey]) {
+    return `<img class="${imgCls}" src="${BRAND_ICONS[brandKey]}" alt="" loading="lazy" />`;
+  }
+  return `<span class="${glyphCls}">${ICONS[glyphKey] || ""}</span>`;
 }
 
-function renderAgentInspector() {
-  const el = document.getElementById("actionRationale");
-  if (!el) return;
-  const r = state.agentInspect;
-  if (!r) { el.hidden = true; el.innerHTML = ""; return; }
-  el.hidden = false;
-  const close = `<button class="agi-close link-btn" type="button" data-agi-close="1" aria-label="Close">✕</button>`;
-  const head = `<div class="agi-head">
-      <span class="agi-bot" aria-hidden="true">${ICONS.agent}</span>
-      <div class="agi-title"><strong>Retention Supervisor</strong><span class="agi-sub">Databricks Agent Bricks · reasoning over governed UC data via Genie</span></div>
-      ${close}
+// Instance ids persist past the run lifecycle (the poll deletes the run on
+// approval) so the "Workflow run ↗" deep link keeps working on a completed journey.
+const _journeyInstanceIds = {};
+
+function focusJourney(actionId, meta) {
+  meta = meta || {};
+  const run = state.workflowRuns[actionId] || {};
+  const keepReason = state.journey && state.journey.actionId === actionId ? state.journey.showReasoning : false;
+  const instanceId = meta.instanceId || run.instanceId || _journeyInstanceIds[actionId] || "";
+  if (instanceId) _journeyInstanceIds[actionId] = instanceId;
+  state.journey = {
+    actionId,
+    account: meta.account || run.account || "",
+    recommendation: meta.recommendation || run.recommendation || "",
+    instanceId,
+    version: meta.version || run.version || WORKFLOW_VERSION,
+    showReasoning: keepReason,
+  };
+}
+
+// Derive the 6-step model + per-step status/links from the live run state.
+function journeySteps(actionId) {
+  const run = state.workflowRuns[actionId] || null;
+  const executed = Object.prototype.hasOwnProperty.call(state.executedActionIds, actionId);
+  const rejected = !!state.rejectedActionIds[actionId];
+  const pending = !!(run && run.status === "PENDING");
+  const decided = executed || rejected;
+  // Staged progression (set by advanceJourneyStages): 0 = workflow starting,
+  // 1 = agents reasoning, 2 = awaiting approval. Decided journeys are fully past it.
+  const stage = decided ? 3 : (run && typeof run.stage === "number" ? run.stage : (run ? 0 : -1));
+  const instanceId = (run && run.instanceId) || (state.journey && state.journey.instanceId) || _journeyInstanceIds[actionId] || "";
+  const version = (run && run.version) || (state.journey && state.journey.version) || WORKFLOW_VERSION;
+  const runShort = instanceId ? String(instanceId).slice(0, 8) : "";
+  const wfTip = "Opens the Renewal Risk Retention workflow runs in Domo" + (runShort ? " — run " + runShort + " (click into it)" : "");
+  const wfLink = instanceId ? { kind: "wf", label: "Workflow run ↗", instanceId, version, tip: wfTip, tipTitle: "Domo Workflow" } : null;
+  const taskLink = instanceId ? { kind: "wf", label: "Open Domo Workflow ↗", instanceId, version, tip: wfTip + "; click into this run to action the approval task", tipTitle: "Open Domo Workflow" } : null;
+
+  // status for a step that becomes active at `activeAt` and done once stage passes it
+  const stepStat = (activeAt) => decided ? "done" : stage > activeAt ? "done" : stage === activeAt ? "active" : "todo";
+
+  return [
+    {
+      key: "rec", plane: "dbx", icon: "agent", brand: "agent-bricks",
+      label: "Agent recommended the play", sub: "Databricks Retention Supervisor",
+      status: "done", links: [{ kind: "agent-build", label: "Open agent ↗" }],
+    },
+    {
+      key: "wf", plane: "domo", icon: "action", brand: "domo-workflows",
+      label: "Domo Workflow started",
+      sub: stage < 0 ? "Renewal Risk Retention" : stage === 0 ? "starting…" : (instanceId ? "instance " + String(instanceId).slice(0, 8) : "Renewal Risk Retention"),
+      status: stepStat(0),
+      links: wfLink ? [wfLink] : [],
+    },
+    {
+      key: "reason", plane: "agent", icon: "agent",
+      label: "Domo agent ⇄ Databricks agent reasoned",
+      sub: stage === 1 ? reasoningPhrase(run) : "Genie-grounded recommendation",
+      working: stage === 1,
+      status: stepStat(1),
+      links: [{ kind: "agent-traces", label: "Activity log (MLflow) ↗" }],
+      reasoning: true,
+    },
+    {
+      key: "approval", plane: "human", icon: "approval",
+      label: (pending && stage >= 2) ? "Awaiting your approval" : "Human approval",
+      sub: (pending && stage >= 2) ? "Review & sign off to continue" : executed ? "Approved" : rejected ? "Rejected" : "Routes to Domo Tasks",
+      status: decided ? "done" : (pending && stage >= 2) ? "active" : "todo",
+      links: (pending && stage >= 2) ? [{ kind: "goto-approvals", label: "Review & approve →" }].concat(taskLink ? [taskLink] : []) : [],
+    },
+    {
+      key: "decision", plane: "human", icon: "approval",
+      label: executed ? "Approved" : rejected ? "Rejected" : "Approved / Rejected",
+      sub: executed ? "Human signed off" : rejected ? "Declined by approver" : "Pending decision",
+      status: executed ? "approved" : rejected ? "rejected" : "todo",
+      links: decided ? [{ kind: "goto-approvals", label: "Approvals →" }] : [],
+    },
+    {
+      key: "writeback", plane: "uc", icon: "data",
+      label: "Written back to lakehouse", sub: "agent_action_writeback (Delta)",
+      status: decided ? "done" : "todo",
+      links: [{ kind: "writeback", label: "Writeback table ↗" }],
+    },
+  ];
+}
+
+function journeyLinkHtml(l) {
+  if (l.kind === "agent-build") return `<a class="link-btn" href="#" data-agent-build="1" data-tip-title="Databricks agent" data-tip="Open the Agent Bricks Supervisor (Pattern 4 Retention Supervisor) build page in Databricks">${l.label}</a>`;
+  if (l.kind === "agent-traces") return `<a class="link-btn" href="#" data-agent-traces="1" data-tip-title="MLflow traces" data-tip="The Databricks agent's MLflow activity log — every run's reasoning steps + Genie tool calls">${l.label}</a>`;
+  if (l.kind === "writeback") return `<a class="link-btn" href="#" data-writeback-src="1" data-tip-title="Writeback table" data-tip="Open agent_action_writeback (Delta) in Unity Catalog — the governed status record this action writes back">${l.label}</a>`;
+  if (l.kind === "wf") return `<a class="link-btn" href="#" data-wf-task="${escapeHtml(l.instanceId || "")}" data-wf-version="${escapeHtml(l.version || "")}"${l.tip ? ` data-tip="${escapeHtml(l.tip)}"` : ""}${l.tipTitle ? ` data-tip-title="${escapeHtml(l.tipTitle)}"` : ""}>${l.label}</a>`;
+  if (l.kind === "goto-approvals") return `<a class="link-btn" href="#" data-goto-view="approvals" data-tip-title="Approvals · Action Center" data-tip="Go to the in-app Approvals tab to approve or reject this workflow task">${l.label}</a>`;
+  return "";
+}
+
+function journeyNodeHtml(s, j) {
+  const plane = JOURNEY_PLANES[s.plane] || { label: "", cls: "" };
+  const badge = (s.status === "approved" || s.status === "done" || s.status === "local")
+    ? `<span class="aj-badge ok" aria-hidden="true">✓</span>`
+    : s.status === "rejected" ? `<span class="aj-badge no" aria-hidden="true">✕</span>` : "";
+  const reasoningToggle = s.reasoning
+    ? `<button class="aj-reason-toggle link-btn" type="button" data-aj-reason="1">${j.showReasoning ? "Hide reasoning ▴" : "Show reasoning ▾"}</button>`
+    : "";
+  const links = s.links.map(journeyLinkHtml).join("") + reasoningToggle;
+  // Branded marker: step-level brand overrides the plane default; glyph fallback otherwise.
+  const mark = markerHtml(s.brand || plane.brand, s.icon, "aj-logo", "aj-ic");
+  return `<div class="aj-node ${plane.cls} is-${s.status}" data-aj-step="${s.key}">
+      <span class="aj-dot">${s.status === "active" ? `<span class="aj-pulse" aria-hidden="true"></span>` : ""}${mark}${badge}</span>
+      <div class="aj-node-body">
+        <span class="aj-plane">${plane.label}</span>
+        <span class="aj-label">${escapeHtml(s.label)}</span>
+        <span class="aj-sub">${s.working ? `<span class="aj-dots"><i></i><i></i><i></i></span>` : ""}${escapeHtml(s.sub || "")}</span>
+        ${links ? `<span class="aj-links">${links}</span>` : ""}
+      </div>
     </div>`;
-  let bodyHtml;
-  if (r.loading) {
-    bodyHtml = `<div class="agi-think">
-        <span class="agi-dots"><i></i><i></i><i></i></span>
-        <span>Agent reasoning over governed Unity Catalog data — querying Genie, scoring renewal risk for <strong>${escapeHtml(r.account)}</strong>…</span>
-      </div>`;
+}
+
+function journeyReasoningHtml(j) {
+  const r = state.agentInspect && state.agentInspect.actionId === j.actionId ? state.agentInspect : null;
+  let body;
+  if (!r || r.loading) {
+    body = `<div class="agi-think"><span class="agi-dots"><i></i><i></i><i></i></span><span>Agent reasoning over governed Unity Catalog data — querying Genie, scoring renewal risk for <strong>${escapeHtml(j.account || "this account")}</strong>…</span></div>`;
   } else if (r.error) {
-    bodyHtml = `<div class="agi-body err">Agent reasoning unavailable in this context (${escapeHtml(String(r.error)).slice(0, 180)}). Open the activity log to view past runs.</div>`;
+    body = `<div class="agi-body err">Agent reasoning unavailable in this context (${escapeHtml(String(r.error)).slice(0, 180)}). Open the activity log to view past runs.</div>`;
   } else {
     const fallback = r.source === "reasoning-gateway-fallback";
     const badge = fallback
       ? `<span class="gw-badge" title="MAS exceeded the latency budget; returned a fast Unity AI Gateway-guardrailed recommendation">⛨ AI Gateway · fast governed fallback</span>`
       : `<span class="gw-badge dbx" title="Databricks Supervisor Agent (mas-77bd204b) reasoning over Unity Catalog gold views via Genie">◆ Databricks agent · Genie-grounded</span>`;
-    bodyHtml = `<div class="agi-meta">${badge}</div><div class="agi-body">${mdToHtml(cleanAgentTranscript(r.transcript || ""))}</div>`;
+    body = `<div class="agi-meta">${badge}</div><div class="agi-body">${mdToHtml(cleanAgentTranscript(r.transcript || ""))}</div>`;
   }
-  el.innerHTML = head + bodyHtml + `<div class="agi-foot"><span class="agi-foot-label">Go to source:</span> ${agentSourceLinks(r.instance, r.version)}</div>`;
-  el.querySelectorAll("[data-agi-close]").forEach((b) => b.addEventListener("click", () => { state.agentInspect = null; renderAgentInspector(); }));
+  return `<div class="aj-reason">${body}</div>`;
+}
+
+function renderJourney() {
+  const el = document.getElementById("actionRationale");
+  if (!el) return;
+  const j = state.journey;
+  if (!j) { el.hidden = true; el.innerHTML = ""; return; }
+  el.hidden = false;
+  const run = state.workflowRuns[j.actionId] || null;
+  const executed = Object.prototype.hasOwnProperty.call(state.executedActionIds, j.actionId);
+  const rejected = !!state.rejectedActionIds[j.actionId];
+  const pending = !!(run && run.status === "PENDING");
+
+  const stg = run && typeof run.stage === "number" ? run.stage : 2;
+  let statusTag;
+  if (pending && stg < 2) statusTag = `<span class="aj-status pending"><span class="wf-live" aria-hidden="true"></span>${stg === 0 ? "Starting workflow…" : "Agents reasoning…"}</span>`;
+  else if (pending) statusTag = `<span class="aj-status pending"><span class="wf-live" aria-hidden="true"></span>Awaiting your approval${run && run.polling ? " · listening…" : ""}</span>`;
+  else if (executed) statusTag = `<span class="aj-status approved">Complete · approved</span>`;
+  else if (rejected) statusTag = `<span class="aj-status rejected">Complete · rejected</span>`;
+  else statusTag = `<span class="aj-status">In progress</span>`;
+
+  const steps = journeySteps(j.actionId);
+  const track = steps.map((s) => journeyNodeHtml(s, j)).join("");
+  const startNote = (run && run.startError)
+    ? `<div class="aj-note warn">Workflow start wasn't confirmed in this context (${escapeHtml(run.startError)}). A human-approval task may still exist — review it in <a class="link-btn" href="#" data-goto-view="approvals">Approvals</a>.</div>`
+    : "";
+  const reason = j.showReasoning ? journeyReasoningHtml(j) : "";
+
+  el.innerHTML = `
+    <div class="aj">
+      <div class="aj-head">
+        <div class="aj-head-main">
+          <span class="aj-bot" aria-hidden="true">${ICONS.agent}</span>
+          <div class="aj-head-text">
+            <div class="aj-title">Action Journey · <strong>${escapeHtml(j.account || "")}</strong></div>
+            ${j.recommendation ? `<div class="aj-rec">${escapeHtml(j.recommendation)}</div>` : ""}
+          </div>
+        </div>
+        <div class="aj-head-side">${statusTag}<button class="agi-close link-btn" type="button" data-aj-close="1" aria-label="Dismiss">✕</button></div>
+      </div>
+      <div class="aj-track">${track}</div>
+      ${startNote}
+      ${reason}
+    </div>`;
+
+  el.querySelectorAll("[data-aj-close]").forEach((b) => b.addEventListener("click", () => { state.journey = null; renderJourney(); }));
+  el.querySelectorAll("[data-aj-reason]").forEach((b) => b.addEventListener("click", () => toggleJourneyReasoning()));
   el.querySelectorAll("[data-wf-task]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(workflowInstanceUrl(b.getAttribute("data-wf-task"), b.getAttribute("data-wf-version") || "")); }));
   el.querySelectorAll("[data-writeback-src]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); }));
+  el.querySelectorAll("[data-goto-view]").forEach((b) => b.addEventListener("click", (e) => { e.preventDefault(); activateView(b.getAttribute("data-goto-view"), { scrollTo: b.getAttribute("data-scroll-to") || null }); }));
   wireAgentLinks();
+}
+
+function toggleJourneyReasoning() {
+  if (!state.journey) return;
+  state.journey.showReasoning = !state.journey.showReasoning;
+  if (state.journey.showReasoning) ensureReasoning(state.journey.actionId, state.journey.account, state.journey.recommendation, state.journey.instanceId);
+  renderJourney();
 }
 
 const _agentInspectCache = {};
 
-async function inspectAction(actionId, account, recommendation, instance) {
+// Lazy-load the Databricks agent's reasoning transcript into the journey's step 3.
+async function ensureReasoning(actionId, account, recommendation, instance) {
   const version = (state.workflowRuns[actionId] || {}).version || WORKFLOW_VERSION;
-  // Cached transcript → open instantly.
   if (_agentInspectCache[actionId]) {
     state.agentInspect = Object.assign({ actionId, account, instance, version }, _agentInspectCache[actionId]);
-    renderAgentInspector();
+    renderJourney();
     return;
   }
+  if (state.agentInspect && state.agentInspect.actionId === actionId && state.agentInspect.loading) return;
   state.agentInspect = { actionId, account, instance, version, loading: true };
-  renderAgentInspector();
+  renderJourney();
   const prompt = `At-risk account: ${account}. Recommended retention action under review: "${recommendation}". Analyze this account's renewal-risk drivers using the governed gold views and recommend the best retention action with a short rationale and what to watch after executing.`;
   let result = null;
   try {
@@ -930,7 +1137,7 @@ async function inspectAction(actionId, account, recommendation, instance) {
   } else {
     state.agentInspect = { actionId, account, instance, version, error: (result && result.error) || "unavailable" };
   }
-  renderAgentInspector();
+  if (state.journey && state.journey.actionId === actionId) renderJourney();
 }
 
 async function askRetentionAgentCall(prompt) {
@@ -949,38 +1156,243 @@ async function executeAction(button) {
   button.textContent = "Starting workflow…";
   button.disabled = true;
 
-  // Primary path (Shape A): start the live, governed Domo Workflow server-side.
-  try {
-    const result = await startRetentionWorkflow(actionId, {
+  const liveRuntime = !!(window.domo && typeof window.domo.post === "function");
+
+  // LIVE PATH (published app): start the governed Domo Workflow and HOLD the real
+  // PENDING (awaiting-approval) state. We never optimistically flip to "Executed"
+  // here — a human approval is genuinely outstanding, and the Action Journey
+  // timeline must tell the truth. The decision arrives via polling / the Approvals
+  // tab. The optimistic local path below is reserved for non-live preview only.
+  if (liveRuntime) {
+    let result = null;
+    try {
+      result = await startRetentionWorkflow(actionId, {
+        account,
+        recommendation,
+        protectedRevenue: protectedAmt,
+        sourceQuestion: "Why did renewal risk increase for West enterprise accounts this month?",
+      });
+    } catch (error) {
+      result = { status: "FAILED", error: String(error) };
+    }
+    const instanceId = (result && result.instanceId) || "";
+    if (instanceId) _journeyInstanceIds[actionId] = instanceId;
+    const startFailed = !result || result.status !== "SUCCEEDED";
+    state.workflowRuns[actionId] = {
+      instanceId,
+      version: (result && result.version) || WORKFLOW_VERSION,
+      status: "PENDING",
+      // Live progression driven by the workflow instance + Task Center (not timers):
+      // 1 = agents reasoning (instance running, no approval task yet), 2 = awaiting approval.
+      stage: 1,
+      protectedAmt,
       account,
       recommendation,
-      protectedRevenue: protectedAmt,
-      sourceQuestion: "Why did renewal risk increase for West enterprise accounts this month?",
-    });
-    if (result?.status === "SUCCEEDED" && result.instanceId) {
-      state.workflowRuns[actionId] = { instanceId: result.instanceId, version: result.version || WORKFLOW_VERSION, status: "PENDING", protectedAmt };
-      render();
-      startWorkflowPolling(actionId); // auto-"listen" for approval instead of manual Refresh
-      return;
-    }
-    throw new Error(result?.error ? JSON.stringify(result.error) : "workflow start unavailable");
-  } catch (error) {
-    console.warn("Workflow trigger unavailable in this context; using local approve→execute fallback", error);
+      startedAt: Date.now(), // guards against stale prior-run decision rows for the same action_id
+      startError: startFailed ? ((result && result.error) ? String(result.error).slice(0, 200) : "start unconfirmed") : null,
+    };
+    focusJourney(actionId, { account, recommendation, instanceId, version: state.workflowRuns[actionId].version });
+    render();
+    // Option C: fire the real Databricks agent so the "Show reasoning" transcript is genuine + ready.
+    ensureReasoning(actionId, account, recommendation, instanceId);
+    // Option B: drive the timeline from the live workflow instance + Task Center.
+    startJourneyProgress(actionId);
+    startReasonTicker(actionId); // rotating "working" verbiage while the agent reasons
+    return;
   }
 
-  // Fallback path: optimistic approve→execute via the released writeActionStatus writeback.
-  let live = false;
+  // PREVIEW-ONLY fallback (no Domo runtime): animate the same progression, then
+  // auto-complete locally so the timeline still demos end to end offline.
+  state.workflowRuns[actionId] = { instanceId: null, status: "PENDING", stage: 0, protectedAmt, account, recommendation, startedAt: Date.now() };
+  focusJourney(actionId, { account, recommendation, instanceId: "", version: WORKFLOW_VERSION });
+  render();
+  advanceJourneyStages(actionId, { local: true });
+}
+
+// PREVIEW ONLY (no Domo runtime): timed cascade reasoning → awaiting → auto-complete,
+// so the timeline still demos end to end offline.
+const _journeyStageTimers = {};
+function advanceJourneyStages(actionId, opts) {
+  opts = opts || {};
+  if (_journeyStageTimers[actionId]) _journeyStageTimers[actionId].forEach(clearTimeout);
+  const timers = [];
+  const setStage = (stage, delay) => timers.push(setTimeout(() => {
+    const r = state.workflowRuns[actionId];
+    if (!r || r.status !== "PENDING") return;
+    r.stage = stage;
+    render();
+  }, delay));
+  setStage(1, 1300); // agents reasoning
+  setStage(2, 3000); // awaiting human approval
+  timers.push(setTimeout(() => {
+    const r = state.workflowRuns[actionId];
+    if (!r || r.status !== "PENDING") return;
+    applyJourneyDecision(actionId, "approved");
+  }, 5200));
+  _journeyStageTimers[actionId] = timers;
+}
+
+// ---- LIVE, API-driven progression (option B + C) -------------------------------
+// Polls the real workflow instance status + Task Center every few seconds and
+// advances the timeline from genuine signals: instance running with no task yet =
+// "agents reasoning" (stage 1); an OPEN approval task for THIS instance = "awaiting
+// approval" (stage 2); a current decision row (writeActionStatus) = approved/rejected.
+const _journeyProgressTimers = {};
+
+function stopJourneyProgress(actionId) {
+  if (_journeyProgressTimers[actionId]) { clearInterval(_journeyProgressTimers[actionId]); delete _journeyProgressTimers[actionId]; }
+}
+
+async function fetchApprovalTasks() {
   try {
-    const wb = await writeActionStatus(actionId);
-    live = wb?.status === "SUCCEEDED";
-  } catch (error) {
-    console.warn("Fallback writeback also unavailable; reflecting approved state locally", error);
+    const res = await callPattern4ce("listApprovalTasks", { limit: 40 });
+    return res && Array.isArray(res.tasks) ? res.tasks : [];
+  } catch (e) { return []; }
+}
+
+// Match a Task Center task to a run: precise by instanceId (CE v1.0.19+), else the
+// newest task created at/after the run started (single-action heuristic fallback).
+function matchTaskToRun(tasks, run) {
+  if (!Array.isArray(tasks) || !tasks.length) return null;
+  // Precise mode: we know the instance id, so match ONLY that instance's task. If the
+  // tasks carry instanceId at all (CE v1.0.19+), trust it exclusively — never guess.
+  const anyHaveInstance = tasks.some((t) => t.instanceId);
+  if (run.instanceId && anyHaveInstance) {
+    return tasks.find((t) => t.instanceId === run.instanceId) || null;
   }
-  state.executedActionIds[actionId] = protectedAmt;
-  state.workflowRuns[actionId] = { instanceId: null, status: "APPROVED", local: !live };
-  state.protectedBump = (state.protectedBump || 0) + protectedAmt;
+  // Fallback (older CE without instanceId, or unconfirmed start): newest task created
+  // at/after this run started. Reliable for a single in-flight action.
+  const started = run.startedAt || 0;
+  const cand = tasks.filter((t) => parseDbxTs(t.createdOn) >= started - 60000);
+  cand.sort((a, b) => parseDbxTs(b.createdOn) - parseDbxTs(a.createdOn));
+  return cand[0] || null;
+}
+
+function applyJourneyDecision(actionId, decision) {
+  const run = state.workflowRuns[actionId];
+  const amt = run ? (Number(run.protectedAmt) || 0) : 0;
+  stopJourneyProgress(actionId);
+  stopReasonTicker(actionId);
+  stopWorkflowPolling(actionId);
+  if (String(decision).toLowerCase() === "rejected") {
+    state.rejectedActionIds[actionId] = true;
+    delete state.workflowRuns[actionId];
+    render();
+    return;
+  }
+  state.executedActionIds[actionId] = amt;
+  state.protectedBump = (state.protectedBump || 0) + amt;
+  delete state.workflowRuns[actionId];
   render();
   flashKpiProtected();
+}
+
+// Claude-style "working" verbiage while the agent step runs (it can take a while —
+// the Genie-backed MAS is slow). Rotates evocative-but-accurate phrases + elapsed time
+// to hold attention. The phrases reflect what the agent is genuinely doing.
+const REASON_PHRASES = [
+  "Connecting to the Databricks Retention Supervisor…",
+  "Querying Genie over governed gold views…",
+  "Pulling renewal-risk drivers…",
+  "Scoring churn probability…",
+  "Weighing incident impact (INC-0001)…",
+  "Cross-checking the renewal forecast…",
+  "Synthesizing a retention recommendation…",
+  "Drafting rationale & what-to-watch…",
+];
+function reasoningPhrase(run) {
+  if (!run) return REASON_PHRASES[0];
+  const i = (run.reasonTick || 0) % REASON_PHRASES.length;
+  const elapsed = run.startedAt ? Math.max(0, Math.round((Date.now() - run.startedAt) / 1000)) : 0;
+  return REASON_PHRASES[i] + (elapsed ? " · " + elapsed + "s" : "");
+}
+
+const _journeyReasonTimers = {};
+function stopReasonTicker(actionId) {
+  if (_journeyReasonTimers[actionId]) { clearInterval(_journeyReasonTimers[actionId]); delete _journeyReasonTimers[actionId]; }
+}
+function startReasonTicker(actionId) {
+  stopReasonTicker(actionId);
+  _journeyReasonTimers[actionId] = setInterval(() => {
+    const r = state.workflowRuns[actionId];
+    if (!r || r.status !== "PENDING" || r.stage !== 1) { stopReasonTicker(actionId); return; }
+    r.reasonTick = (r.reasonTick || 0) + 1;
+    if (state.journey && state.journey.actionId === actionId) renderJourney();
+  }, 2500);
+}
+
+function startJourneyProgress(actionId) {
+  stopJourneyProgress(actionId);
+  let attempts = 0;
+  const MAX = 170; // ~11 min at 4s
+  const tick = async () => {
+    const run = state.workflowRuns[actionId];
+    if (!run || run.status !== "PENDING") { stopJourneyProgress(actionId); return; }
+    if (++attempts > MAX) { stopJourneyProgress(actionId); return; }
+    run.checking = true;
+    const [tasks, decRes] = await Promise.all([
+      fetchApprovalTasks(),
+      getRetentionWorkflowResult(run.instanceId, actionId).catch(() => null),
+    ]);
+    const live = state.workflowRuns[actionId];
+    if (!live || live.status !== "PENDING") { stopJourneyProgress(actionId); return; }
+    live.checking = false;
+    // 1) Real decision (writeActionStatus row), guarded against stale prior-run rows.
+    if (decRes && decRes.status === "SUCCEEDED" && decRes.decided && decisionIsCurrent(live, decRes)) {
+      applyJourneyDecision(actionId, String(decRes.decision || "").toLowerCase() === "rejected" ? "rejected" : "approved");
+      return;
+    }
+    // 2) Stage from the real Task Center state for THIS instance.
+    const mt = matchTaskToRun(tasks, live);
+    if (mt) {
+      live.taskId = mt.id;
+      live.taskVersion = mt.version;
+      if (mt.status === "COMPLETED") {
+        // Task done; the writeback decision row lands a beat later — keep listening at stage 2.
+        if (live.stage < 2) { live.stage = 2; }
+      } else if (mt.status === "OPEN") {
+        if (live.stage !== 2) { live.stage = 2; }
+      }
+      live.polling = true;
+      render();
+    } else {
+      // No approval task yet → the workflow is still reasoning (agent tile running).
+      if (live.stage < 1) { live.stage = 1; }
+      live.polling = true;
+      render();
+    }
+  };
+  _journeyProgressTimers[actionId] = setInterval(tick, 4000);
+  tick(); // kick immediately so the first real signal lands fast
+}
+
+// Parse a Databricks timestamp (ISO, "YYYY-MM-DD HH:MM:SS[.fff]" assumed UTC, or epoch).
+function parseDbxTs(ts) {
+  if (!ts && ts !== 0) return 0;
+  if (typeof ts === "number") return ts > 1e12 ? ts : ts * 1000;
+  let s = String(ts).trim();
+  if (!s) return 0;
+  if (/^\d+$/.test(s)) { const n = Number(s); return n > 1e12 ? n : n * 1000; }
+  s = s.replace(" ", "T");
+  if (!/[zZ]|[+-]\d\d:?\d\d$/.test(s)) s += "Z"; // Databricks timestamps are UTC
+  const ms = Date.parse(s);
+  return isNaN(ms) ? 0 : ms;
+}
+
+// The writeback table accumulates a row per action_id PER RUN, so a decision found
+// by action_id alone can be stale (a prior demo run of the same action). Only accept
+// a decision that belongs to THIS run: its row is newer than the run start, or the
+// live workflow INSTANCE (queried by instanceId) is genuinely in a terminal state.
+function decisionIsCurrent(run, result) {
+  const startedAt = (run && run.startedAt) || 0;
+  const tsMs = parseDbxTs(result.decidedTs);
+  if (tsMs && startedAt) return tsMs >= (startedAt - 60000); // 60s skew
+  const ws = String(result.workflowStatus || "").toUpperCase();
+  if (/(COMPLET|SUCCE|DONE|FINISH|CLOSED|TERMINAT)/.test(ws)) return true;
+  if (/(PROGRESS|RUNNING|ACTIVE|PENDING|WAIT|OPEN|START)/.test(ws)) return false;
+  // Ambiguous (no parseable decision time, unknown instance status): don't trust a
+  // possibly-stale row — keep listening. A real approval writes a fresh, parseable ts.
+  return false;
 }
 
 async function checkWorkflow(actionId) {
@@ -995,7 +1407,7 @@ async function checkWorkflow(actionId) {
     run.error = String(error);
   }
   run.checking = false;
-  if (result && result.status === "SUCCEEDED" && result.decided) {
+  if (result && result.status === "SUCCEEDED" && result.decided && decisionIsCurrent(run, result)) {
     const decision = String(result.decision || "").toLowerCase();
     if (decision === "approved") {
       const amt = Number(run.protectedAmt) || 0;
@@ -1102,8 +1514,8 @@ function renderDatasets() {
         <div class="alias">${tick}${d.name}</div>
         <div class="object">${d.object}</div>
         <div class="dataset-links">
-          <button type="button" data-domo-dataset="${escapeHtml(d.dataSetId)}">Open Domo dataset</button>
-          <button type="button" data-dbx-table="${escapeHtml(d.object)}">Open Databricks table</button>
+          <button type="button" data-domo-dataset="${escapeHtml(d.dataSetId)}" data-tip-title="Domo dataset" data-tip="Open the federated Domo dataset (${escapeHtml(d.alias)}) details page in Domo">Open Domo dataset</button>
+          <button type="button" data-dbx-table="${escapeHtml(d.object)}" data-tip-title="Databricks table" data-tip="Open the governed source ${escapeHtml(d.object)} in Databricks Catalog Explorer">Open Databricks table</button>
         </div>
       </div>
     `
@@ -1156,8 +1568,8 @@ function renderMlStatus() {
   const links = document.getElementById("mlModelLinks");
   if (links) {
     links.innerHTML = `
-      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlRegisteredModelUrl())}">Registered model &rarr;</button>
-      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlEndpointUrl())}">Serving endpoint &rarr;</button>`;
+      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlRegisteredModelUrl())}" data-tip-title="Registered model" data-tip="Open ${escapeHtml(ML_MODEL.registry)} (v${escapeHtml(String(ML_MODEL.version))}) in Unity Catalog — the MLflow-registered, governed renewal-risk model">Registered model &rarr;</button>
+      <button type="button" class="link-pill dbx" data-open-url="${escapeHtml(mlEndpointUrl())}" data-tip-title="Serving endpoint" data-tip="Open the ${escapeHtml(ML_MODEL.endpoint)} Model Serving endpoint in Databricks — where this account is scored live">Serving endpoint &rarr;</button>`;
     links.querySelectorAll("[data-open-url]").forEach((b) =>
       b.addEventListener("click", () => openExternal(b.getAttribute("data-open-url"))));
   }
@@ -1423,16 +1835,16 @@ async function runInference() {
           comment: `Prediction ${decision} from ML Predictions (${Math.round(r.probability * 100)}% churn)`,
           createdBy: "demo.user@domo.com",
         });
-        const seededId = await seedScenarioFromPrediction(f, r, decision);
+        const seeded = await seedScenarioFromPrediction(f, r, decision);
         if (note) {
           note.innerHTML = "";
           const label = document.createElement("span");
-          label.textContent = (state.lakebaseLive ? "Saved to Lakebase" : "Captured") + " — ";
+          label.textContent = (state.lakebaseLive ? "Saved to Lakebase as " : "Captured as ") + ((seeded && seeded.ref) || "scenario") + " — ";
           const link = document.createElement("button");
           link.type = "button";
           link.className = "fb-review-link";
           link.textContent = "Review scenario →";
-          link.addEventListener("click", () => gotoLakebaseScenario(seededId));
+          link.addEventListener("click", () => gotoLakebaseScenario(seeded && seeded.id));
           note.appendChild(label);
           note.appendChild(link);
         }
@@ -1891,8 +2303,8 @@ function renderScenarioDetail() {
     <div class="scenario-detail-head">
       <div><span class="panel-tag">selected run</span><h3>${escapeHtml(scenario.name)}</h3></div>
       <div class="toolbar-right">
-        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_PROJECT_LINK)}">Open Lakebase</button>
-        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_TABLES_LINK)}">Open source table</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_PROJECT_LINK)}" data-tip-title="Lakebase project" data-tip="Open the cobra-v1 Lakebase (managed Postgres) project in Databricks">Open Lakebase</button>
+        <button class="btn btn-secondary btn-sm" type="button" data-open-url="${escapeHtml(LAKEBASE_TABLES_LINK)}" data-tip-title="Lakebase source table" data-tip="Open the p4_scenario_runs / p4_prediction_feedback tables in the Lakebase project — where this saved scenario lives">Open source table</button>
         <button class="btn btn-secondary btn-sm" type="button" data-scenario-edit="${scenario.id}">Edit selected</button>
       </div>
     </div>
@@ -1929,14 +2341,28 @@ async function deleteScenario(id) {
 
 // Called from ML Predictions when a user accepts/adjusts/rejects — seeds a reviewable
 // scenario from the scored inputs + prediction, then deep-links to it on the Lakebase tab.
+// Short, human-discernible reference code so each saved scenario is unique and
+// easy to spot in both the app table and Lakebase (the seeded inputs are otherwise
+// identical run-to-run).
+function scenarioRef() {
+  const t = Date.now().toString(36).slice(-4).toUpperCase();
+  const r = Math.random().toString(36).slice(2, 4).toUpperCase();
+  return `SCN-${t}${r}`;
+}
+
 async function seedScenarioFromPrediction(features, prediction, decision) {
   const pct = Math.round((Number(prediction.probability) || 0) * 100);
-  const name = `${features.region || "Account"} ${features.segment || ""} — ${decision} @ ${pct}% churn`.trim();
+  const ref = scenarioRef();
+  const now = new Date();
+  const timeLabel = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  // Lead the name with the ref + time so the row you just created is unmistakable
+  // in the app table and in Lakebase.
+  const name = `${ref} · ${features.region || "Account"} ${features.segment || ""} · ${decision} @ ${pct}% churn · ${timeLabel}`.replace(/\s+/g, " ").trim();
   const payload = {
     name: name,
     status: decision === "accept" ? "complete" : decision === "reject" ? "archived" : "running",
     createdBy: "demo.user@domo.com",
-    assumptions: { source: "ml_prediction", decision: decision, source_table: "gold_customer_renewal_risk", inputs: features },
+    assumptions: { ref: ref, source: "ml_prediction", decision: decision, source_table: "gold_customer_renewal_risk", created_at: now.toISOString(), created_label: timeLabel, inputs: features },
     results: {
       predicted_churn_probability: Number((Number(prediction.probability) || 0).toFixed(4)),
       revenue_at_risk: Math.round(Number(prediction.revenueAtRisk) || 0),
@@ -1956,7 +2382,7 @@ async function seedScenarioFromPrediction(features, prediction, decision) {
       state.lakebase.selectedScenarioId = next.id;
     }
     renderLakebase();
-    return state.lakebase.selectedScenarioId;
+    return { id: state.lakebase.selectedScenarioId, ref: ref, name: name };
   } catch (error) {
     console.warn("Scenario seed failed", error);
     return null;
@@ -2001,6 +2427,7 @@ const ICONS = {
   model: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 4-6"/><circle cx="20" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>',
   lakebase: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7" ry="2.6"/><path d="M5 5.5v13c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6v-13"/><path d="M5 12c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6"/><path d="m11 15 1.6 1.6L16 13"/></svg>',
   agent: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M12 4.5V8"/><circle cx="12" cy="3.4" r="1.2" fill="currentColor" stroke="none"/><path d="M9.5 13h.01"/><path d="M14.5 13h.01"/><path d="M2.5 12v3"/><path d="M21.5 12v3"/></svg>',
+  approval: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 9.2-5.9"/><path d="m15.5 18.5 1.8 1.8 3.2-3.6"/></svg>',
 };
 
 const FLOW_STAGES = [
@@ -2100,8 +2527,8 @@ const ARCH_CONTEXT = [
 
 // Sources & ingestion strip — how the governed data lands and how Domo reads it.
 const ARCH_INGEST = [
-  { icon: "data", name: "Synthetic generator (Spark + Faker)", sub: "Story-driven revenue / risk / incident data → Unity Catalog gold" },
-  { icon: "sync", name: "Cloud Amplifier live federation", sub: "Domo queries Databricks gold live — no copy" },
+  { icon: "data", brand: "spark", name: "Synthetic generator (Spark + Faker)", sub: "Story-driven revenue / risk / incident data → Unity Catalog gold" },
+  { icon: "sync", brand: "domo-cloud-amplifier", name: "Cloud Amplifier live federation", sub: "Domo queries Databricks gold live — no copy" },
 ];
 
 // Three planes — every card reflects a capability the app actually uses today.
@@ -2109,36 +2536,46 @@ const ARCH_PLANES = [
   {
     id: "dbx", title: "Databricks · Governed Intelligence",
     items: [
-      { icon: "data", name: "Unity Catalog", sub: "Governance · lineage · ABAC · source of truth" },
-      { icon: "dataset", name: "Delta gold views", sub: "Revenue · risk · incidents · forecast · actions" },
-      { icon: "genie", name: "Genie Space", sub: "NL → governed SQL over the gold views" },
-      { icon: "agent", name: "Agent Bricks Supervisor", sub: "Pattern 4 Retention Supervisor (MAS) · Genie-grounded" },
-      { icon: "model", name: "Model Serving + MLflow", sub: "Renewal-risk regressor v6 · agent traces" },
-      { icon: "lakebase", name: "Lakebase", sub: "Operational state / OLTP · cobra-v1" },
-      { icon: "gateway", name: "Unity AI Gateway", sub: "Usage · rate limits · guardrails · inference tables" },
-      { icon: "sync", name: "External lineage", sub: "gold_* → Domo command center object" },
+      { icon: "data", brand: "unity-catalog", name: "Unity Catalog", sub: "Governance · lineage · ABAC · source of truth", stage: "uc" },
+      { icon: "dataset", brand: "delta-lake", name: "Delta gold views", sub: "Revenue · risk · incidents · forecast · actions",
+        d: { lead: "Six governed gold views in databricks_raptor.pattern4_agent_automation define the entire story: revenue health, customer renewal risk, incident revenue impact, the forecast time series, the agent action queue, and portal user scope.", bullets: ["Built over medallion (bronze → silver → gold) Delta tables", "Identical definitions feed Genie, the model, and Domo — no metric drift", "Comments + tags + synonyms double as the AI Readiness source"], input: "Silver Delta", output: "6 governed gold views", gov: "Unity Catalog — permissions, lineage, ABAC" } },
+      { icon: "genie", brand: "genie", name: "Genie Space", sub: "NL → governed SQL over the gold views", stage: "genie" },
+      { icon: "agent", brand: "agent-bricks", name: "Agent Bricks Supervisor", sub: "Pattern 4 Retention Supervisor (MAS) · Genie-grounded",
+        d: { lead: "A Databricks Agent Bricks Supervisor Agent (mas-77bd204b) that reasons over the governed gold views through Genie and returns a retention recommendation. This is the Databricks agent the Domo AI Agent tile calls — true agent ⇄ agent.", bullets: ["Genie Space wired as a tool, so reasoning stays on governed data", "Called from Domo via pattern4ce.askRetentionAgent (bounded, with a fast guardrailed fallback)", "Every decision is captured as an MLflow trace — open it from the Agent Action Queue"], input: "Account context + question", output: "Grounded retention recommendation", gov: "Unity Catalog + MLflow traces" } },
+      { icon: "model", brand: "mlflow", name: "Model Serving + MLflow", sub: "Renewal-risk regressor v6 · agent traces", stage: "ml" },
+      { icon: "lakebase", brand: "lakebase", name: "Lakebase", sub: "Operational state / OLTP · cobra-v1", stage: "lakebase" },
+      { icon: "gateway", brand: "ai-gateway", name: "Unity AI Gateway", sub: "Usage · rate limits · guardrails · inference tables", stage: "gw" },
+      { icon: "sync", brand: "unity-catalog", name: "External lineage", sub: "gold_* → Domo command center object",
+        d: { lead: "Unity Catalog lineage shows the gold views flowing out to the Domo command center as an external object — proof that Domo reads governed data live rather than copying it.", bullets: ["gold_* views → Domo federated DataSets as a lineage edge", "Lets governance teams see exactly what the app consumes", "Open it with View Unity Catalog lineage →"], input: "Gold view consumption", output: "Cross-platform lineage graph", gov: "Unity Catalog lineage" } },
     ],
   },
   {
     id: "interop", title: "Interop & Governance", agent: true,
     items: [
-      { icon: "sync", name: "Cloud Amplifier", sub: "Databricks Raptor AWS · live federation" },
-      { icon: "app", name: "Code Engine (pattern4ce)", sub: "Genie · inference · Lakebase · writeback · agent bridge" },
-      { icon: "gateway", name: "Unity AI Gateway", sub: "Governs model + LLM tool calls" },
-      { icon: "gateway", name: "Shared Identity", sub: "SSO · OAuth U2M · OBO (documented)" },
+      { icon: "sync", brand: "domo-cloud-amplifier", name: "Cloud Amplifier", sub: "Databricks Raptor AWS · live federation", stage: "ca" },
+      { icon: "app", brand: "domo-mcp", name: "MCP Integrations", sub: "Server-side bridge · Genie · inference · Lakebase · writeback",
+        d: { lead: "The server-side integration layer — an MCP-aligned bridge (Code Engine today) that runs every Databricks call with credentials held safely server-side: Genie, model inference, Lakebase CRUD, the workflow start, status writeback, and the agent call.", bullets: ["askGenie · runModelInference · askReasoningModel · askRetentionAgent", "startRetentionWorkflow / listApprovalTasks / completeApprovalTask / writeActionStatus", "Mapped to the app by stable aliases (packageMapping); moving toward MCP"], input: "App requests (domo.post)", output: "Governed Databricks results", gov: "Domo OAuth + server-side token" } },
+      { icon: "gateway", brand: "ai-gateway", name: "Unity AI Gateway", sub: "Governs model + LLM tool calls", stage: "gw" },
+      { icon: "gateway", name: "Shared Identity", sub: "SSO · OAuth U2M · OBO (documented)",
+        d: { lead: "The identity story across both platforms. Users sign in through Domo SSO; the documented next step is per-user OBO into Databricks via OAuth U2M / token federation so lakehouse calls run as the end user, not a service principal.", bullets: ["Today: governed service principal carries the Databricks call", "Documented route: Databricks U2M OAuth / token federation for per-user OBO", "Embedded Domo app carries a Domo identity, not a Databricks one — hence the OBO bridge"], input: "Domo SSO identity", output: "Governed Databricks access", gov: "SSO · OAuth U2M · OBO (documented)" } },
     ],
   },
   {
     id: "domo", title: "Domo · Activation & Action",
     items: [
-      { icon: "app", name: "Pro-code App (App Studio)", sub: "7-tab command center · experience + action" },
-      { icon: "dataset", name: "Federated DataSets", sub: "5 alias-mapped gold views" },
-      { icon: "action", name: "Domo Workflow + approvals", sub: "Renewal Risk Retention v1.0.3 · sign-off → writeback" },
-      { icon: "agent", name: "AI Agent tile", sub: "Calls the Databricks Supervisor agent (agent ⇄ agent)" },
-      { icon: "action", name: "Approvals · Action Center", sub: "In-app approve / reject completes the task" },
-      { icon: "model", name: "ML Predictions", sub: "Ad hoc scoring + cURL / Python / SQL payload" },
-      { icon: "data", name: "AI Readiness", sub: "Unity Catalog → Domo AI Readiness control plane" },
-      { icon: "gateway", name: "Domo PDP", sub: "Per-persona scope ↔ UC filters" },
+      { icon: "app", brand: "domo-pro-code", name: "Pro-code App (App Studio)", sub: "Command center · experience + action", stage: "app" },
+      { icon: "dataset", brand: "domo-cloud-amplifier", name: "Federated DataSets", sub: "5 alias-mapped gold views", stage: "ds" },
+      { icon: "action", brand: "domo-workflows", name: "Domo Workflow + approvals", sub: "Renewal Risk Retention v1.0.3 · sign-off → writeback", stage: "act" },
+      { icon: "agent", brand: "domo-ai-agent", name: "AI Agent tile", sub: "Calls the Databricks Supervisor agent (agent ⇄ agent)",
+        d: { lead: "Inside the Domo Workflow, a native Domo AI Agent tile calls the Databricks Supervisor Agent to produce the retention recommendation that a human then approves — the Domo-side half of agent ⇄ agent.", bullets: ["Tile → pattern4ce.askRetentionAgent → Databricks MAS (Genie-backed)", "Bounded call with a fast Unity AI Gateway-guardrailed fallback so the tile never hangs", "Recommendation is shown to the approver in the Domo task"], input: "Workflow context", output: "Agent recommendation in the approval task", gov: "Domo Workflow + Unity AI Gateway" } },
+      { icon: "action", brand: "domo-approvals", name: "Approvals · Action Center", sub: "In-app approve / reject completes the task",
+        d: { lead: "A dedicated in-app tab listing the workflow's approval queue (open / completed / voided). Approving or rejecting here completes the Domo task over the Task Center API, resumes the workflow, and writes status back to the lakehouse.", bullets: ["listApprovalTasks + completeApprovalTask over the Task Center API", "Click any task to go to source in the Domo Queues console", "Decision → writeActionStatus → agent_action_writeback (Delta)"], input: "Workflow approval task", output: "Completed task + status writeback", gov: "Domo RBAC + approval queue" } },
+      { icon: "model", brand: "mlflow", name: "ML Predictions", sub: "Ad hoc scoring + cURL / Python / SQL payload",
+        d: { lead: "The ML Predictions tab scores any account on demand against the renewal-risk regressor v6 and shows the exact live request as cURL, Python, and SQL so the call is fully transparent.", bullets: ["Calls Model Serving via pattern4ce.runModelInference (token server-side)", "Warm-up + retry handles endpoint cold start", "Feedback (accept / adjust / reject) persists to Lakebase"], input: "Account features", output: "Churn probability + revenue at risk", gov: "Unity Catalog model + AI Gateway" } },
+      { icon: "data", brand: "unity-catalog", name: "AI Readiness", sub: "Unity Catalog → Domo AI Readiness control plane",
+        d: { lead: "Unity Catalog column metadata (descriptions, tags, synonyms) is the source of truth; the AI Readiness tab syncs that prepared context into Domo's AI Readiness control plane per column or per dataset.", bullets: ["UC comments/tags/synonyms drive Domo AI Readiness", "Sync per column or whole dataset", "Editing UC source context is a separate, governed action"], input: "Unity Catalog metadata", output: "Domo AI Readiness coverage", gov: "Unity Catalog (write) + Domo AI Readiness" } },
+      { icon: "gateway", brand: "domo-pdp", name: "Domo PDP", sub: "Per-persona scope ↔ UC filters",
+        d: { lead: "Personalized Data Permissions scope every persona (exec sponsor, regional manager, account owner) to the rows they're entitled to — the Domo-side mirror of Unity Catalog row filters.", bullets: ["Viewing as menu rescopes the whole app", "PDP policies align to UC row filters for end-to-end entitlement", "Same governance, enforced on both platforms"], input: "Persona identity", output: "Row-scoped view", gov: "Domo PDP ↔ UC row filters" } },
     ],
   },
 ];
@@ -2156,42 +2593,43 @@ function planeLabel(plane) {
   return plane === "dbx" ? "Databricks" : plane === "domo" ? "Domo" : "Interop";
 }
 
-function renderFlow() {
-  const rail = document.getElementById("flowRail");
-  rail.innerHTML = FLOW_STAGES.map((s, i) => `
-      <button class="flow-stage ${s.plane}" type="button" data-id="${s.id}">
-        <span class="flow-step-num">${i + 1}</span>
-        <span class="stage-ic">${ICONS[s.icon]}</span>
-        <span class="flow-plane ${s.plane}">${planeLabel(s.plane)}</span>
-        <span class="stage-name">${s.name}</span>
-        <span class="stage-sub">${s.sub}</span>
-      </button>`).join("");
-  rail.querySelectorAll(".flow-stage").forEach((el) => {
-    el.addEventListener("click", () => selectStage(el.getAttribute("data-id")));
-  });
-  const lineage = document.getElementById("flowLineageLink");
-  if (lineage && !lineage.dataset.wired) {
-    lineage.addEventListener("click", () => openExternal(LINEAGE_URL));
-    lineage.dataset.wired = "1";
+// Resolve a tile's detail: reuse the rich FLOW_STAGES content when the item
+// maps to a stage, otherwise fall back to its inline `d` detail.
+function archDetailFor(item) {
+  if (item.stage) {
+    const s = FLOW_STAGES.find((x) => x.id === item.stage);
+    if (s) return { name: item.name, lead: s.lead, bullets: s.bullets || [], input: s.input, output: s.output, governed: s.governed };
   }
+  const d = item.d || {};
+  return { name: item.name, lead: d.lead || item.sub, bullets: d.bullets || [], input: d.input, output: d.output, governed: d.gov };
 }
 
-function selectStage(id) {
-  const s = FLOW_STAGES.find((x) => x.id === id) || FLOW_STAGES[0];
-  document.querySelectorAll(".flow-stage").forEach((el) => {
-    el.classList.toggle("active", el.getAttribute("data-id") === s.id);
+function selectArchCard(key) {
+  const dash = key.lastIndexOf("-");
+  const pid = key.slice(0, dash);
+  const idx = Number(key.slice(dash + 1));
+  const plane = ARCH_PLANES.find((p) => p.id === pid);
+  if (!plane || !plane.items[idx]) return;
+  const item = plane.items[idx];
+  document.querySelectorAll("#archGrid .ac-card").forEach((el) => {
+    el.classList.toggle("active", el.getAttribute("data-arch") === key);
   });
-  document.getElementById("flowDetail").innerHTML = `
+  const d = archDetailFor(item);
+  const ioCells = [
+    d.input ? `<div class="io-cell"><div class="io-k">Input</div><div class="io-v">${d.input}</div></div>` : "",
+    d.output ? `<div class="io-cell"><div class="io-k">Output</div><div class="io-v">${d.output}</div></div>` : "",
+    d.governed ? `<div class="io-cell"><div class="io-k">Governed by</div><div class="io-v">${d.governed}</div></div>` : "",
+  ].join("");
+  const detail = document.getElementById("archDetail");
+  if (!detail) return;
+  detail.innerHTML = `
     <div>
-      <h3>${s.name}</h3>
-      <p class="lead">${s.lead}</p>
-      <ul>${s.bullets.map((b) => `<li>${b}</li>`).join("")}</ul>
+      <span class="ad-plane ${pid}">${planeLabel(pid)}</span>
+      <h3>${d.name}</h3>
+      <p class="lead">${d.lead}</p>
+      ${d.bullets.length ? `<ul>${d.bullets.map((b) => `<li>${b}</li>`).join("")}</ul>` : ""}
     </div>
-    <div class="flow-io">
-      <div class="io-cell"><div class="io-k">Input</div><div class="io-v">${s.input}</div></div>
-      <div class="io-cell"><div class="io-k">Output</div><div class="io-v">${s.output}</div></div>
-      <div class="io-cell"><div class="io-k">Governed by</div><div class="io-v">${s.governed}</div></div>
-    </div>`;
+    ${ioCells ? `<div class="flow-io">${ioCells}</div>` : ""}`;
 }
 
 function renderGuideSteps() {
@@ -2218,17 +2656,28 @@ function renderArchitecture() {
   if (ing) {
     ing.innerHTML = `<span class="ac-ing-label">Sources &amp; ingestion</span>` +
       ARCH_INGEST.map(
-        (c) => `<div class="ac-ing-card"><span class="ac-ic">${ICONS[c.icon] || ""}</span><div><b>${c.name}</b><span>${c.sub}</span></div></div>`
+        (c) => `<div class="ac-ing-card">${markerHtml(c.brand, c.icon, "ac-logo", "ac-ic")}<div><b>${c.name}</b><span>${c.sub}</span></div></div>`
       ).join('<span class="ac-ing-arrow" aria-hidden="true">→</span>');
   }
 
-  const card = (it) => `<div class="ac-card"><span class="ac-ic">${ICONS[it.icon] || ""}</span><div class="ac-card-t"><b>${it.name}</b><span>${it.sub}</span></div></div>`;
-  document.getElementById("archGrid").innerHTML = ARCH_PLANES.map((p) => `
+  const card = (it, key) => `<button class="ac-card" type="button" data-arch="${key}">${markerHtml(it.brand, it.icon, "ac-logo", "ac-ic")}<div class="ac-card-t"><b>${it.name}</b><span>${it.sub}</span></div></button>`;
+  const grid = document.getElementById("archGrid");
+  grid.innerHTML = ARCH_PLANES.map((p) => `
     <div class="ac-plane ${p.id}">
       <div class="ac-plane-head">${p.title}</div>
       ${p.agent ? `<div class="ac-agent-tag">AGENT&nbsp;⇄&nbsp;AGENT</div>` : ""}
-      <div class="ac-cards">${p.items.map(card).join("")}</div>
+      <div class="ac-cards">${p.items.map((it, i) => card(it, `${p.id}-${i}`)).join("")}</div>
     </div>`).join("");
+  grid.querySelectorAll(".ac-card").forEach((el) => {
+    el.addEventListener("click", () => selectArchCard(el.getAttribute("data-arch")));
+  });
+  selectArchCard("dbx-0");
+
+  const lineage = document.getElementById("flowLineageLink");
+  if (lineage && !lineage.dataset.wired) {
+    lineage.addEventListener("click", () => openExternal(LINEAGE_URL));
+    lineage.dataset.wired = "1";
+  }
 
   document.getElementById("reqRow").innerHTML =
     `<span class="ac-req-label">Build requirements</span>` +
@@ -2238,8 +2687,6 @@ function renderArchitecture() {
 }
 
 function renderGuide() {
-  renderFlow();
-  selectStage(FLOW_STAGES[0].id);
   renderGuideSteps();
   renderArchitecture();
 }
@@ -2504,6 +2951,68 @@ function domoDatasetUrl(item) {
 
 function databricksTableUrl(item) {
   return databricksObjectUrl(item.object || "");
+}
+
+// ---- Styled tooltips ---------------------------------------------------------
+// A single floating bubble (appended to <body>) shown on hover/focus of any element
+// carrying data-tip (optional data-tip-title for a bold heading). Body-level so it
+// never gets clipped by panel/table overflow, and delegated so it covers
+// dynamically-rendered links. Positions above the target, flips below if no room.
+let _tipEl = null;
+let _tipHideTimer = null;
+
+function setupTooltips() {
+  if (_tipEl || typeof document === "undefined") return;
+  _tipEl = document.createElement("div");
+  _tipEl.className = "app-tip";
+  _tipEl.setAttribute("role", "tooltip");
+  _tipEl.hidden = true;
+  document.body.appendChild(_tipEl);
+
+  const show = (target) => {
+    const tip = target.getAttribute("data-tip");
+    if (!tip) return;
+    const title = target.getAttribute("data-tip-title");
+    _tipEl.innerHTML = (title ? `<span class="app-tip-t">${escapeHtml(title)}</span>` : "") + `<span class="app-tip-d">${escapeHtml(tip)}</span>`;
+    _tipEl.hidden = false;
+    _tipEl.classList.remove("below");
+    const r = target.getBoundingClientRect();
+    const tr = _tipEl.getBoundingClientRect();
+    let top = r.top - tr.height - 9;
+    let below = false;
+    if (top < 6) { top = r.bottom + 9; below = true; }
+    let left = r.left + r.width / 2 - tr.width / 2;
+    left = Math.max(8, Math.min(left, window.innerWidth - tr.width - 8));
+    _tipEl.style.top = `${Math.round(top)}px`;
+    _tipEl.style.left = `${Math.round(left)}px`;
+    // caret offset so it points at the target center even when clamped
+    const caret = Math.max(12, Math.min(r.left + r.width / 2 - left, tr.width - 12));
+    _tipEl.style.setProperty("--tip-caret", `${Math.round(caret)}px`);
+    _tipEl.classList.toggle("below", below);
+    _tipEl.classList.add("show");
+  };
+  const hide = () => {
+    if (!_tipEl) return;
+    _tipEl.classList.remove("show");
+    clearTimeout(_tipHideTimer);
+    _tipHideTimer = setTimeout(() => { if (_tipEl) _tipEl.hidden = true; }, 120);
+  };
+
+  document.addEventListener("mouseover", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (t) { clearTimeout(_tipHideTimer); show(t); }
+  });
+  document.addEventListener("mouseout", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (t && !(e.relatedTarget && t.contains(e.relatedTarget))) hide();
+  });
+  document.addEventListener("focusin", (e) => {
+    const t = e.target.closest && e.target.closest("[data-tip]");
+    if (t) show(t);
+  });
+  document.addEventListener("focusout", hide);
+  document.addEventListener("click", hide, true);
+  window.addEventListener("scroll", hide, true);
 }
 
 function openExternal(url) {
@@ -2845,7 +3354,8 @@ const VIEW_IDS = {
   guide: "viewGuide",
 };
 
-function activateView(view) {
+function activateView(view, opts) {
+  opts = opts || {};
   if (!VIEW_IDS[view]) view = "forecast";
   document.querySelectorAll(".view-tab").forEach((tab) => {
     const isActive = tab.getAttribute("data-view") === view;
@@ -2863,6 +3373,49 @@ function activateView(view) {
   // so the first real "Run prediction" doesn't hit a ~20-30s cold start.
   if (view === "ml") warmModelEndpoint();
   if (view === "approvals") loadApprovals();
+  // Land on a specific section when requested (e.g. "← Forecast Home" → Agent Action
+  // Queue), otherwise scroll the new view to the top.
+  if (opts.scrollTo) scrollViewToTarget(opts.scrollTo); else scrollViewToTop();
+}
+
+// Switching tabs should land you at the top of the new view, regardless of
+// where you scrolled from (e.g. clicking "Approvals →" mid-page).
+//
+// In App Studio the app is embedded in an iframe that is auto-sized to its
+// content, so the *parent* page scrolls — window.scrollTo() inside the app
+// can't move it. element.scrollIntoView() DOES propagate across the iframe
+// boundary, so we use it to pull the app header back to the top of the
+// viewport (the same result as clicking a header tab). We run it again on the
+// next frame because some views (Approvals) load rows asynchronously and grow
+// after the initial call.
+function scrollViewToTop() {
+  const toTop = () => {
+    try {
+      window.scrollTo(0, 0);
+      if (document.scrollingElement) document.scrollingElement.scrollTop = 0;
+      const top = document.querySelector(".app-header") || document.querySelector(".app-shell");
+      if (top && top.scrollIntoView) top.scrollIntoView({ block: "start", inline: "nearest" });
+    } catch (e) {}
+  };
+  toTop();
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(toTop);
+  setTimeout(toTop, 60);
+}
+
+// Scroll a specific section into view (across the App Studio iframe boundary).
+// Re-fires on the next frame + a short timeout because the target view may still
+// be laying out / loading when the navigation fires.
+function scrollViewToTarget(sel) {
+  const go = () => {
+    try {
+      const el = typeof sel === "string" ? document.querySelector(sel) : sel;
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: "start", inline: "nearest" });
+      else { window.scrollTo(0, 0); }
+    } catch (e) {}
+  };
+  go();
+  if (typeof requestAnimationFrame === "function") requestAnimationFrame(go);
+  setTimeout(go, 90);
 }
 
 /* ---------- Approvals · Action Center (in-app workflow task approval) ---------- */
@@ -2897,7 +3450,7 @@ function renderApprovalsRows() {
       action = `<span class="action-writeback">✓ ${escapeHtml(t.status.toLowerCase())}</span>`;
     }
     return `<tr>
-      <td><strong>${escapeHtml(t.title || "Approve renewal-risk retention")}</strong><div class="approvals-id">${escapeHtml(t.id)}</div></td>
+      <td><button class="approvals-task-link" type="button" data-queue-src="${escapeHtml(t.status)}" data-tip-title="Domo Queues" data-tip="Open this task in the Domo Queues console (status: ${escapeHtml(t.status)})">${escapeHtml(t.title || "Approve renewal-risk retention")}<span class="ext-arrow" aria-hidden="true"> ↗</span></button><div class="approvals-id">${escapeHtml(t.id)}</div></td>
       <td><span class="status ${statusClass}">${escapeHtml(t.status)}</span></td>
       <td>${t.createdOn ? escapeHtml(fmtTaskDate(t.createdOn)) : "—"}</td>
       <td>${t.completedOn ? escapeHtml(fmtTaskDate(t.completedOn)) : "—"}</td>
@@ -2906,6 +3459,7 @@ function renderApprovalsRows() {
   }).join("");
   body.querySelectorAll("[data-approve]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-approve"), "Approved", b.getAttribute("data-version"))));
   body.querySelectorAll("[data-reject]").forEach((b) => b.addEventListener("click", () => completeApproval(b.getAttribute("data-reject"), "Rejected", b.getAttribute("data-version"))));
+  body.querySelectorAll("[data-queue-src]").forEach((b) => b.addEventListener("click", () => openExternal(queueTasksUrl(b.getAttribute("data-queue-src")))));
   wireAgentLinks();
 }
 
@@ -2953,11 +3507,27 @@ async function completeApproval(taskId, decision, version) {
   state.approvals.busyId = null;
   if (res && res.status === "SUCCEEDED") {
     approvalsBanner("ok", `Task ${decision.toLowerCase()} — workflow resumed; status writing back to the lakehouse.`);
+    resolveJourneyDecision(decision); // complete the matching Action Journey timeline
     await loadApprovals();
   } else {
     approvalsBanner("error", `Could not ${decision.toLowerCase()} task: ` + (res && res.error ? (typeof res.error === "string" ? res.error : JSON.stringify(res.error)) : "unknown"));
     renderApprovalsRows();
   }
+}
+
+// An in-app Approvals decision resolves the matching Action Journey (the focused
+// pending action, else the most recent pending run) so its timeline completes and
+// Protected Revenue updates without waiting for the next poll.
+function resolveJourneyDecision(decision) {
+  let actionId = state.journey && state.journey.actionId;
+  let run = actionId ? state.workflowRuns[actionId] : null;
+  if (!run || run.status !== "PENDING") {
+    const pendingIds = Object.keys(state.workflowRuns).filter((k) => state.workflowRuns[k] && state.workflowRuns[k].status === "PENDING");
+    actionId = pendingIds.length ? pendingIds[pendingIds.length - 1] : null;
+    run = actionId ? state.workflowRuns[actionId] : null;
+  }
+  if (!run) return;
+  applyJourneyDecision(actionId, String(decision).toLowerCase() === "rejected" ? "rejected" : "approved");
 }
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -2991,12 +3561,70 @@ function wireTabs() {
     tab.addEventListener("click", () => activateView(tab.getAttribute("data-view")));
   });
   document.querySelectorAll("[data-goto-view]").forEach((el) => {
-    el.addEventListener("click", () => activateView(el.getAttribute("data-goto-view")));
+    el.addEventListener("click", () => activateView(el.getAttribute("data-goto-view"), { scrollTo: el.getAttribute("data-scroll-to") || null }));
   });
   const ar = document.getElementById("approvalsRefresh");
   if (ar) ar.addEventListener("click", loadApprovals);
   const awl = document.getElementById("approvalsWritebackLink");
   if (awl) awl.addEventListener("click", (e) => { e.preventDefault(); openExternal(WRITEBACK_TABLE_URL); });
+}
+
+/* ---------- Genie Workspace (native Databricks embed) ---------- */
+// The embedded Genie space is served from the Databricks domain, so the host app
+// can't programmatically type a question into it (cross-origin) and the embed URL
+// has no prefill/auto-submit parameter. The closest we can do is copy the exact
+// question to the clipboard and spotlight the seeded "starter" so the user lands
+// one paste (or one click on the matching in-chat suggestion) away from the answer.
+function copyToClipboard(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(() => true).catch(() => fallbackCopy(text));
+    }
+  } catch (e) {}
+  return Promise.resolve(fallbackCopy(text));
+}
+
+function fallbackCopy(text) {
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "absolute";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+let genieStarterHintTimer = null;
+function primeGenieStarter(question) {
+  const wrap = document.getElementById("genieStarter");
+  const hint = document.getElementById("genieStarterHint");
+  if (!wrap) return;
+  const defaultHint = "Tap to copy, then paste into Genie below — or click the matching suggestion inside the chat.";
+  copyToClipboard(question || "").then((ok) => {
+    wrap.classList.add("is-copied");
+    if (hint) hint.textContent = ok
+      ? "Question copied — paste into Genie below (⌘V / Ctrl+V), or click the matching suggestion in the chat."
+      : "Copy this question and paste it into Genie below, or click the matching suggestion in the chat.";
+    clearTimeout(genieStarterHintTimer);
+    genieStarterHintTimer = setTimeout(() => {
+      wrap.classList.remove("is-copied");
+      if (hint) hint.textContent = defaultHint;
+    }, 6000);
+  });
+}
+
+function wireGenieEmbed() {
+  const chip = document.getElementById("genieStarterQ");
+  if (chip) {
+    chip.addEventListener("click", () => primeGenieStarter(chip.getAttribute("data-q") || ""));
+  }
 }
 
 function wireForecastControls() {
@@ -3054,11 +3682,19 @@ const WORKFLOW_MODEL_ID = "6cbd5ecb-1036-410a-b188-60a49820d264";
 const WORKFLOW_VERSION = "1.0.3"; // fallback for the instance-monitor URL; runs carry their real version
 const WORKFLOW_TASKS_URL = `${DOMO_INSTANCE_URL}/workflows/${WORKFLOW_MODEL_ID}`;
 
-// The human-approval task is actionable from the workflow INSTANCE monitor (keeps the live
-// progress view). Use the run's actual version so it doesn't 404/show the wrong deployment.
+// Renewal Risk Approvals queue (Domo Task Center). "Go to source" from an Approvals
+// row opens this queue filtered to the task's status.
+const APPROVAL_QUEUE_ID = "55c37364-de76-47a3-8ba6-b5415e063e58";
+function queueTasksUrl(status) {
+  const s = status ? String(status).toUpperCase() : "OPEN";
+  return `${DOMO_INSTANCE_URL}/queues/tasks?status=${encodeURIComponent(s)}&queueId=${APPROVAL_QUEUE_ID}`;
+}
+
+// Open the Renewal Risk Retention workflow's RUNS list (model + deployed version) in Domo,
+// where the user can click into the specific run. Deep-linking straight to a single instance
+// landed on the wrong place, so we go to the runs list and surface the run id in the tooltip.
 function workflowInstanceUrl(instanceId, version) {
-  if (!instanceId) return WORKFLOW_TASKS_URL;
-  return `${DOMO_INSTANCE_URL}/workflows/instances/${WORKFLOW_MODEL_ID}/${version || WORKFLOW_VERSION}/${instanceId}`;
+  return `${DOMO_INSTANCE_URL}/workflows/instances/${WORKFLOW_MODEL_ID}/${version || WORKFLOW_VERSION}`;
 }
 
 const GENIE_MODELS = [
@@ -3736,9 +4372,11 @@ async function init() {
     }
   });
   wireEvents();
+  setupTooltips();
   wireTabs();
   wireForecastControls();
   initGenie();
+  wireGenieEmbed();
   await loadReadiness();
   renderGuide();
   renderReadiness();
@@ -3755,6 +4393,10 @@ async function init() {
     activateView("genie");
     setGenieInspect(true);
     askGenie("Why did renewal risk increase for West enterprise accounts?");
+  }
+  if (window.location.hash === "#genie-embed-demo") {
+    activateView("genieEmbed");
+    setTimeout(() => primeGenieStarter("Why did renewal risk increase for West enterprise accounts?"), 120);
   }
 }
 

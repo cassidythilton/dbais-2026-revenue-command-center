@@ -30,8 +30,15 @@ platform). They sell subscriptions to mid-market and enterprise accounts.
 incident — `INC-0001`** (workflow-queue saturation after a regional failover). SLA breaches
 spiked, product usage dropped, support sentiment soured → **renewal risk climbed for West
 enterprise accounts**, putting **~$106M of renewals** in the exposed cohort. The Command Center
-predicts the exposure, explains the root cause, and drives a **governed, human-approved
-retention play** — all on one governed Databricks foundation, with **no data copied** into Domo.
+**predicts** the exposure on Forecast Home, **explains** the root cause in Genie (the
+`gold_incident_revenue_impact` detail — affected accounts, SLA breaches, revenue at risk — surfaces
+in Genie's cited answer, with the Insight Rail flagging the `INC-0001` link up front), and drives a
+**governed, human-approved retention play** — all on one governed Databricks foundation, with **no
+data copied** into Domo.
+
+> **Predict → explain handoff (say it once):** Forecast Home stays deliberately clean — it shows the
+> *what* (the West dip, revenue at risk). The *why* — the incident root cause and its full impact —
+> is one click away in **Genie (Vignette 2)**, reasoning over the same governed gold views.
 
 **Booth tip:** open full-screen, persona = **Executive Sponsor**. Each vignette below names the
 tab to land on and the single "go to source" click that wins the technical credibility moment.
@@ -48,7 +55,8 @@ tab to land on and the single "go to source" click that wins the technical credi
   The Actual-vs-Forecast hero, Regional Renewal Risk, and the Insight Rail are all the same
   governed numbers Genie and the model see — no metric drift.
 - **Golden path:** Point at **Revenue at Risk** and the **West hotspot** (51.7 vs ~40 elsewhere).
-  The Insight Rail says the dip is isolated to West and tied to `INC-0001`.
+  The **Insight Rail** says the dip is isolated to West and tied to `INC-0001`. Don't over-explain on
+  Home — that's the *what*; the *why* (incident root cause + impact) is the next click, in Genie.
 - **Go to source:** On a governed-lineage card, click **Open Databricks table** → the gold view in
   Catalog Explorer. "Domo isn't holding a stale copy — it's querying this, live."
 - **Tie-in:** "Let's ask the lakehouse *why* (Vignette 2), then *score* an account (V3) and
@@ -62,8 +70,11 @@ tab to land on and the single "go to source" click that wins the technical credi
   SQL against Unity Catalog metrics; Domo renders the answer + a chart and an **Inspect** panel
   showing the exact governed API call, the generated SQL, latency, and row count.
 - **Golden path:** Click the seeded chip *"Why did renewal risk increase for West enterprise
-  accounts this month?"* → cited root cause (incident-linked), generated SQL, and a chart built
-  from the returned rows. Open **Inspect** to show it's governed, on-behalf-of the user.
+  accounts this month?"* → a cited root cause tied to **`INC-0001`**, with the incident's impact
+  pulled from `gold_incident_revenue_impact` (affected accounts, SLA breaches, revenue at risk),
+  generated SQL, and a chart built from the returned rows. **This is where the incident root-cause
+  detail lives** — Forecast Home shows the dip, Genie explains it. Open **Inspect** to show it's
+  governed, on-behalf-of the user.
 - **Go to source:** **Open in Databricks** → the live Genie room.
 - **Tie-in:** "Same metrics, asked in English. The reason Genie is trustworthy is governed
   metadata — that's Vignette 8 (AI Readiness)."
@@ -105,15 +116,35 @@ tab to land on and the single "go to source" click that wins the technical credi
 - **Tab:** Forecast Home → Agent Action Queue → **Inspect agent** · **~5 min** (the showpiece)
 - **Backdrop:** RevOps wants a recommended retention play for an at-risk account — reasoned over
   governed data, not guessed.
-- **Databricks (+ Domo):** A **Databricks Agent Bricks Multi-Agent Supervisor** (the *Pattern 4
-  Retention Supervisor*) reasons over the gold views **via Genie**. A **Domo AI agent tile inside
-  a governed Domo Workflow** calls it through Code Engine — **a Domo agent calling a Databricks
-  agent.**
+- **Databricks (+ Domo):** **two agents, two jobs — a Domo agent reasoning *with* a Databricks agent.**
+  - **What the Databricks agent does:** the **Agent Bricks Multi-Agent Supervisor** (*Pattern 4
+    Retention Supervisor*) is the deep-data specialist — it queries the governed gold views **via
+    Genie**, weighs the renewal-risk signals, and reasons out the evidence behind a save play.
+  - **What the Domo agent does:** the **Domo AI agent inside the governed Domo Workflow** is the
+    decision-maker — it decides to consult the Databricks specialist, then reasons over what comes
+    back to commit to **one concrete retention action + a one-sentence rationale**, decision-ready
+    for the human approver (its actual instruction: *"…return ONE concrete recommended retention
+    action plus a one-sentence rationale"*).
 - **Golden path:** On a pending action, click **Inspect agent** → watch it reason live (the dots
   pulse: "querying Genie, scoring renewal risk…") → a Genie-grounded recommendation with rationale
   and what-to-watch renders in-app.
-- **Go to source:** In the inspector footer: **Open agent ↗**, **Activity log (MLflow) ↗** (every
-  agent decision is traced), **Writeback table ↗**.
+- **Show BOTH agents (do this — it's the whole point):**
+  1. **The Domo agent — open the Workflow.** From the action row, **Open task ↗** → the Domo
+     Workflow *Pattern 4 - Renewal Risk Retention*. Point at the **"Retention triage agent
+     (Databricks)"** tile sitting between Start and the human-approval step: "*this* is the Domo
+     agent — it decided to consult the Databricks specialist, then handed a decision-ready action
+     to the approver." (Its output, `agentRecommendation`, is a workflow variable.)
+  2. **The Databricks agent — open the MLflow traces.** Click **Activity log (MLflow) ↗** → the
+     `mas-77bd204b` agent's trace list. Open one trace whose **Request** is the at-risk account /
+     "why did renewal risk…" prompt and whose **Response** is the `final_response` recommendation:
+     "*this* is the Databricks agent's actual reasoning over governed data — the same call the Domo
+     agent made, fully traced and auditable."
+- **Go to source:** Inspector footer / Approvals: **Open agent ↗** (the Agent Bricks Supervisor),
+  **Activity log (MLflow) ↗** (every agent decision is traced), **Open task ↗** (the Domo Workflow
+  with the agent tile), **Writeback table ↗**.
+- **The line:** *"You're literally watching two agents collaborate across two platforms — the Domo
+  agent in the workflow on one screen, the Databricks agent's governed reasoning trace on the
+  other — one identity, one governed metric layer."*
 - **Tie-in:** "The agent recommends; a human still signs off — that's Vignette 6."
 
 ## Vignette 6 — "Human-in-the-loop, written to the lakehouse" (Workflow + writeback)
@@ -123,13 +154,18 @@ tab to land on and the single "go to source" click that wins the technical credi
 - **Databricks (+ Domo):** A **live, governed Domo Workflow** (Renewal Risk Retention) routes a
   human-approval task; on approval its service task writes status **back to a Unity Catalog Delta
   table** (`agent_action_writeback`) — same governed lakehouse as the metrics, queryable by Genie.
-- **Golden path:** Click **Approve & execute** → the row shows a live "▶ workflow · listening for
-  approval" chip (it auto-updates — no manual refresh). Switch to **Approvals**, click **Approve**
-  → the workflow resumes, **Protected Revenue ticks up**, the row flips to Executed.
-- **Go to source:** **View in Databricks ↗** → the writeback table's Sample Data (the Pending +
-  Approved rows for that action). **Open task ↗** keeps the live workflow-run view.
-- **Tie-in:** "Insight → reasoning → human approval → governed record. That's the full Pattern 4
-  loop. The agent that recommended it was Vignette 5."
+- **Golden path:** Click **Approve & execute** → a full-width, multi-colored **Action Journey**
+  timeline lights up below the queue and traces the action across both platforms:
+  *Agent recommended (Databricks)* → *Workflow started (Domo)* → *Domo agent ⇄ Databricks agent
+  reasoned* → **Awaiting your approval (pulsing amber)** → *Approved* → *Written back to lakehouse
+  (Unity Catalog)*. The row chip honestly reads **"Awaiting approval · listening"** — not "Executed"
+  — and auto-advances (no manual refresh). Switch to **Approvals**, click **Approve** → the timeline
+  completes to all-green, **Protected Revenue ticks up**, and the writeback step lights.
+- **Go to source (on the timeline itself):** every step has its own link — **Open agent ↗**,
+  **Workflow run ↗**, **Activity log (MLflow) ↗**, **Open task ↗**, and **Writeback table ↗** (the
+  writeback table's Sample Data, showing the Pending + Approved rows for that action).
+- **Tie-in:** "Insight → reasoning → human approval → governed record, drawn as one timeline across
+  Domo and Databricks. The agent that recommended it was Vignette 5."
 
 ## Vignette 7 — "Operational memory" (Lakebase)
 
