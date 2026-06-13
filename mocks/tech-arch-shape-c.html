@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Mock · Shape C — Lane-structured SVG (hybrid)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --domo-blue:#99ccee;--domo-blue-deep:#4a90c2;--domo-blue-ink:#1f5d86;--domo-orange:#ff9922;
+  --n-050:#f1f6fa;--n-100:#dce4ea;--n-300:#b7c1cb;--n-500:#68737f;--n-700:#3f454d;--n-800:#2b3038;--white:#fff;
+  --accent-violet:#776cb0;--dbx-red:#ff3621;--dbx-ink:#1b3139;--uc:#b8443c;
+  --status-good:#3f8f6b;--status-info:#4a7a9c;
+  --bg:var(--n-050);--surface:#fff;--line:var(--n-100);--line-strong:var(--n-300);--text:var(--n-700);--muted:var(--n-500);
+  --r-lg:8px;--r-md:6px;--r-sm:4px;--r-pill:999px;
+  --shadow-sm:0 1px 2px rgba(63,69,77,.06);--shadow-md:0 1px 2px rgba(63,69,77,.05),0 6px 18px rgba(63,69,77,.07);
+  --font:"Open Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;--font-mono:"Roboto Mono",ui-monospace,Menlo,monospace;
+  /* flow colors */
+  --f1:#4a90c2;--f2:#b8443c;--f3:#3f8f6b;--f4:#776cb0;--f5:#c47f1d;--f6:#1f5d86;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);background:var(--bg);color:var(--text);font-size:13px;line-height:1.45;padding:18px;}
+.wrap{max-width:1280px;margin:0 auto;}
+.mockbar{display:flex;gap:10px;align-items:center;background:#21262e;color:#fff;border-radius:var(--r-md);padding:8px 12px;font-size:12px;margin-bottom:14px;}
+.mockbar b{font-weight:800;letter-spacing:.02em;}
+.mockbar .tag{background:rgba(255,255,255,.14);border-radius:var(--r-pill);padding:2px 9px;font-size:10.5px;font-weight:700;}
+.mockbar .nav{margin-left:auto;display:flex;gap:6px;}
+.mockbar .nav a{color:#cdd6df;text-decoration:none;font-size:11px;border:1px solid rgba(255,255,255,.18);border-radius:var(--r-pill);padding:3px 10px;}
+.mockbar .nav a.cur{background:#fff;color:#21262e;font-weight:700;border-color:#fff;}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:18px 20px;}
+.subtabs{display:flex;gap:4px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+.subtab{appearance:none;border:none;background:none;font:inherit;font-size:12.5px;font-weight:700;color:var(--muted);padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;}
+.subtab.active{color:var(--domo-blue-ink);border-bottom-color:var(--domo-blue-deep);}
+.subtab .d{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;opacity:.5;margin-right:7px;vertical-align:middle;}
+
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:6px;}
+.head h2{font-size:17px;font-weight:800;color:var(--n-800);}
+.head p{font-size:12px;color:var(--muted);max-width:680px;margin-top:2px;}
+
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:14px 0 6px;}
+.toolbar .lbl{font-size:9.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-right:2px;}
+.chip{appearance:none;border:1px solid var(--line-strong);background:#fff;border-radius:var(--r-pill);padding:5px 12px;font:inherit;font-size:11.5px;font-weight:600;color:var(--n-700);cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s;}
+.chip:hover{border-color:var(--n-500);}
+.chip .dot{width:9px;height:9px;border-radius:50%;background:var(--c,#888);}
+.chip.active{color:#fff;border-color:transparent;background:var(--c,#333);}
+.chip.active .dot{background:#fff;}
+.chip.ghost{margin-left:auto;}
+
+.stage{display:grid;grid-template-columns:1fr 300px;gap:16px;margin-top:14px;}
+.canvas-wrap{position:relative;}
+.lanes{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;position:relative;z-index:2;}
+.lane{display:flex;flex-direction:column;gap:10px;}
+.lane-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:#fff;border-radius:var(--r-md);padding:7px 11px;font-size:11px;font-weight:800;letter-spacing:.02em;}
+.lane.dbx .lane-head{background:#2a2e36;}
+.lane.interop .lane-head{background:var(--accent-violet);}
+.lane.domo .lane-head{background:var(--domo-blue-deep);}
+.lane-head .lg{font-size:9px;font-weight:800;opacity:.85;letter-spacing:.08em;background:rgba(255,255,255,.16);border-radius:var(--r-pill);padding:2px 7px;}
+.agenttag{align-self:center;font-size:8.5px;font-weight:800;letter-spacing:.12em;color:var(--accent-violet);border:1px dashed var(--accent-violet);border-radius:var(--r-pill);padding:2px 8px;margin:-2px 0 2px;}
+
+.node{position:relative;z-index:2;display:flex;gap:9px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:var(--r-md);padding:9px 11px;cursor:pointer;text-align:left;width:100%;font:inherit;transition:.15s;}
+.node:hover{border-color:var(--n-300);box-shadow:var(--shadow-sm);transform:translateY(-1px);}
+.node .ic{width:26px;height:26px;flex:none;display:grid;place-items:center;border-radius:var(--r-sm);}
+.node .ic svg{width:17px;height:17px;}
+.lane.dbx .node .ic{color:var(--dbx-red);background:rgba(255,54,33,.08);}
+.lane.interop .node .ic{color:var(--accent-violet);background:rgba(119,108,176,.1);}
+.lane.domo .node .ic{color:var(--domo-blue-deep);background:rgba(74,144,194,.1);}
+.node b{display:block;font-size:11.5px;font-weight:700;color:var(--n-800);}
+.node span{display:block;font-size:9.5px;color:var(--muted);line-height:1.3;}
+.node.sel{border-color:var(--domo-blue-deep);box-shadow:0 0 0 1px var(--domo-blue-deep);}
+.lane.dbx .node.sel{border-color:var(--dbx-red);box-shadow:0 0 0 1px var(--dbx-red);}
+.lane.interop .node.sel{border-color:var(--accent-violet);box-shadow:0 0 0 1px var(--accent-violet);}
+
+/* flow dim/highlight */
+.flowing .node{opacity:.32;filter:grayscale(.3);}
+.flowing .node.on{opacity:1;filter:none;box-shadow:0 0 0 2px var(--c);}
+
+svg.edges{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none;overflow:visible;}
+.edge{fill:none;stroke:var(--line-strong);stroke-width:1.6;opacity:.55;}
+.flowing .edge{opacity:.12;}
+.flowing .edge.on{opacity:1;stroke:var(--c);stroke-width:2.4;stroke-dasharray:7 6;animation:dash 1s linear infinite;}
+.edge.gov{stroke:var(--n-300);stroke-dasharray:2 4;opacity:.5;}
+.govon .edge.gov{stroke:var(--status-info);opacity:.95;stroke-width:2;}
+@keyframes dash{to{stroke-dashoffset:-26;}}
+.elabel{font-family:var(--font-mono);font-size:8.5px;fill:var(--n-700);opacity:0;}
+.flowing .elabel.on{opacity:1;}
+text.elabel{paint-order:stroke;stroke:var(--surface);stroke-width:3px;}
+
+.detail{background:var(--n-050);border:1px solid var(--line);border-radius:var(--r-md);padding:14px;align-self:start;position:sticky;top:14px;}
+.detail .pl{display:inline-block;font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#fff;border-radius:var(--r-pill);padding:2px 9px;margin-bottom:8px;}
+.pl.dbx{background:#2a2e36;}.pl.interop{background:var(--accent-violet);}.pl.domo{background:var(--domo-blue-deep);}
+.detail h3{font-size:14px;font-weight:800;color:var(--n-800);margin-bottom:5px;}
+.detail .lead{font-size:11.5px;color:var(--n-700);line-height:1.5;margin-bottom:10px;}
+.detail .row{margin-top:8px;}
+.detail .k{font-size:9px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);}
+.detail .v{font-size:11px;color:var(--n-800);margin-top:1px;}
+.detail .v code{font-family:var(--font-mono);font-size:10px;background:#fff;border:1px solid var(--line);border-radius:3px;padding:1px 4px;}
+.legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px;font-size:10px;color:var(--muted);}
+.legend i{display:inline-block;width:18px;height:0;border-top:2px solid var(--line-strong);vertical-align:middle;margin-right:5px;}
+.legend i.gov{border-top:2px dashed var(--status-info);}
+@media(max-width:900px){.stage{grid-template-columns:1fr;}.lanes{grid-template-columns:1fr;}svg.edges{display:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="mockbar">
+    <b>MOCK</b><span class="tag">Shape C · Lane-structured SVG (hybrid)</span>
+    <span style="font-size:11px;color:#aeb8c2;">Keeps the current 3 plane lanes &amp; palette; adds real nodes, drawn integration edges, animated flows, click-to-detail, governance overlay.</span>
+    <span class="nav"><a href="tech-arch-shape-a.html">A</a><a href="tech-arch-shape-b.html">B</a><a class="cur" href="tech-arch-shape-c.html">C</a></span>
+  </div>
+
+  <div class="panel">
+    <div class="subtabs">
+      <button class="subtab"><span class="d"></span>Solution Architecture</button>
+      <button class="subtab active"><span class="d"></span>Technical Architecture</button>
+      <button class="subtab"><span class="d"></span>User Guide</button>
+    </div>
+
+    <div class="head">
+      <div>
+        <h2>Technical Architecture</h2>
+        <p>Real components, their integrations &amp; protocols, and the end-to-end data flows. Pick a flow to trace a request path; click any node for its contract &amp; governance.</p>
+      </div>
+    </div>
+
+    <div class="toolbar" id="flows">
+      <span class="lbl">Trace a flow</span>
+      <button class="chip ghost" data-gov="1" id="govBtn">Governance boundaries</button>
+    </div>
+
+    <div class="stage">
+      <div class="canvas-wrap">
+        <svg class="edges" id="edges"></svg>
+        <div class="lanes" id="lanes"></div>
+      </div>
+      <div class="detail" id="detail"></div>
+    </div>
+
+    <div class="legend">
+      <span><i></i>Integration edge</span>
+      <span><i class="gov"></i>Governance / identity boundary</span>
+      <span>Select a flow chip to animate its request path.</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---- shared model ---- */
+const IC={
+ data:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/></svg>',
+ dataset:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 3 7.5l9 4.5 9-4.5L12 3Z"/><path d="m3 12 9 4.5L21 12"/><path d="m3 16.5 9 4.5 9-4.5"/></svg>',
+ sync:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a8 8 0 0 1 13.7-5.7L20 7"/><path d="M20 13a8 8 0 0 1-13.7 5.7L4 17"/><path d="M20 4v3h-3"/><path d="M4 20v-3h3"/></svg>',
+ app:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>',
+ genie:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20.5 12a8 8 0 0 1-11 7.4L4.5 20l.7-4.2A8 8 0 1 1 20.5 12Z"/><path d="m12 8 1 2.2 2.2 1-2.2 1L12 14.4l-1-2.2-2.2-1 2.2-1L12 8Z"/></svg>',
+ gateway:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 5 6v5c0 4.3 3 7.5 7 9 4-1.5 7-4.7 7-9V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></svg>',
+ action:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3 5 13h5l-1 8 8-10h-5l1-8Z"/></svg>',
+ model:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 3-4 3 3 4-6"/><circle cx="20" cy="7" r="1.4" fill="currentColor" stroke="none"/></svg>',
+ lakebase:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5.5" rx="7" ry="2.6"/><path d="M5 5.5v13c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6v-13"/><path d="M5 12c0 1.5 3.1 2.6 7 2.6s7-1.1 7-2.6"/></svg>',
+ agent:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="8" width="16" height="11" rx="2.5"/><path d="M12 4.5V8"/><circle cx="12" cy="3.4" r="1.2" fill="currentColor" stroke="none"/><path d="M9.5 13h.01"/><path d="M14.5 13h.01"/></svg>',
+ approval:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.2"/><path d="M5.5 20a6.5 6.5 0 0 1 9.2-5.9"/><path d="m15.5 18.5 1.8 1.8 3.2-3.6"/></svg>'
+};
+const NODES=[
+ {id:'uc',plane:'dbx',ic:'data',name:'Unity Catalog',sub:'Governance · lineage · ABAC',d:{lead:'Single governed source of truth for every gold view, the model, and Genie.',contract:'databricks_raptor.pattern4_agent_automation',gov:'Unity Catalog — permissions, lineage, row filters',io:'Bronze/Silver → 6 gold views'}},
+ {id:'gold',plane:'dbx',ic:'dataset',name:'Delta gold views',sub:'revenue · risk · incident · forecast · actions',d:{lead:'Six governed gold views + the agent_action_writeback Delta table. Identical definitions feed Genie, the model, and Domo.',contract:'gold_* views + agent_action_writeback',gov:'Unity Catalog',io:'In: Silver · Out: governed gold'}},
+ {id:'warehouse',plane:'dbx',ic:'data',name:'SQL Warehouse',sub:'Query engine · federation + Genie',d:{lead:'Executes both the Cloud Amplifier federated reads and Genie-generated SQL.',contract:'warehouse ea829ba58bcae093',gov:'Unity Catalog',io:'SQL in · result rows out'}},
+ {id:'genie',plane:'dbx',ic:'genie',name:'Genie Space',sub:'NL → governed SQL',d:{lead:'Natural-language reasoning over the gold views; returns a cited answer, generated SQL, and rows.',contract:'Conversation API · space 01f164…',gov:'Unity Catalog + Genie Space',io:'Question → answer + SQL + rows'}},
+ {id:'model',plane:'dbx',ic:'model',name:'Model Serving',sub:'Renewal-risk regressor v6',d:{lead:'MLflow/UC-registered HGB regressor served for ad hoc account scoring.',contract:'endpoint pattern4-renewal-risk',gov:'Unity Catalog model + Model Serving',io:'Account features → churn probability'}},
+ {id:'mas',plane:'dbx',ic:'agent',name:'Agent Bricks Supervisor',sub:'Retention MAS · Genie-grounded',d:{lead:'Databricks Supervisor Agent the Domo agent tile calls — reasons over gold via Genie.',contract:'mas-77bd204b-endpoint · responses API',gov:'Unity Catalog + MLflow traces',io:'Context → retention recommendation'}},
+ {id:'gateway',plane:'dbx',ic:'gateway',name:'Unity AI Gateway',sub:'usage · rate limits · guardrails',d:{lead:'Governance boundary for model + LLM calls: usage tracking, rate limits, PII/safety guardrails, inference tables.',contract:'on pattern4-renewal-risk + pattern4-reasoning-gateway',gov:'Unity AI Gateway',io:'Model/LLM calls → governed, audited responses'}},
+ {id:'lakebase',plane:'dbx',ic:'lakebase',name:'Lakebase',sub:'Operational state (OLTP)',d:{lead:'App-owned Postgres state next to the lakehouse — what-if scenarios + prediction feedback.',contract:'cobra-v1 · p4_scenario_runs · p4_prediction_feedback',gov:'Lakebase roles + service principal',io:'Scenario/feedback writes → durable state'}},
+ {id:'mlflow',plane:'dbx',ic:'model',name:'MLflow',sub:'agent + model traces',d:{lead:'Observability: every agent decision and model version is traced/registered.',contract:'MLflow traces + registry',gov:'Unity Catalog',io:'Runs → traces, metrics, lineage'}},
+
+ {id:'amplifier',plane:'interop',ic:'sync',name:'Cloud Amplifier',sub:'Live federation · no copy',d:{lead:'Domo queries the gold views live inside Databricks — no data copied into Domo storage.',contract:'integration Databricks Raptor AWS · a83b5bbc…',gov:'Databricks Raptor AWS',io:'UC gold ⇄ federated Domo DataSets'}},
+ {id:'ce',plane:'interop',ic:'app',name:'Code Engine bridge',sub:'pattern4ce · 20 functions',d:{lead:'Server-side token boundary (MCP-aligned). Runs every Databricks call with credentials held server-side: Genie, inference, agent, Lakebase, workflow, writeback, readiness.',contract:'proxyId pattern4ce · domo.post',gov:'Domo OAuth + server-side token',io:'App requests → governed Databricks results'}},
+ {id:'identity',plane:'interop',ic:'gateway',name:'Shared identity',sub:'SSO · OAuth U2M · OBO',d:{lead:'Users sign in via Domo SSO; per-user OBO into Databricks (OAuth U2M / token federation) is the documented next step.',contract:'SSO today · OBO documented',gov:'SSO · OAuth U2M',io:'Domo identity → governed Databricks access'}},
+
+ {id:'app',plane:'domo',ic:'app',name:'Pro-code App',sub:'App Studio command center',d:{lead:'This portal. Persona-scoped command center across Forecast, ML, Approvals, Lakebase, AI Readiness, Genie, How It Works.',contract:'App Studio 105910661 / view 1913185115',gov:'Domo SSO + PDP',io:'DataSets + Code Engine → experience'}},
+ {id:'datasets',plane:'domo',ic:'dataset',name:'Federated DataSets',sub:'5 alias-mapped gold views',d:{lead:'The gold views surface in Domo as direct-federated DataSets, mapped by stable aliases.',contract:'executiveRevenueHealth · customerRenewalRisk · incidentRevenueImpact · agentActionQueue · portalUserScope',gov:'Domo PDP ↔ UC row filters',io:'Cloud Amplifier → alias-mapped DataSets'}},
+ {id:'workflow',plane:'domo',ic:'action',name:'Domo Workflow',sub:'Renewal Risk Retention v1.0.3',d:{lead:'Governed workflow started on Approve & execute; routes a human approval task, then writes status back.',contract:'model 6cbd5ecb… · queue 55c37364…',gov:'Domo RBAC + approval gate',io:'Start → approval → writeback'}},
+ {id:'agentcatalyst',plane:'domo',ic:'agent',name:'Agent Catalyst',sub:'Domo AI agent tile',d:{lead:'Inside the workflow, a Domo AI agent tile calls the Databricks Supervisor Agent — the Domo half of agent ⇄ agent.',contract:'→ pattern4ce.askRetentionAgent → MAS',gov:'Domo Workflow + Unity AI Gateway',io:'Workflow context → agent recommendation'}},
+ {id:'approvals',plane:'domo',ic:'approval',name:'Approvals · Action Center',sub:'in-app approve / reject',d:{lead:'In-app tab over the workflow approval queue; approving completes the Domo task and resumes the workflow.',contract:'listApprovalTasks · completeApprovalTask (Task Center API)',gov:'Domo RBAC + approval queue',io:'Task → completed + status writeback'}},
+ {id:'pdp',plane:'domo',ic:'gateway',name:'Domo PDP',sub:'per-persona scope ↔ UC filters',d:{lead:'Personalized Data Permissions scope every persona to entitled rows — the Domo mirror of UC row filters.',contract:'PDP policies ↔ UC row filters',gov:'Domo PDP',io:'Persona → row-scoped view'}}
+];
+const EDGES=[
+ {f:'app',t:'datasets',p:'Query API (alias)',fl:['F1']},
+ {f:'datasets',t:'amplifier',p:'federation request',fl:['F1']},
+ {f:'amplifier',t:'warehouse',p:'Databricks SQL · no copy',fl:['F1']},
+ {f:'warehouse',t:'gold',p:'SELECT',fl:['F1','F2']},
+ {f:'app',t:'ce',p:'domo.post · proxyId',fl:['F2','F3','F4','F5','F6']},
+ {f:'ce',t:'genie',p:'Conversation API',fl:['F2']},
+ {f:'genie',t:'warehouse',p:'generated SQL',fl:['F2']},
+ {f:'ce',t:'gateway',p:'invocations',fl:['F3','F4']},
+ {f:'gateway',t:'model',p:'REST · regressor v6',fl:['F3']},
+ {f:'model',t:'mlflow',p:'registered · metrics',fl:['F3']},
+ {f:'ce',t:'lakebase',p:'node-postgres (M2M SP)',fl:['F3','F5']},
+ {f:'ce',t:'workflow',p:'startRetentionWorkflow',fl:['F4']},
+ {f:'workflow',t:'agentcatalyst',p:'AI agent tile',fl:['F4']},
+ {f:'agentcatalyst',t:'mas',p:'askRetentionAgent → MAS',fl:['F4']},
+ {f:'mas',t:'genie',p:'Genie-grounded',fl:['F4']},
+ {f:'mas',t:'mlflow',p:'agent traces',fl:['F4']},
+ {f:'workflow',t:'approvals',p:'approval task (Task Center)',fl:['F4']},
+ {f:'approvals',t:'ce',p:'completeApprovalTask',fl:['F4']},
+ {f:'ce',t:'gold',p:'writeActionStatus → writeback',fl:['F4']},
+ {f:'ce',t:'uc',p:'readiness metadata',fl:['F6']},
+ {f:'identity',t:'app',p:'SSO',gov:1},
+ {f:'identity',t:'ce',p:'OAuth U2M / OBO',gov:1},
+ {f:'pdp',t:'datasets',p:'row scope ↔ UC',gov:1},
+ {f:'gateway',t:'mlflow',p:'inference tables',gov:1}
+];
+const FLOWS=[
+ {id:'F1',name:'Live federation',c:'--f1'},
+ {id:'F2',name:'Ask Genie',c:'--f2'},
+ {id:'F3',name:'Score account',c:'--f3'},
+ {id:'F4',name:'Agent ⇄ Agent + writeback',c:'--f4'},
+ {id:'F5',name:'Lakebase state',c:'--f5'},
+ {id:'F6',name:'AI Readiness sync',c:'--f6'}
+];
+const PLANES=[
+ {id:'dbx',title:'Databricks · Governed Intelligence',lg:'Databricks'},
+ {id:'interop',title:'Interop & Governance',lg:'MCP / OBO',agent:true},
+ {id:'domo',title:'Domo · Activation & Action',lg:'Domo'}
+];
+const byId=Object.fromEntries(NODES.map(n=>[n.id,n]));
+const nodeEls={};
+let activeFlow=null;
+
+/* ---- render lanes ---- */
+const lanes=document.getElementById('lanes');
+lanes.innerHTML=PLANES.map(p=>{
+  const items=NODES.filter(n=>n.plane===p.id);
+  return `<div class="lane ${p.id}">
+    <div class="lane-head"><span>${p.title}</span><span class="lg">${p.lg}</span></div>
+    ${p.agent?'<div class="agenttag">AGENT ⇄ AGENT</div>':''}
+    ${items.map(n=>`<button class="node" data-id="${n.id}">
+        <span class="ic">${IC[n.ic]||''}</span>
+        <span><b>${n.name}</b><span>${n.sub}</span></span>
+      </button>`).join('')}
+  </div>`;
+}).join('');
+document.querySelectorAll('.node').forEach(el=>{nodeEls[el.dataset.id]=el;el.addEventListener('click',()=>selectNode(el.dataset.id));});
+
+/* ---- flow chips ---- */
+const flowsBar=document.getElementById('flows');
+const govBtn=document.getElementById('govBtn');
+FLOWS.forEach(f=>{
+  const b=document.createElement('button');
+  b.className='chip';b.style.setProperty('--c',`var(${f.c})`);
+  b.innerHTML=`<span class="dot"></span>${f.name}`;
+  b.addEventListener('click',()=>setFlow(activeFlow===f.id?null:f.id,b));
+  flowsBar.insertBefore(b,govBtn);
+  f._btn=b;
+});
+govBtn.addEventListener('click',()=>{
+  const on=document.querySelector('.canvas-wrap').classList.toggle('govon');
+  govBtn.classList.toggle('active',on);govBtn.style.setProperty('--c','var(--status-info)');
+});
+
+/* ---- edges ---- */
+const svg=document.getElementById('edges');
+function pt(el,s){const r=el.getBoundingClientRect(),c=svg.getBoundingClientRect();const x=r.left-c.left,y=r.top-c.top;
+  return s==='l'?[x,y+r.height/2]:s==='r'?[x+r.width,y+r.height/2]:s==='t'?[x+r.width/2,y]:[x+r.width/2,y+r.height];}
+function sides(a,b){const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();
+  const dx=(rb.left+rb.width/2)-(ra.left+ra.width/2),dy=(rb.top+rb.height/2)-(ra.top+ra.height/2);
+  return Math.abs(dx)>=Math.abs(dy)?(dx>=0?['r','l']:['l','r']):(dy>=0?['b','t']:['t','b']);}
+function dpath(p1,s1,p2,s2){const [x1,y1]=p1,[x2,y2]=p2;let c1x=x1,c1y=y1,c2x=x2,c2y=y2;const k=Math.max(34,Math.abs(x2-x1)/2.2);
+  c1x+=s1==='r'?k:s1==='l'?-k:0;c1y+=s1==='b'?k:s1==='t'?-k:0;c2x+=s2==='r'?k:s2==='l'?-k:0;c2y+=s2==='b'?k:s2==='t'?-k:0;
+  return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;}
+const SVGNS='http://www.w3.org/2000/svg';
+function drawEdges(){
+  svg.innerHTML='';
+  EDGES.forEach((e,i)=>{
+    const a=nodeEls[e.f],b=nodeEls[e.t];if(!a||!b)return;
+    const [s1,s2]=sides(a,b);const mid=midpoint(pt(a,s1),pt(b,s2));
+    const path=document.createElementNS(SVGNS,'path');
+    path.setAttribute('d',dpath(pt(a,s1),s1,pt(b,s2),s2));
+    path.setAttribute('class','edge'+(e.gov?' gov':''));
+    if(activeFlow&&e.fl&&e.fl.includes(activeFlow)){path.classList.add('on');path.style.setProperty('--c',`var(${flowColor(activeFlow)})`);}
+    svg.appendChild(path);e._el=path;
+    if(e.fl&&e.fl.includes(activeFlow)){
+      const tx=document.createElementNS(SVGNS,'text');tx.setAttribute('x',mid[0]);tx.setAttribute('y',mid[1]-3);
+      tx.setAttribute('text-anchor','middle');tx.setAttribute('class','elabel on');tx.textContent=e.p;svg.appendChild(tx);
+    }
+  });
+}
+function midpoint(p1,p2){return [(p1[0]+p2[0])/2,(p1[1]+p2[1])/2];}
+function flowColor(id){return (FLOWS.find(f=>f.id===id)||{}).c||'--n-700';}
+
+/* ---- interactions ---- */
+function setFlow(id,btn){
+  activeFlow=id;
+  FLOWS.forEach(f=>f._btn.classList.toggle('active',f.id===id));
+  const wrap=document.querySelector('.canvas-wrap');
+  wrap.classList.toggle('flowing',!!id);
+  if(id){const c=flowColor(id);wrap.style.setProperty('--c',`var(${c})`);
+    const set=new Set();EDGES.forEach(e=>{if(e.fl&&e.fl.includes(id)){set.add(e.f);set.add(e.t);}});
+    Object.entries(nodeEls).forEach(([k,el])=>el.classList.toggle('on',set.has(k)));
+  } else {Object.values(nodeEls).forEach(el=>el.classList.remove('on'));}
+  drawEdges();
+}
+function selectNode(id){
+  document.querySelectorAll('.node').forEach(el=>el.classList.toggle('sel',el.dataset.id===id));
+  const n=byId[id];const pl=n.plane;const lab=pl==='dbx'?'Databricks':pl==='domo'?'Domo':'Interop';
+  document.getElementById('detail').innerHTML=`
+    <span class="pl ${pl}">${lab}</span>
+    <h3>${n.name}</h3>
+    <p class="lead">${n.d.lead}</p>
+    <div class="row"><div class="k">Contract / id</div><div class="v"><code>${n.d.contract}</code></div></div>
+    <div class="row"><div class="k">Governed by</div><div class="v">${n.d.gov}</div></div>
+    <div class="row"><div class="k">In / Out</div><div class="v">${n.d.io}</div></div>`;
+}
+selectNode('ce');
+requestAnimationFrame(drawEdges);
+window.addEventListener('resize',()=>requestAnimationFrame(drawEdges));
+if(window.ResizeObserver){new ResizeObserver(()=>drawEdges()).observe(document.querySelector('.lanes'));}
+</script>
+</body>
+</html>

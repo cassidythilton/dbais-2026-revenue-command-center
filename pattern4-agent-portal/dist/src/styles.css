@@ -4046,3 +4046,188 @@ td.empty-state, .empty-state {
   .readiness-compare { grid-template-columns: 1fr; }
   .uc-drawer-meta { grid-template-columns: 1fr 1fr; }
 }
+
+/* ============================ HOW IT WORKS · SUB-TABS ============================ */
+/* A quiet segmented-pill control — deliberately distinct from the main underline
+   view-tabs so the two levels don't read as one bunched-up double strip. */
+.ha-subtabs {
+  display: inline-flex;
+  gap: 3px;
+  margin: 18px 0 18px;
+  padding: 3px;
+  background: var(--n-050);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+}
+.ha-subtab {
+  appearance: none;
+  border: none;
+  background: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  padding: 7px 18px;
+  border-radius: var(--r-pill);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.ha-subtab svg { width: 17px; height: 17px; display: block; }
+.ha-subtab:hover { color: var(--n-700); }
+.ha-subtab.active {
+  background: var(--white);
+  color: var(--domo-blue-ink);
+  box-shadow: 0 1px 2px rgba(63, 69, 77, 0.10);
+}
+.guide-pane.is-hidden { display: none; }
+
+/* ============================ TECHNICAL ARCHITECTURE DIAGRAM (Shape B) ============================ */
+.techarch {
+  /* light theme tokens (default) */
+  --ta-surface: var(--white);
+  --ta-line: var(--n-100);
+  --ta-line2: var(--n-300);
+  --ta-ink: var(--n-800);
+  --ta-text: var(--n-700);
+  --ta-muted: var(--n-500);
+  --ta-stage: #fbfdfe;
+  --ta-dot: rgba(74, 144, 194, 0.10);
+  --ta-node: #fff;
+  --ta-nodeline: var(--n-100);
+  --ta-panel: var(--n-050);
+  --ta-dbx: var(--dbx-red);
+  --ta-interop: var(--accent-violet);
+  --ta-domo: var(--domo-blue-deep);
+  --ta-info: var(--status-info);
+  --tf1: #4a90c2; --tf2: #b8443c; --tf3: #3f8f6b; --tf4: #776cb0; --tf5: #c47f1d; --tf6: #1f5d86;
+  transition: background 0.25s ease, border-color 0.25s ease, color 0.25s ease;
+}
+.techarch.dark {
+  --ta-surface: #161d25;
+  --ta-line: #27313c;
+  --ta-line2: #3a4754;
+  --ta-ink: #eef3f8;
+  --ta-text: #c8d2dc;
+  --ta-muted: #8b97a4;
+  --ta-stage: #0e141a;
+  --ta-dot: rgba(120, 160, 200, 0.10);
+  --ta-node: #1a222b;
+  --ta-nodeline: #2c3742;
+  --ta-panel: #0f161d;
+  --ta-dbx: #ff5a47;
+  --ta-interop: #9b90d6;
+  --ta-domo: #6fb0db;
+  --ta-info: #6fa8cf;
+  --tf1: #6fb0db; --tf2: #e2756b; --tf3: #5fb98c; --tf4: #9b90d6; --tf5: #d8a44f; --tf6: #7db8e6;
+  background: #10151b;
+  border-color: var(--ta-line);
+  color: var(--ta-text);
+}
+.techarch.dark h2 { color: var(--ta-ink); }
+.techarch.dark .guide-section-head p { color: var(--ta-muted); }
+
+.ta-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.ta-theme {
+  appearance: none; flex: none;
+  border: 1px solid var(--ta-line2); background: var(--ta-surface); color: var(--ta-text);
+  border-radius: var(--r-pill); padding: 5px 12px; font: inherit; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.ta-theme:hover { border-color: var(--ta-muted); }
+
+.ta-toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 14px 0 12px; }
+.ta-lbl { font-size: 9.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ta-muted); margin-right: 2px; }
+.ta-chip {
+  appearance: none; border: 1px solid var(--ta-line2); background: var(--ta-surface);
+  border-radius: var(--r-pill); padding: 5px 12px; font: inherit; font-size: 11.5px; font-weight: 600;
+  color: var(--ta-text); cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: 0.15s;
+}
+.ta-chip:hover { border-color: var(--ta-muted); }
+.ta-chip .ta-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--c, #888); }
+.ta-chip.active { color: #fff; border-color: transparent; background: var(--c, #333); }
+.ta-chip.active .ta-dot { background: #fff; }
+.ta-gov { margin-left: auto; }
+
+.ta-layout { display: grid; grid-template-columns: 1fr 300px; gap: 16px; }
+.ta-stagewrap {
+  overflow: auto;
+  border: 1px solid var(--ta-line); border-radius: var(--r-md);
+  background:
+    radial-gradient(circle, var(--ta-dot) 1px, transparent 1px) 0 0 / 22px 22px,
+    var(--ta-stage);
+}
+.ta-stage { position: relative; width: 1160px; height: 700px; }
+
+/* Region headers — platform logo + name above each cluster */
+.ta-region { position: absolute; top: 10px; display: flex; align-items: center; gap: 8px; color: var(--pc, var(--ta-muted)); }
+.ta-region.dbx { --pc: var(--ta-dbx); }
+.ta-region.interop { --pc: var(--ta-interop); }
+.ta-region.domo { --pc: var(--ta-domo); }
+.ta-region img { height: 17px; width: auto; max-width: 84px; object-fit: contain; display: block; }
+.ta-region span { font-size: 10px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; }
+svg.ta-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.ta-edge { fill: none; stroke: var(--ta-line2); stroke-width: 1.6; opacity: 0.55; }
+.ta-stage.flowing .ta-edge { opacity: 0.1; }
+.ta-stage.flowing .ta-edge.on { opacity: 1; stroke: var(--c); stroke-width: 2.6; stroke-dasharray: 7 6; animation: ta-dash 1s linear infinite; }
+.ta-edge.gov { stroke-dasharray: 2 4; opacity: 0.4; }
+.ta-stage.govon .ta-edge.gov { stroke: var(--ta-info); opacity: 0.95; stroke-width: 2; }
+@keyframes ta-dash { to { stroke-dashoffset: -26; } }
+text.ta-elabel {
+  font-family: var(--font-mono); font-size: 8.5px; fill: var(--ta-ink); opacity: 0;
+  paint-order: stroke; stroke: var(--ta-stage); stroke-width: 3px;
+}
+.ta-stage.flowing text.ta-elabel.on { opacity: 1; }
+
+.ta-node {
+  position: absolute; width: 154px; display: flex; gap: 9px; align-items: center;
+  background: var(--ta-node); border: 1px solid var(--ta-nodeline); border-radius: var(--r-md);
+  padding: 8px 10px; cursor: pointer; font: inherit; text-align: left; transition: 0.15s;
+  border-top: 3px solid var(--pc, var(--ta-line2));
+}
+.ta-node:hover { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.14); transform: translateY(-1px); }
+.ta-node.dbx { --pc: var(--ta-dbx); }
+.ta-node.interop { --pc: var(--ta-interop); }
+.ta-node.domo { --pc: var(--ta-domo); }
+.ta-node .ta-ic { width: 24px; height: 24px; flex: none; display: grid; place-items: center; border-radius: var(--r-sm); color: var(--pc); background: color-mix(in srgb, var(--pc) 13%, transparent); }
+.ta-node .ta-ic svg { width: 16px; height: 16px; }
+/* Brand logos (reuse the Solution Architecture marker treatment) */
+.ta-node .ta-logo { width: 26px; height: 26px; flex: none; object-fit: contain; display: block; }
+/* On the dark blueprint, frame each brand logo in a charcoal chip with a thin outline in
+   the node's plane color (red / violet / blue) — elegant, and avoids flat white tiles. */
+.techarch.dark .ta-node .ta-logo {
+  background: #232c37;
+  border: 1px solid color-mix(in srgb, var(--pc) 55%, transparent);
+  border-radius: 6px;
+  padding: 3px;
+  box-sizing: border-box;
+}
+.ta-node b { display: block; font-size: 11px; font-weight: 700; color: var(--ta-ink); }
+.ta-node em { display: block; font-style: normal; font-size: 9px; color: var(--ta-muted); line-height: 1.25; }
+.ta-stage.flowing .ta-node { opacity: 0.3; }
+.ta-stage.flowing .ta-node.on { opacity: 1; box-shadow: 0 0 0 2px var(--c); }
+.ta-node.sel { box-shadow: 0 0 0 2px var(--pc); }
+
+.ta-detail { background: var(--ta-panel); border: 1px solid var(--ta-line); border-radius: var(--r-md); padding: 14px; align-self: start; }
+.ta-detail-top { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.ta-plat { height: 22px; width: auto; max-width: 84px; object-fit: contain; display: block; }
+.ta-detail-top .ta-pl { margin-bottom: 0; }
+.ta-pl { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #fff; border-radius: var(--r-pill); padding: 2px 9px; margin-bottom: 8px; }
+.ta-pl.dbx { background: var(--ta-dbx); }
+.ta-pl.interop { background: var(--ta-interop); }
+.ta-pl.domo { background: var(--ta-domo); }
+.ta-detail h3 { font-size: 14px; font-weight: 800; color: var(--ta-ink); margin-bottom: 5px; }
+.ta-detail .ta-lead { font-size: 11.5px; color: var(--ta-text); line-height: 1.5; margin-bottom: 10px; }
+.ta-row { margin-top: 8px; }
+.ta-k { font-size: 9px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--ta-muted); }
+.ta-v { font-size: 11px; color: var(--ta-ink); margin-top: 1px; }
+.ta-v code { font-family: var(--font-mono); font-size: 10px; background: var(--ta-surface); border: 1px solid var(--ta-line); border-radius: 3px; padding: 1px 4px; color: var(--ta-text); }
+
+.ta-planekey { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 10.5px; color: var(--ta-muted); }
+.ta-pk { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+.ta-pk.dbx { background: var(--ta-dbx); }
+.ta-pk.interop { background: var(--ta-interop); }
+.ta-pk.domo { background: var(--ta-domo); }
+.ta-pk-sep { opacity: 0.85; }
+
+@media (max-width: 980px) {
+  .ta-layout { grid-template-columns: 1fr; }
+}

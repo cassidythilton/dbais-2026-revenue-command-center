@@ -2694,6 +2694,311 @@ function renderArchitecture() {
 function renderGuide() {
   renderGuideSteps();
   renderArchitecture();
+  initGuideSubtabs();
+  renderTechArch();
+}
+
+/* ---------- How It Works · Technical Architecture diagram (Shape B) ---------- */
+// Free-form SVG stage of the real deployed system: component nodes (positioned for
+// a left→right topology), drawn integration edges with protocols, six selectable
+// animated data-flow sequences, a governance-boundary overlay, click-to-detail, and
+// a light/dark "blueprint" theme. UI-only; no Code Engine calls.
+
+const TA_NODES = [
+  { id: "datasets", plane: "domo", ic: "dataset", name: "Federated DataSets", sub: "5 alias-mapped views", x: 24, y: 34, d: { lead: "Gold views surfaced in Domo as direct-federated DataSets, mapped by stable aliases.", contract: "executiveRevenueHealth · customerRenewalRisk · incidentRevenueImpact · agentActionQueue · portalUserScope", gov: "Domo PDP ↔ UC row filters", io: "Cloud Amplifier → DataSets" } },
+  { id: "app", plane: "domo", ic: "app", name: "Pro-code App", sub: "App Studio command center", x: 24, y: 150, d: { lead: "This portal. Persona-scoped command center; reads DataSets by alias and calls Databricks via Code Engine.", contract: "App Studio 105910661 / view 1913185115", gov: "Domo SSO + PDP", io: "DataSets + Code Engine → experience" } },
+  { id: "agentcatalyst", plane: "domo", ic: "agent", name: "Agent Catalyst", sub: "Domo AI agent tile", x: 24, y: 300, d: { lead: "Inside the workflow, a Domo AI agent tile calls the Databricks Supervisor Agent — the Domo half of agent ⇄ agent.", contract: "→ pattern4ce.askRetentionAgent → MAS", gov: "Domo Workflow + Unity AI Gateway", io: "Workflow context → recommendation" } },
+  { id: "workflow", plane: "domo", ic: "action", name: "Domo Workflow", sub: "Renewal Risk Retention", x: 24, y: 420, d: { lead: "Governed workflow started on Approve & execute; routes a human approval, then writes status back.", contract: "model 6cbd5ecb… · queue 55c37364…", gov: "Domo RBAC + approval gate", io: "Start → approval → writeback" } },
+  { id: "approvals", plane: "domo", ic: "approval", name: "Approvals", sub: "in-app approve / reject", x: 24, y: 540, d: { lead: "In-app tab over the workflow approval queue; completing a task resumes the workflow.", contract: "listApprovalTasks · completeApprovalTask", gov: "Domo RBAC", io: "Task → completed + writeback" } },
+  { id: "pdp", plane: "domo", ic: "gateway", name: "Domo PDP", sub: "per-persona scope", x: 250, y: 560, d: { lead: "Personalized Data Permissions scope each persona to entitled rows — the Domo mirror of UC row filters.", contract: "PDP policies ↔ UC row filters", gov: "Domo PDP", io: "Persona → row-scoped view" } },
+  { id: "amplifier", plane: "interop", ic: "sync", name: "Cloud Amplifier", sub: "live federation · no copy", x: 320, y: 34, d: { lead: "Domo queries the gold views live inside Databricks — no data copied into Domo storage.", contract: "integration Databricks Raptor AWS · a83b5bbc…", gov: "Databricks Raptor AWS", io: "UC gold ⇄ federated DataSets" } },
+  { id: "identity", plane: "interop", ic: "gateway", name: "Shared identity", sub: "SSO · OAuth U2M · OBO", x: 480, y: 34, d: { lead: "Users sign in via Domo SSO; per-user OBO into Databricks (OAuth U2M / token federation) is the documented next step.", contract: "SSO today · OBO documented", gov: "SSO · OAuth U2M", io: "Domo identity → governed Databricks access" } },
+  { id: "ce", plane: "interop", ic: "app", name: "Code Engine bridge", sub: "pattern4ce · 20 functions", x: 470, y: 270, d: { lead: "The Integration Hub's server-side bridge — Domo Code Engine (MCP-aligned). Every Databricks call runs here with credentials held server-side: Genie, inference, agent, Lakebase, workflow, writeback, readiness. Moving toward an MCP server contract.", contract: "Code Engine · proxyId pattern4ce · domo.post", gov: "Domo OAuth + server-side token", io: "App requests → governed Databricks results" } },
+  { id: "lakebase", plane: "interop", ic: "lakebase", name: "Lakebase", sub: "operational state (OLTP)", x: 470, y: 470, d: { lead: "App-owned Postgres state next to the lakehouse — what-if scenarios + prediction feedback.", contract: "cobra-v1 · p4_scenario_runs · p4_prediction_feedback", gov: "Lakebase roles + service principal", io: "Scenario/feedback writes → durable state" } },
+  { id: "genie", plane: "dbx", ic: "genie", name: "Genie Space", sub: "NL → governed SQL", x: 712, y: 120, d: { lead: "Natural-language reasoning over the gold views; returns a cited answer, generated SQL, and rows.", contract: "Conversation API · space 01f164…", gov: "Unity Catalog + Genie Space", io: "Question → answer + SQL + rows" } },
+  { id: "gateway", plane: "dbx", ic: "gateway", name: "Unity AI Gateway", sub: "guardrails · usage · audit", x: 712, y: 270, d: { lead: "Governance boundary for model + LLM calls: usage tracking, rate limits, PII/safety guardrails, inference tables.", contract: "on pattern4-renewal-risk + pattern4-reasoning-gateway", gov: "Unity AI Gateway", io: "Model/LLM calls → governed responses" } },
+  { id: "mas", plane: "dbx", ic: "agent", name: "Agent Bricks MAS", sub: "Retention Supervisor", x: 712, y: 420, d: { lead: "Databricks Supervisor Agent the Domo tile calls — reasons over gold via Genie.", contract: "mas-77bd204b-endpoint", gov: "Unity Catalog + MLflow traces", io: "Context → retention recommendation" } },
+  { id: "warehouse", plane: "dbx", ic: "data", name: "SQL Warehouse", sub: "federation + Genie engine", x: 712, y: 552, d: { lead: "Executes both the Cloud Amplifier federated reads and Genie-generated SQL.", contract: "warehouse ea829ba58bcae093", gov: "Unity Catalog", io: "SQL → result rows" } },
+  { id: "model", plane: "dbx", ic: "model", name: "Model Serving", sub: "regressor v6", x: 952, y: 150, d: { lead: "MLflow/UC-registered HGB regressor served for ad hoc account scoring.", contract: "endpoint pattern4-renewal-risk", gov: "Unity Catalog model + Model Serving", io: "Account features → churn probability" } },
+  { id: "uc", plane: "dbx", ic: "data", name: "Unity Catalog", sub: "governance · source of truth", x: 952, y: 300, d: { lead: "Single governed source of truth for every gold view, the model, and Genie.", contract: "databricks_raptor.pattern4_agent_automation", gov: "Unity Catalog", io: "Silver → 6 gold views" } },
+  { id: "gold", plane: "dbx", ic: "dataset", name: "Delta gold views", sub: "+ agent_action_writeback", x: 952, y: 440, d: { lead: "Six governed gold views + the writeback Delta table; one definition feeds Genie, the model, and Domo.", contract: "gold_* + agent_action_writeback", gov: "Unity Catalog", io: "Silver → governed gold" } },
+  { id: "mlflow", plane: "dbx", ic: "model", name: "MLflow", sub: "agent + model traces", x: 952, y: 575, d: { lead: "Observability: every agent decision and model version is traced/registered.", contract: "MLflow traces + registry", gov: "Unity Catalog", io: "Runs → traces, metrics, lineage" } },
+];
+const TA_EDGES = [
+  { f: "app", t: "datasets", p: "Query API (alias)", fl: ["F1"] },
+  { f: "datasets", t: "amplifier", p: "federation request", fl: ["F1"] },
+  { f: "amplifier", t: "warehouse", p: "Databricks SQL · no copy", fl: ["F1"] },
+  { f: "warehouse", t: "gold", p: "SELECT", fl: ["F1", "F2"] },
+  { f: "app", t: "ce", p: "domo.post · proxyId", fl: ["F2", "F3", "F4", "F5", "F6"] },
+  { f: "ce", t: "genie", p: "Conversation API", fl: ["F2"] },
+  { f: "genie", t: "warehouse", p: "generated SQL", fl: ["F2"] },
+  { f: "ce", t: "gateway", p: "invocations", fl: ["F3", "F4"] },
+  { f: "gateway", t: "model", p: "REST · regressor v6", fl: ["F3"] },
+  { f: "model", t: "mlflow", p: "registered · metrics", fl: ["F3"] },
+  { f: "ce", t: "lakebase", p: "node-postgres (M2M SP)", fl: ["F3", "F5"] },
+  { f: "ce", t: "workflow", p: "startRetentionWorkflow", fl: ["F4"] },
+  { f: "workflow", t: "agentcatalyst", p: "AI agent tile", fl: ["F4"] },
+  { f: "agentcatalyst", t: "mas", p: "askRetentionAgent → MAS", fl: ["F4"] },
+  { f: "mas", t: "genie", p: "Genie-grounded", fl: ["F4"] },
+  { f: "mas", t: "mlflow", p: "agent traces", fl: ["F4"] },
+  { f: "workflow", t: "approvals", p: "approval task (Task Center)", fl: ["F4"] },
+  { f: "approvals", t: "ce", p: "completeApprovalTask", fl: ["F4"] },
+  { f: "ce", t: "gold", p: "writeActionStatus → writeback", fl: ["F4"] },
+  { f: "ce", t: "uc", p: "readiness metadata", fl: ["F6"] },
+  { f: "identity", t: "app", p: "SSO", gov: true },
+  { f: "identity", t: "ce", p: "OAuth U2M / OBO", gov: true },
+  { f: "pdp", t: "datasets", p: "row scope ↔ UC", gov: true },
+  { f: "gateway", t: "mlflow", p: "inference tables", gov: true },
+];
+const TA_FLOWS = [
+  { id: "F1", name: "Live federation", c: "--tf1" },
+  { id: "F2", name: "Ask Genie", c: "--tf2" },
+  { id: "F3", name: "Score account", c: "--tf3" },
+  { id: "F4", name: "Agent ⇄ Agent + writeback", c: "--tf4" },
+  { id: "F5", name: "Lakebase state", c: "--tf5" },
+  { id: "F6", name: "AI Readiness sync", c: "--tf6" },
+];
+// Brand asset per node (reuses BRAND_ICONS / markerHtml, like the Solution
+// Architecture diagram). Falls back to the stroke glyph (ICONS[n.ic]) if missing.
+const TA_BRAND = {
+  datasets: "domo-cloud-amplifier",
+  app: "domo-pro-code",
+  agentcatalyst: "domo-ai-agent",
+  workflow: "domo-workflows",
+  approvals: "domo-approvals",
+  pdp: "domo-pdp",
+  amplifier: "domo-cloud-amplifier",
+  identity: "dbxdomo",
+  ce: "domo-mcp",
+  lakebase: "lakebase",
+  genie: "genie",
+  gateway: "ai-gateway",
+  mas: "agent-bricks",
+  warehouse: "dbx-sql",
+  model: "mlflow",
+  uc: "unity-catalog",
+  gold: "delta-lake",
+  mlflow: "mlflow",
+};
+// Platform logos for region headers + detail views (Domo / Databricks / combined),
+// theme-aware so the Domo mark uses its white variant on the dark blueprint.
+function taPlatformLogo(plane) {
+  const panel = document.getElementById("techArch");
+  const dark = !!panel && panel.classList.contains("dark");
+  if (plane === "domo") return dark ? (BRAND_DIR + "domo-logo-white.svg") : BRAND_ICONS.domo;
+  if (plane === "dbx") return BRAND_ICONS.databricks;
+  return BRAND_ICONS.dbxdomo;
+}
+function refreshTaPlatformLogos() {
+  document.querySelectorAll("#techArch [data-plat]").forEach((img) => {
+    img.setAttribute("src", taPlatformLogo(img.getAttribute("data-plat")));
+  });
+}
+// Region headers sit above each cluster (nodes are shifted down by TA_Y_OFFSET to make room).
+const TA_Y_OFFSET = 38;
+const TA_REGIONS = [
+  { id: "domo", name: "Domo", x: 24 },
+  { id: "interop", name: "Integration Hub", x: 320 },
+  { id: "dbx", name: "Databricks", x: 712 },
+];
+const TA_SVGNS = "http://www.w3.org/2000/svg";
+const taById = Object.fromEntries(TA_NODES.map((n) => [n.id, n]));
+const taState = { inited: false, subtabsWired: false, nodeEls: {}, activeFlow: null };
+
+function taPlaneLabel(p) { return p === "dbx" ? "Databricks" : p === "domo" ? "Domo" : "Integration Hub"; }
+function taFlowColor(id) { return (TA_FLOWS.find((f) => f.id === id) || {}).c || "--ta-line2"; }
+
+function renderTechArch() {
+  if (taState.inited) return;
+  const stage = document.getElementById("taStage");
+  const flows = document.getElementById("taFlows");
+  if (!stage || !flows) return;
+
+  // region headers (platform logo + name above each cluster)
+  TA_REGIONS.forEach((r) => {
+    const el = document.createElement("div");
+    el.className = "ta-region " + r.id;
+    el.style.left = r.x + "px";
+    el.innerHTML = `<img data-plat="${r.id}" src="${taPlatformLogo(r.id)}" alt="" loading="lazy" /><span>${r.name}</span>`;
+    stage.appendChild(el);
+  });
+
+  // nodes
+  TA_NODES.forEach((n) => {
+    const el = document.createElement("button");
+    el.type = "button";
+    el.className = "ta-node " + n.plane;
+    el.style.left = n.x + "px";
+    el.style.top = (n.y + TA_Y_OFFSET) + "px";
+    el.setAttribute("data-tanode", n.id);
+    el.innerHTML = `${markerHtml(TA_BRAND[n.id], n.ic, "ta-logo", "ta-ic")}<span><b>${n.name}</b><em>${n.sub}</em></span>`;
+    el.addEventListener("click", () => selectTaNode(n.id));
+    stage.appendChild(el);
+    taState.nodeEls[n.id] = el;
+  });
+
+  // flow chips (inserted before the governance button)
+  const govBtn = document.getElementById("taGovBtn");
+  TA_FLOWS.forEach((f) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "ta-chip";
+    b.style.setProperty("--c", `var(${f.c})`);
+    b.innerHTML = `<span class="ta-dot"></span>${f.name}`;
+    b.addEventListener("click", () => setTaFlow(taState.activeFlow === f.id ? null : f.id));
+    flows.insertBefore(b, govBtn);
+    f._btn = b;
+  });
+  govBtn.addEventListener("click", () => {
+    const on = stage.classList.toggle("govon");
+    govBtn.classList.toggle("active", on);
+    govBtn.style.setProperty("--c", "var(--ta-info)");
+  });
+
+  // theme toggle (default dark; persisted)
+  const panel = document.getElementById("techArch");
+  let saved = null;
+  try { saved = localStorage.getItem("p4_techarch_theme"); } catch (e) {}
+  if (saved === "light") panel.classList.remove("dark");
+  syncTaThemeBtn();
+  refreshTaPlatformLogos();
+  document.getElementById("taThemeBtn").addEventListener("click", () => {
+    const dark = panel.classList.toggle("dark");
+    try { localStorage.setItem("p4_techarch_theme", dark ? "dark" : "light"); } catch (e) {}
+    syncTaThemeBtn();
+    refreshTaPlatformLogos();
+  });
+
+  selectTaNode("ce");
+  taState.inited = true;
+
+  if (window.ResizeObserver) new ResizeObserver(() => drawTaEdges()).observe(stage);
+  window.addEventListener("resize", () => requestAnimationFrame(drawTaEdges));
+}
+
+function syncTaThemeBtn() {
+  const panel = document.getElementById("techArch");
+  const btn = document.getElementById("taThemeBtn");
+  if (!panel || !btn) return;
+  const dark = panel.classList.contains("dark");
+  btn.textContent = dark ? "☀ Light" : "◐ Dark";
+  btn.setAttribute("aria-pressed", String(dark));
+}
+
+function taAnchor(el, side) {
+  const svg = document.getElementById("taEdges");
+  const r = el.getBoundingClientRect();
+  const c = svg.getBoundingClientRect();
+  const x = r.left - c.left, y = r.top - c.top;
+  if (side === "l") return [x, y + r.height / 2];
+  if (side === "r") return [x + r.width, y + r.height / 2];
+  if (side === "t") return [x + r.width / 2, y];
+  return [x + r.width / 2, y + r.height];
+}
+function taSides(a, b) {
+  const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
+  const dx = (rb.left + rb.width / 2) - (ra.left + ra.width / 2);
+  const dy = (rb.top + rb.height / 2) - (ra.top + ra.height / 2);
+  return Math.abs(dx) >= Math.abs(dy) ? (dx >= 0 ? ["r", "l"] : ["l", "r"]) : (dy >= 0 ? ["b", "t"] : ["t", "b"]);
+}
+function taPath(p1, s1, p2, s2) {
+  const [x1, y1] = p1, [x2, y2] = p2;
+  let c1x = x1, c1y = y1, c2x = x2, c2y = y2;
+  const k = Math.max(36, Math.abs(x2 - x1) / 2.1);
+  c1x += s1 === "r" ? k : s1 === "l" ? -k : 0;
+  c1y += s1 === "b" ? k : s1 === "t" ? -k : 0;
+  c2x += s2 === "r" ? k : s2 === "l" ? -k : 0;
+  c2y += s2 === "b" ? k : s2 === "t" ? -k : 0;
+  return `M${x1},${y1} C${c1x},${c1y} ${c2x},${c2y} ${x2},${y2}`;
+}
+function drawTaEdges() {
+  const svg = document.getElementById("taEdges");
+  const stage = document.getElementById("taStage");
+  if (!svg || !stage || !stage.offsetParent) return; // hidden → skip
+  svg.innerHTML = "";
+  TA_EDGES.forEach((e) => {
+    const a = taState.nodeEls[e.f], b = taState.nodeEls[e.t];
+    if (!a || !b) return;
+    const [s1, s2] = taSides(a, b);
+    const p1 = taAnchor(a, s1), p2 = taAnchor(b, s2);
+    const path = document.createElementNS(TA_SVGNS, "path");
+    path.setAttribute("d", taPath(p1, s1, p2, s2));
+    path.setAttribute("class", "ta-edge" + (e.gov ? " gov" : ""));
+    if (taState.activeFlow && e.fl && e.fl.includes(taState.activeFlow)) {
+      path.classList.add("on");
+      path.style.setProperty("--c", `var(${taFlowColor(taState.activeFlow)})`);
+    }
+    svg.appendChild(path);
+    if (taState.activeFlow && e.fl && e.fl.includes(taState.activeFlow)) {
+      const m = [(p1[0] + p2[0]) / 2, (p1[1] + p2[1]) / 2];
+      const tx = document.createElementNS(TA_SVGNS, "text");
+      tx.setAttribute("x", m[0]); tx.setAttribute("y", m[1] - 3);
+      tx.setAttribute("text-anchor", "middle");
+      tx.setAttribute("class", "ta-elabel on");
+      tx.textContent = e.p;
+      svg.appendChild(tx);
+    }
+  });
+}
+function setTaFlow(id) {
+  taState.activeFlow = id;
+  TA_FLOWS.forEach((f) => f._btn && f._btn.classList.toggle("active", f.id === id));
+  const stage = document.getElementById("taStage");
+  stage.classList.toggle("flowing", !!id);
+  if (id) {
+    stage.style.setProperty("--c", `var(${taFlowColor(id)})`);
+    const set = new Set();
+    TA_EDGES.forEach((e) => { if (e.fl && e.fl.includes(id)) { set.add(e.f); set.add(e.t); } });
+    Object.entries(taState.nodeEls).forEach(([k, el]) => el.classList.toggle("on", set.has(k)));
+  } else {
+    Object.values(taState.nodeEls).forEach((el) => el.classList.remove("on"));
+  }
+  drawTaEdges();
+}
+function selectTaNode(id) {
+  const n = taById[id];
+  if (!n) return;
+  Object.entries(taState.nodeEls).forEach(([k, el]) => el.classList.toggle("sel", k === id));
+  const detail = document.getElementById("taDetail");
+  if (!detail) return;
+  detail.innerHTML = `
+    <div class="ta-detail-top ${n.plane}">
+      <img class="ta-plat" data-plat="${n.plane}" src="${taPlatformLogo(n.plane)}" alt="" loading="lazy" />
+      <span class="ta-pl ${n.plane}">${taPlaneLabel(n.plane)}</span>
+    </div>
+    <h3>${n.name}</h3>
+    <p class="ta-lead">${n.d.lead}</p>
+    <div class="ta-row"><div class="ta-k">Contract / id</div><div class="ta-v"><code>${n.d.contract}</code></div></div>
+    <div class="ta-row"><div class="ta-k">Governed by</div><div class="ta-v">${n.d.gov}</div></div>
+    <div class="ta-row"><div class="ta-k">In / Out</div><div class="ta-v">${n.d.io}</div></div>`;
+}
+
+function initGuideSubtabs() {
+  if (taState.subtabsWired) return;
+  const tabs = document.querySelectorAll(".ha-subtab");
+  if (!tabs.length) return;
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => showGuidePane(tab.getAttribute("data-guide")));
+  });
+  taState.subtabsWired = true;
+}
+const GUIDE_PANES = { arch: "guideArch", tech: "guideTech", userguide: "guideUserGuide" };
+function showGuidePane(name) {
+  if (!GUIDE_PANES[name]) name = "arch";
+  document.querySelectorAll(".ha-subtab").forEach((t) => {
+    const on = t.getAttribute("data-guide") === name;
+    t.classList.toggle("active", on);
+    t.setAttribute("aria-selected", String(on));
+  });
+  Object.entries(GUIDE_PANES).forEach(([key, pid]) => {
+    const el = document.getElementById(pid);
+    if (el) el.classList.toggle("is-hidden", key !== name);
+  });
+  // The SVG edge layer needs measured node rects; (re)draw once the pane is visible.
+  if (name === "tech") {
+    requestAnimationFrame(drawTaEdges);
+    setTimeout(drawTaEdges, 60);
+  }
 }
 
 async function loadReadiness() {

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pattern 4 · Technical Architecture — Shape Mocks</title>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700;800&display=swap" rel="stylesheet" />
+<style>
+:root{--blue:#1f5d86;--deep:#4a90c2;--red:#ff3621;--violet:#776cb0;--n050:#f1f6fa;--n100:#dce4ea;--n500:#68737f;--n800:#2b3038;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Open Sans",system-ui,sans-serif;background:var(--n050);color:#3f454d;padding:40px 20px;}
+.wrap{max-width:980px;margin:0 auto;}
+h1{font-size:22px;color:var(--n800);font-weight:800;}
+.sub{color:var(--n500);font-size:13px;margin:6px 0 26px;max-width:680px;line-height:1.5;}
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+a.card{display:block;text-decoration:none;color:inherit;background:#fff;border:1px solid var(--n100);border-radius:10px;padding:18px;transition:.15s;border-top:4px solid var(--c);}
+a.card:hover{box-shadow:0 8px 24px rgba(63,69,77,.12);transform:translateY(-2px);}
+.tag{font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--c);}
+h2{font-size:16px;color:var(--n800);margin:6px 0 8px;font-weight:800;}
+p{font-size:12px;color:var(--n500);line-height:1.5;}
+.rec{display:inline-block;margin-top:10px;font-size:10.5px;font-weight:800;color:#3f8f6b;background:#eaf4ee;border-radius:999px;padding:2px 9px;}
+@media(max-width:760px){.cards{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Technical Architecture diagram — Shape mocks</h1>
+  <p class="sub">Three interactive mocks of the proposed second "Technical Architecture" diagram for the How It Works tab. Each shares the portal palette/typography. Click a flow chip to animate a request path; click any node for its contract &amp; governance. Open each and compare.</p>
+  <div class="cards">
+    <a class="card" href="tech-arch-shape-a.html" style="--c:var(--n500)">
+      <span class="tag">Shape A</span>
+      <h2>Enrich-in-place</h2>
+      <p>Reuse the current capability cards as-is; overlay edges + flow chips. Cheapest, but the geometry is busier and flows are harder to follow.</p>
+    </a>
+    <a class="card" href="tech-arch-shape-b.html" style="--c:var(--red)">
+      <span class="tag">Shape B</span>
+      <h2>Effective-html SVG stage</h2>
+      <p>A single free-form SVG graph (not constrained to lanes), clickable nodes, animated paths, and a light/dark "blueprint" toggle.</p>
+    </a>
+    <a class="card" href="tech-arch-shape-c.html" style="--c:var(--deep)">
+      <span class="tag">Shape C</span>
+      <h2>Lane-structured SVG (hybrid)</h2>
+      <p>Keeps the praised 3 plane lanes &amp; palette as the skeleton, adds real nodes, drawn integration edges, animated flows, click-to-detail, and a governance overlay.</p>
+      <span class="rec">Recommended</span>
+    </a>
+  </div>
+</div>
+</body>
+</html>

@@ -245,8 +245,52 @@ spike during implementation (measure node anchors → draw paths → `ResizeObse
 
 ---
 
+## Decision (2026-06-13) — BUILT (Shape B)
+
+User reviewed interactive mocks of all three shapes (`mocks/tech-arch-shape-{a,b,c}.html` + `mocks/index.html`)
+and picked **Shape B — Effective-html full SVG stage**, "dark mode and all." Open decisions resolved:
+1. **Shape:** B (free-form SVG graph).
+2. **User Guide:** 3rd sub-tab (How It Works = Solution Architecture · Technical Architecture · User Guide).
+3. **Theme (R8):** ships with a **dark "blueprint" default** + a light toggle (persisted via `localStorage`).
+4. **Flow scope:** all six (F1 Federation · F2 Genie · F3 Score · F4 Agent⇄Agent · F5 Lakebase · F6 AI Readiness).
+
+**Implemented (UI-only; no `pattern4ce` release; bindings stay on 1.0.12):**
+- `index.html`: `viewGuide` restructured with a `.ha-subtabs` nav and three `.guide-pane`s
+  (`#guideArch` = current Solution Architecture, `#guideTech` = new Technical Architecture, `#guideUserGuide`).
+- `src/styles.css`: `.ha-subtab*` sub-tab styling + a fully **theme-scoped** `.techarch` block (light tokens by
+  default, `.techarch.dark` overrides) covering the SVG stage, nodes, edges, flow chips, detail panel, governance
+  overlay, theme toggle, and plane key.
+- `src/app.js`: `renderTechArch()` builds the 18 real component nodes (`TA_NODES`) on a 1160×648 SVG stage,
+  draws 24 integration/governance edges (`TA_EDGES`) from DOM-rect anchors (cubic-bezier, `ResizeObserver` +
+  resize redraw), wires the six `TA_FLOWS` (dim non-participants + animate the request path + show protocol
+  labels), a governance-boundary overlay (`#taGovBtn`), click-to-detail (`selectTaNode`, contract/governed-by/IO),
+  and a persisted dark/light toggle. Sub-tab switching (`initGuideSubtabs`/`showGuidePane`) redraws edges when the
+  Technical pane becomes visible (hidden elements have no measurable rects).
+- **C4 edge-geometry unknown resolved:** anchors computed from `getBoundingClientRect` relative to the overlay SVG;
+  redraw is deferred to `requestAnimationFrame` + a 60ms fallback on pane show, and re-run via `ResizeObserver`.
+
+**Validated locally:** `node --check` clean, no lints, all JS-referenced ids present, headless render (system
+Chrome) of the real app confirms: 3 sub-tabs, Solution Architecture default, Technical pane shows 18 nodes /
+24 edges, dark default, F4 flow lights 10 nodes + 10 edges, node detail populates, governance overlay toggles,
+and the light toggle works. `dist` mirrors `src`. **No publish.**
+
 ## Status
 
-**SHAPING — awaiting decisions (1–4 above).** No build started. When a shape is picked, next step is to
-breadboard Shape C's affordances (sub-tab nav, node registry, edge layer, flow registry, detail panel,
-governance overlay) and slice it; build is UI-only (no `pattern4ce` release; bindings stay on 1.0.12).
+**BUILT (Shape B) — 2026-06-13.** Live in the How It Works tab behind the Technical Architecture sub-tab.
+Reference mocks for all three shapes remain under `mocks/` for future reference.
+
+**Polish (2026-06-13):** (1) every node now renders its real **brand logo** via the shared
+`markerHtml`/`BRAND_ICONS` system (new `TA_BRAND` id→asset map; combined `dbxdomo` mark for Shared identity;
+subtle light chip behind logos on the dark blueprint for legibility) — matching the Solution Architecture
+cards per the request. (2) **Tabs de-bunched** — the How It Works sub-tabs were restyled from a second
+underline strip (which bunched directly under the main view-tabs) into a quiet **segmented-pill** control
+with more breathing room, for a cleaner primary-nav vs. sub-nav hierarchy. (3) **Platform logos in regions +
+detail views** — region headers above each cluster (Domo · Interop & Governance via the combined Domo+Databricks
+mark · Databricks) and the platform logo beside the plane badge in the detail panel; bottom legend trimmed to the
+edge-type key since the region headers now carry platform identity.
+
+**Polish round 2 (2026-06-13):** (1) middle region renamed **Integration Hub** (region header + detail badge),
+Code Engine detail reworded to name **MCP + Code Engine**. (2) Dark-mode **white icon chips replaced** with
+charcoal chips outlined in each node's plane color (red/violet/blue) for component logos; platform (region/detail)
+logos made **theme-aware + bare** (white Domo mark on dark, color on light — no tiles). (3) How It Works
+**sub-tabs → icon buttons** (blocks / share-nodes / book) with the shared Forecast-Home `data-tip` tooltips.

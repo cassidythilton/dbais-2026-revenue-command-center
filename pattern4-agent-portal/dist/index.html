@@ -500,28 +500,75 @@
 
     <!-- ============================ HOW IT WORKS ============================ -->
     <div id="viewGuide" class="view is-hidden">
-      <section class="panel guide-section arch-diagram">
-        <div class="guide-section-head flow-head">
-          <div>
-            <h2>Solution Architecture</h2>
-            <p>Build with Databricks &middot; Deliver with Domo &middot; govern everywhere. Click any tile to see what it does, how it's governed, and its inputs &amp; outputs.</p>
-          </div>
-          <button class="link-pill dbx" type="button" id="flowLineageLink">View Unity Catalog lineage &rarr;</button>
-        </div>
-        <div class="arch-context" id="archContext"></div>
-        <div class="arch-ingest" id="archIngest"></div>
-        <div class="arch-planes" id="archGrid"></div>
-        <div class="flow-detail arch-detail" id="archDetail"></div>
-        <div class="req-row" id="reqRow"></div>
-      </section>
 
-      <section class="panel guide-section">
-        <div class="guide-section-head">
-          <h2>User Guide &mdash; Using the Command Center</h2>
-          <p>A business-user walkthrough, from picking a persona to approving a governed action.</p>
-        </div>
-        <div class="guide-grid" id="guideGrid"></div>
-      </section>
+      <nav class="ha-subtabs" role="tablist" aria-label="How It Works views">
+        <button class="ha-subtab active" type="button" data-guide="arch" role="tab" aria-selected="true" aria-label="Solution Architecture" data-tip-title="Solution Architecture" data-tip="Executive view — the build-with-Databricks, deliver-with-Domo story across the three planes">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        </button>
+        <button class="ha-subtab" type="button" data-guide="tech" role="tab" aria-selected="false" aria-label="Technical Architecture" data-tip-title="Technical Architecture" data-tip="Engineer view — real components, integrations & protocols, and the end-to-end data flows">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="12" r="2.4"/><circle cx="18" cy="6" r="2.4"/><circle cx="18" cy="18" r="2.4"/><path d="M8.1 11l7.8-3.8M8.1 13l7.8 3.8"/></svg>
+        </button>
+        <button class="ha-subtab" type="button" data-guide="userguide" role="tab" aria-selected="false" aria-label="User Guide" data-tip-title="User Guide" data-tip="A business-user walkthrough, from picking a persona to approving a governed action">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3H19a1 1 0 0 1 1 1v14.5"/><path d="M6.5 18H20a0 0 0 0 1 0 0v2a1 1 0 0 1-1 1H6.5A1.5 1.5 0 0 1 5 19.5v-15"/><path d="M6.5 18A1.5 1.5 0 0 0 5 19.5"/></svg>
+        </button>
+      </nav>
+
+      <!-- Sub-pane: Solution Architecture (executive / business) -->
+      <div class="guide-pane" id="guideArch">
+        <section class="panel guide-section arch-diagram">
+          <div class="guide-section-head flow-head">
+            <div>
+              <h2>Solution Architecture</h2>
+              <p>Build with Databricks &middot; Deliver with Domo &middot; govern everywhere. Click any tile to see what it does, how it's governed, and its inputs &amp; outputs.</p>
+            </div>
+            <button class="link-pill dbx" type="button" id="flowLineageLink">View Unity Catalog lineage &rarr;</button>
+          </div>
+          <div class="arch-context" id="archContext"></div>
+          <div class="arch-ingest" id="archIngest"></div>
+          <div class="arch-planes" id="archGrid"></div>
+          <div class="flow-detail arch-detail" id="archDetail"></div>
+          <div class="req-row" id="reqRow"></div>
+        </section>
+      </div>
+
+      <!-- Sub-pane: Technical Architecture (technical audience — real components, integrations, data flow) -->
+      <div class="guide-pane is-hidden" id="guideTech">
+        <section class="panel techarch dark" id="techArch">
+          <div class="guide-section-head ta-head">
+            <div>
+              <h2>Technical Architecture</h2>
+              <p>The real components, their integrations &amp; protocols, and the end-to-end data flows. Pick a flow to trace its request path; click any node for its contract &amp; governance.</p>
+            </div>
+            <button class="ta-theme" id="taThemeBtn" type="button" aria-pressed="true">☀ Light</button>
+          </div>
+          <div class="ta-toolbar" id="taFlows">
+            <span class="ta-lbl">Trace a flow</span>
+            <button class="ta-chip ta-gov" id="taGovBtn" type="button">Governance boundaries</button>
+          </div>
+          <div class="ta-layout">
+            <div class="ta-stagewrap">
+              <div class="ta-stage" id="taStage">
+                <svg class="ta-edges" id="taEdges"></svg>
+              </div>
+            </div>
+            <div class="ta-detail" id="taDetail"></div>
+          </div>
+          <div class="ta-planekey">
+            <span class="ta-pk-sep">Solid line = integration edge &middot; dashed line = governance / identity boundary &middot; pick a flow to trace its request path</span>
+          </div>
+        </section>
+      </div>
+
+      <!-- Sub-pane: User Guide -->
+      <div class="guide-pane is-hidden" id="guideUserGuide">
+        <section class="panel guide-section">
+          <div class="guide-section-head">
+            <h2>User Guide &mdash; Using the Command Center</h2>
+            <p>A business-user walkthrough, from picking a persona to approving a governed action.</p>
+          </div>
+          <div class="guide-grid" id="guideGrid"></div>
+        </section>
+      </div>
 
     </div><!-- /viewGuide -->
 
