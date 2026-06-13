@@ -1722,12 +1722,18 @@ td.num {
   flex-direction: column;
 }
 .ac-plane-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
   padding: 9px 13px;
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
+.ac-plane-logo { height: 15px; width: auto; object-fit: contain; flex: none; }
+.ac-plane.domo .ac-plane-logo { height: 17px; border-radius: 3px; }
 .ac-plane.dbx .ac-plane-head { background: #2a2e36; color: #fff; }
 .ac-plane.interop .ac-plane-head { background: var(--accent-violet); color: #fff; }
 .ac-plane.domo .ac-plane-head { background: var(--domo-blue-deep); color: #fff; }
@@ -3165,6 +3171,18 @@ td.num {
 .lg-today { width: 16px; height: 0; border-top: 1.5px dashed var(--n-300); }
 
 /* ============================ INSIGHT RAIL ============================ */
+
+/* Light Genie branding — the rail is largely Genie-grounded (see demo vignettes). */
+.insight-head { display: flex; align-items: center; gap: 9px; }
+.genie-mark { width: 19px; height: 19px; object-fit: contain; flex: none; }
+.panel-tag.genie-tag {
+  gap: 5px;
+  color: #c8412f;
+  background: rgba(254, 95, 70, 0.12);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+.genie-tag-mark { width: 11px; height: 11px; object-fit: contain; flex: none; }
 
 .insight-rail { display: flex; flex-direction: column; gap: 10px; }
 

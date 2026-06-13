@@ -815,6 +815,10 @@ function renderActions(actions) {
   document.querySelectorAll("#actionRows [data-goto-view]").forEach((link) => {
     link.addEventListener("click", (e) => { e.preventDefault(); activateView(link.getAttribute("data-goto-view"), { scrollTo: link.getAttribute("data-scroll-to") || null }); });
   });
+  // Wire the static "Databricks agent (called from Domo)" footer links (Pattern 4
+  // Retention Supervisor / Agent activity log) on first paint, not just after a
+  // journey/approvals render — otherwise their href="#" just jumps to top.
+  wireAgentLinks();
   renderJourney();
 }
 
@@ -2566,8 +2570,8 @@ const ARCH_PLANES = [
       { icon: "app", brand: "domo-pro-code", name: "Pro-code App (App Studio)", sub: "Command center · experience + action", stage: "app" },
       { icon: "dataset", brand: "domo-cloud-amplifier", name: "Federated DataSets", sub: "5 alias-mapped gold views", stage: "ds" },
       { icon: "action", brand: "domo-workflows", name: "Domo Workflow + approvals", sub: "Renewal Risk Retention v1.0.3 · sign-off → writeback", stage: "act" },
-      { icon: "agent", brand: "domo-ai-agent", name: "AI Agent tile", sub: "Calls the Databricks Supervisor agent (agent ⇄ agent)",
-        d: { lead: "Inside the Domo Workflow, a native Domo AI Agent tile calls the Databricks Supervisor Agent to produce the retention recommendation that a human then approves — the Domo-side half of agent ⇄ agent.", bullets: ["Tile → pattern4ce.askRetentionAgent → Databricks MAS (Genie-backed)", "Bounded call with a fast Unity AI Gateway-guardrailed fallback so the tile never hangs", "Recommendation is shown to the approver in the Domo task"], input: "Workflow context", output: "Agent recommendation in the approval task", gov: "Domo Workflow + Unity AI Gateway" } },
+      { icon: "agent", brand: "domo-ai-agent", name: "Agent Catalyst", sub: "Calls the Databricks Supervisor agent (agent ⇄ agent)",
+        d: { lead: "Inside the Domo Workflow, a native Domo Agent Catalyst tile calls the Databricks Supervisor Agent to produce the retention recommendation that a human then approves — the Domo-side half of agent ⇄ agent.", bullets: ["Agent Catalyst → pattern4ce.askRetentionAgent → Databricks MAS (Genie-backed)", "Bounded call with a fast Unity AI Gateway-guardrailed fallback so the tile never hangs", "Recommendation is shown to the approver in the Domo task"], input: "Workflow context", output: "Agent recommendation in the approval task", gov: "Domo Workflow + Unity AI Gateway" } },
       { icon: "action", brand: "domo-approvals", name: "Approvals · Action Center", sub: "In-app approve / reject completes the task",
         d: { lead: "A dedicated in-app tab listing the workflow's approval queue (open / completed / voided). Approving or rejecting here completes the Domo task over the Task Center API, resumes the workflow, and writes status back to the lakehouse.", bullets: ["listApprovalTasks + completeApprovalTask over the Task Center API", "Click any task to go to source in the Domo Queues console", "Decision → writeActionStatus → agent_action_writeback (Delta)"], input: "Workflow approval task", output: "Completed task + status writeback", gov: "Domo RBAC + approval queue" } },
       { icon: "model", brand: "mlflow", name: "ML Predictions", sub: "Ad hoc scoring + cURL / Python / SQL payload",
@@ -2662,9 +2666,10 @@ function renderArchitecture() {
 
   const card = (it, key) => `<button class="ac-card" type="button" data-arch="${key}">${markerHtml(it.brand, it.icon, "ac-logo", "ac-ic")}<div class="ac-card-t"><b>${it.name}</b><span>${it.sub}</span></div></button>`;
   const grid = document.getElementById("archGrid");
+  const planeLogo = { dbx: BRAND_ICONS.databricks, domo: BRAND_DIR + "domo-logo-white.svg" };
   grid.innerHTML = ARCH_PLANES.map((p) => `
     <div class="ac-plane ${p.id}">
-      <div class="ac-plane-head">${p.title}</div>
+      <div class="ac-plane-head"><span>${p.title}</span>${planeLogo[p.id] ? `<img class="ac-plane-logo" src="${planeLogo[p.id]}" alt="" aria-hidden="true" />` : ""}</div>
       ${p.agent ? `<div class="ac-agent-tag">AGENT&nbsp;⇄&nbsp;AGENT</div>` : ""}
       <div class="ac-cards">${p.items.map((it, i) => card(it, `${p.id}-${i}`)).join("")}</div>
     </div>`).join("");

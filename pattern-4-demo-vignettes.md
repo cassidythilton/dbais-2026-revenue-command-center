@@ -184,16 +184,31 @@ tab to land on and the single "go to source" click that wins the technical credi
 ## Vignette 8 — "Why the AI is trustworthy" (Unity Catalog → AI Readiness)
 
 - **Tab:** UC AI Readiness · **~4 min**
-- **Backdrop:** The data-governance lead: "AI is only as good as the governed metadata behind it."
-- **Databricks (+ Domo):** **Unity Catalog** is the source of truth for column comments, tags, and
-  synonyms — the metadata that makes Genie and the model reliable. The app compares **UC-prepared
-  %** vs **Domo AI Readiness synced %**, syncs metadata UC→Domo per column/dataset, and offers a
-  **governed "edit UC context"** path in the inspector drawer (deliberate, confirm-gated).
-- **Golden path:** Pick a dataset → see the UC-vs-Domo meters → sync a column → open the UC
-  inspector to edit context as a governed source-system change.
-- **Go to source:** The **Databricks table** and the **Domo AI Readiness** page.
+- **Backdrop (the real-world story):** Meet Tessera's **data governance lead** — the person who gets
+  the angry Slack when "the numbers don't match." A few weeks back a VP asked the assistant about
+  *"churn exposure"* and got a near-wrong answer: `revenue_at_risk` had **no description and no
+  synonyms**, so the AI never linked "churn exposure," "ARR at risk," and "revenue at risk." That
+  near-miss made Tessera adopt a rule — **a gold view isn't "AI-ready" until its metadata is**
+  (comments, semantic + PII tags, units, synonyms in Unity Catalog) **and that context is synced into
+  Domo's AI Readiness** so Domo-side users get the same trustworthy answers. This tab is their control
+  plane: prove Databricks and Domo are in lockstep, and close gaps before a business user hits one.
+- **Databricks (+ Domo):** **Unity Catalog** is the source of truth for column comments, tags
+  (semantic type, PII classification, units, `metric`), and synonyms — the metadata that makes Genie
+  and the model reliable. (All six `gold_*` views are fully curated: every column carries a comment
+  and semantic tag, money fields are tagged `unit=usd`, and personal identifiers like
+  `account_owner_name` are flagged `classification=pii`.) The app compares **UC-prepared %** vs
+  **Domo AI Readiness synced %**, syncs metadata UC→Domo per column or per dataset, and offers a
+  **governed "edit UC context"** path in the inspector drawer (deliberate, confirm-gated) for when the
+  source itself needs a better description or a new synonym.
+- **Golden path:** Pick **Customer Renewal Risk** → the UC-prepared meter reads near-100% while Domo
+  may lag → point at `predicted_churn_probability` (comment + `unit=probability` + `metric`) and
+  `account_owner_name` (flagged **PII**) as proof the context is real, not cosmetic → **sync a column**
+  UC→Domo and watch the Domo meter close the gap → open the **UC inspector** to add a synonym (e.g.,
+  "churn exposure" → `revenue_at_risk`) as a governed, confirm-gated change to the source system.
+- **Go to source:** The **Databricks table** (Catalog Explorer → the column comments/tags you just
+  curated) and the **Domo AI Readiness** page (the same context, now governing the Domo side).
 - **Tie-in:** "This governed metadata is *why* Genie's answers (V2) and the agent's reasoning (V5)
-  can be trusted."
+  can be trusted — the governance lead did this work *before* anyone asked the question."
 
 ## Vignette 9 — "Zero-copy + lineage" (Cloud Amplifier + UC lineage)
 
@@ -208,16 +223,43 @@ tab to land on and the single "go to source" click that wins the technical credi
 - **Tie-in:** "Same governed gold feeds the forecast (V1), Genie (V2), the model (V3), and the
   agent (V5) — one source, no forks."
 
-## Vignette 10 — "The 90-second executive close" (the full loop)
+## Vignette 10 — "The executive close" (the full loop, end to end)
 
 - **Tabs:** Forecast Home → Genie → ML → Agent → Approvals · **~5 min, rapid**
-- **Backdrop:** For an exec who only has a minute: prove the whole loop on one governed foundation.
-- **Golden path (fast):** Forecast headwind isolated to **West** → ask **Genie** *why* (incident
-  `INC-0001`) → **score** an exposed account on Model Serving → **Inspect** the Databricks agent's
-  recommendation → **Approve & execute** → **Protected Revenue** ticks up and the status is
-  **written back to Unity Catalog**, fully audited.
-- **The line:** *"Predict, explain, and act — Databricks governs the intelligence and the record,
-  Domo delivers the experience and the action, and governance never forks."*
+- **Overview:** The capstone run for a senior buyer (CRO, CIO, CDO) who's seen the parts and wants
+  the *whole* loop on one governed foundation. In five minutes you take Tessera's **West renewal
+  exposure** from a number on a screen to a **governed, human-approved, audited action** — touching
+  Databricks and Domo at every step but never forking governance. Don't go deep on any single tab;
+  this is the **predict → explain → score → reason → act → record** money shot. Open full-screen,
+  persona = **Executive Sponsor**, app freshly reloaded so the KPIs sit at baseline.
+- **Golden path (≈5 min, rapid — keep moving):**
+  1. **Predict** *(Forecast Home, ~40s).* "Monday's number has a headwind." Point at **Revenue at
+     Risk** and the **West hotspot** (51.7 vs ~40); the **Insight Rail** isolates it to West and flags
+     `INC-0001`. "Six Unity Catalog gold views, read live by Domo — zero copy. That's the *what*."
+  2. **Explain** *(Genie, ~60s).* Click the seeded chip *"Why did renewal risk increase for West
+     enterprise accounts?"* → a **cited** root cause tied to `INC-0001` (affected accounts, SLA
+     breaches, revenue at risk), generated SQL, and a chart. Tap **Inspect** for one beat: "governed
+     call, on the same metrics — that's the *why*, in English."
+  3. **Score** *(ML Predictions, ~45s).* Run prediction on the exposed West account → **~33% churn
+     (Medium)**. Flash the **payload panel** (cURL / Python / SQL): "an MLflow model on Databricks
+     Model Serving, scored server-side — a data scientist can reproduce this exact governed call."
+  4. **Reason — agent ⇄ agent** *(Agent Action Queue → Inspect agent, ~75s — the showpiece).* On the
+     pending action click **Inspect agent** → watch it reason live (dots: "querying Genie, scoring
+     renewal risk…") → a Genie-grounded recommendation + rationale. "A **Domo agent** decided to
+     consult a **Databricks Agent Bricks Supervisor**, which reasoned over governed data via Genie —
+     two agents, two platforms, one metric layer."
+  5. **Act + record** *(Approve & execute → Approvals, ~75s).* Click **Approve & execute** → the
+     **Action Journey** timeline lights up across both planes and honestly parks at **Awaiting
+     approval · listening**. Switch to **Approvals → Approve** → the timeline completes all-green,
+     **Protected Revenue ticks up**, and status is **written back to a Unity Catalog Delta table**
+     (`agent_action_writeback`).
+  6. **Prove it's real** *(one click, ~20s).* Hit **Writeback table ↗** → the **Pending + Approved**
+     rows for that exact action in Catalog Explorer. "Not a mockup — a governed record in the
+     lakehouse, queryable by Genie. Full circle."
+- **Bottom line:** *"In five minutes Tessera went from a forecast headwind to a governed, approved,
+  audited save — **predict, explain, and act** on one foundation. **Databricks governs the
+  intelligence and the record; Domo delivers the experience and the action; and governance never
+  forks.** Everything you just watched was live — every step had a 'go to source.'"*
 
 ---
 
