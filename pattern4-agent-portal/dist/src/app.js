@@ -3101,6 +3101,43 @@ async function refreshDomoReadinessLive() {
   await Promise.all(state.readiness.map((item) => refreshDomoReadinessForItem(item)));
 }
 
+// Overlay the dataset's column model with LIVE Unity Catalog state (comments + tags)
+// so the tab reflects the real source of truth, not the static snapshot. Keeps
+// dataset-level scaffolding (context, counts) from the loaded file.
+function applyUcReadinessState(item, uc) {
+  if (!item || !uc || !Array.isArray(uc.columns)) return;
+  item.columns = uc.columns.map((c) => ({
+    name: c.name,
+    type: c.type || "",
+    context: c.context || "",
+    synonyms: c.synonyms || [],          // true business synonyms (inspector edit round-trip)
+    domoSynonyms: c.domoSynonyms || [],  // 1:1 Domo-bound copy of UC tags (what Sync pushes)
+    tags: c.tags || [],
+    aiEnabled: !!c.aiEnabled,
+  }));
+  item.ucLive = true;
+}
+
+async function refreshUcReadinessForItem(item) {
+  if (!item?.object) return null;
+  try {
+    const result = await callPattern4ce("getUcReadinessState", { tableName: item.object });
+    if (result?.status === "SUCCEEDED" && Array.isArray(result.columns)) {
+      applyUcReadinessState(item, result);
+      renderReadiness();
+      return result;
+    }
+  } catch (error) {
+    console.warn("Unity Catalog readiness live read unavailable; using staged columns", error);
+  }
+  return null;
+}
+
+async function refreshUcReadinessLive() {
+  if (!window.domo || typeof window.domo.post !== "function") return;
+  await Promise.all(state.readiness.map((item) => refreshUcReadinessForItem(item)));
+}
+
 function selectedColumnPayload(item, names) {
   const selected = new Set(names || []);
   return getReadinessColumns(item)
@@ -3110,7 +3147,9 @@ function selectedColumnPayload(item, names) {
       type: col.type,
       aiEnabled: !!col.aiEnabled,
       context: col.context || "",
-      synonyms: col.synonyms || [],
+      // Push the 1:1 Domo-friendly copy of the UC tags as synonyms; fall back to
+      // true synonyms (or empty) when the live UC read hasn't populated domoSynonyms.
+      synonyms: (col.domoSynonyms && col.domoSynonyms.length) ? col.domoSynonyms : (col.synonyms || []),
     }));
 }
 
@@ -3366,7 +3405,7 @@ function datasetContextChars(item) {
   getReadinessColumns(item).forEach((c) => {
     n += String(c.name || "").length;
     n += String(c.context || "").length;
-    (c.synonyms || []).forEach((s) => { n += String(s || "").length; });
+    ((c.domoSynonyms && c.domoSynonyms.length ? c.domoSynonyms : c.synonyms) || []).forEach((s) => { n += String(s || "").length; });
   });
   return n;
 }
@@ -3416,7 +3455,7 @@ function renderReadinessDetail() {
   const allSynced = domoSynced.size >= ucReady.length && ucReady.length > 0;
   const columnRows = columns.map((col) => {
     const synced = domoSynced.has(col.name);
-    const synonyms = (col.synonyms || []).length;
+    const synonyms = ((col.domoSynonyms && col.domoSynonyms.length ? col.domoSynonyms : col.synonyms) || []).length;
     return `
       <tr>
         <td class="col-name"><strong>${escapeHtml(col.name)}</strong><span>${escapeHtml(col.type || "")}</span></td>
@@ -4690,6 +4729,7 @@ async function init() {
   await loadReadiness();
   renderGuide();
   renderReadiness();
+  refreshUcReadinessLive();
   refreshDomoReadinessLive();
   renderMl();
   renderLakebase();

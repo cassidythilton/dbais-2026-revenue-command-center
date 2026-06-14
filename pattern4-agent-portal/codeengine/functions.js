@@ -437,6 +437,41 @@ function deletePredictionFeedback(id) {
 
 /* -------------------------- AI Readiness sync ----------------------------- */
 
+// Tag keys that carry true business synonyms (comma-separated values).
+var UC_SYNONYM_TAG_KEYS = { "domo_ai_synonyms": 1, "domo_ai_synonym": 1, "domo.ai.synonym": 1 };
+// Housekeeping tags that drive enable-state / audit — not copied into Domo synonyms.
+var UC_HOUSEKEEPING_TAG_KEYS = { "domo_ai_ready": 1, "domo_ai_updated_by": 1 };
+
+// True business synonyms parsed from the synonyms tag(s); used for the inspector
+// edit round-trip (writes back to the domo_ai_synonyms tag) so governance facets
+// never leak into the editable synonyms field.
+function parseUcTrueSynonyms(tags) {
+  var out = [];
+  tags.forEach(function (tag) {
+    if (UC_SYNONYM_TAG_KEYS[tag.key]) {
+      String(tag.value == null ? "" : tag.value).split(",").forEach(function (s) {
+        var t = s.replace(/^\s+|\s+$/g, "");
+        if (t && out.indexOf(t) === -1) out.push(t);
+      });
+    }
+  });
+  return out;
+}
+
+// The Domo-bound synonyms list: a 1:1, Domo-friendly copy of the column's UC tags —
+// true synonyms as bare terms plus every substantive governance tag as "key: value"
+// (underscores humanized). Synonym/housekeeping tags are not duplicated as facets.
+function buildDomoSynonyms(tags, trueSynonyms) {
+  var out = [];
+  trueSynonyms.forEach(function (s) { if (out.indexOf(s) === -1) out.push(s); });
+  tags.forEach(function (tag) {
+    if (UC_SYNONYM_TAG_KEYS[tag.key] || UC_HOUSEKEEPING_TAG_KEYS[tag.key]) return;
+    var label = String(tag.key || "").replace(/_/g, " ") + ": " + String(tag.value == null ? "" : tag.value);
+    if (out.indexOf(label) === -1) out.push(label);
+  });
+  return out;
+}
+
 function getUcReadinessState(tableName) {
   var fullName = String(tableName || "");
   var parts = fullName.split(".");
@@ -474,15 +509,13 @@ function getUcReadinessState(tableName) {
         properties: properties,
         columns: (tableInfo.columns || []).map(function (col) {
           var tags = tagMap[col.name] || [];
-          var synonyms = [];
-          tags.forEach(function (tag) {
-            if (tag.key === "domo.ai.synonym" || tag.key === "domo_ai_synonym") synonyms.push(tag.value);
-          });
+          var synonyms = parseUcTrueSynonyms(tags);
           return {
             name: col.name,
             type: col.type_name || col.type_text || col.type_json || "",
             context: col.comment || "",
             synonyms: synonyms,
+            domoSynonyms: buildDomoSynonyms(tags, synonyms),
             tags: tags,
             aiEnabled: tags.some(function (tag) { return tag.key === "domo_ai_ready" && String(tag.value) === "true"; }) || !!col.comment
           };
