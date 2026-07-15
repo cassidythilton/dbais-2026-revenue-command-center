@@ -93,7 +93,7 @@ The demo proves that **the governance never forks**: the same metric definitions
 
 A persona-scoped executive cockpit: Net Revenue / Revenue at Risk / Protected Revenue / SLA Breaches KPIs, an **Actual-vs-Forecast** hero with a confidence band, a 2-up **Regional Renewal Risk** hotspot + **Insight Rail**, the full-width **Agent Action Queue** (with the live Action Journey timeline), and a governed-lineage strip. The **Viewing as** persona rescopes the page — the same entitlement enforced by Unity Catalog row filters and Domo PDP. (The incident root cause now lives where it belongs — in Genie's cited answer.)
 
-<p align="center"><img src="pattern4-agent-portal/docs/images/forecast-home.png" alt="Forecast Home" width="820" /></p>
+<p align="center"><a href="media/revenue-command-center-highlights-30s.mp4"><img src="media/revenue-command-center-highlights.gif" alt="Forecast Home" width="820" /></a></p>
 
 ### ML Predictions — Databricks predicts
 
