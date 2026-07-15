@@ -27,5 +27,7 @@ npm-debug.log*
 screencapture-*.png
 domo-databricks-reskin-kit/
 domo-databricks-reskin-kit.zip
+domo-reskin-kit.zip
+mashup_build/
 analyzer.html
 pattern4-agent-portal/**/dbx-domo-logo.png

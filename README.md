@@ -1,4 +1,4 @@
-<h1 align="center">📊 Revenue Command Center</h1>
+<h1 align="center">Revenue Command Center</h1>
 
 <p align="center">
   <strong>Pattern 4 — "Genie everywhere + Domo portals" — built as a governed, agent-to-agent automation experience.</strong><br/>
@@ -34,6 +34,10 @@
 
 <p align="center">
   <img src="pattern4-agent-portal/docs/images/forecast-home.png" alt="Revenue Command Center — Forecast Home" width="900" />
+</p>
+
+<p align="center">
+  <strong>30-second highlights:</strong> <a href="media/revenue-command-center-highlights-30s.mp4">predict → explain → score → agent-to-agent → approve → govern → prove</a>, on one governed foundation.
 </p>
 
 > **The narrative in one line:** Databricks is the governed *intelligence* plane; Domo is the business *delivery + action* plane. One identity, one governed metric layer — surfaced as an executive command center that **predicts** (ML), **explains** (Genie), **acts** (a governed Domo Workflow where a **Domo AI agent ⇄ a Databricks Agent Bricks Supervisor** reason together, a human approves, and status writes back), **remembers** (Lakebase OLTP state), and **governs** (Unity Catalog + Unity AI Gateway → Domo AI Readiness).
@@ -141,9 +145,9 @@ An interactive **Solution Architecture** diagram (context strip → ingestion �
 
 ```mermaid
 flowchart LR
-  user(["👤 Persona<br/>Exec · Regional · Account owner"])
+  user(["Persona<br/>Exec · Regional · Account owner"])
 
-  subgraph DBX["🧱 Databricks · Governed Intelligence"]
+  subgraph DBX["Databricks · Governed Intelligence"]
     direction TB
     UC["Unity Catalog<br/>6 gold views · ABAC · lineage<br/>(source of truth)"]
     GENIE["Genie Space<br/>Conversation API"]
@@ -153,14 +157,14 @@ flowchart LR
     LB[("Lakebase Postgres<br/>cobra-v1 · OLTP state")]
   end
 
-  subgraph IO["🔗 Interop &amp; Governance"]
+  subgraph IO["Interop &amp; Governance"]
     direction TB
     CA["Cloud Amplifier<br/>Databricks Raptor AWS<br/>live federation, no copy"]
     CE["MCP Integrations · Code Engine pattern4ce<br/>askGenie · runModelInference · askRetentionAgent<br/>startRetentionWorkflow · writeActionStatus · Lakebase CRUD"]
     PDP["Domo PDP ↔ UC row filters<br/>one entitlement model"]
   end
 
-  subgraph DOMO["📊 Domo · Delivery &amp; Action"]
+  subgraph DOMO["Domo · Delivery &amp; Action"]
     direction TB
     APP["Pro-code App Studio portal<br/>7 tabs"]
     WF["Domo Workflow + AI agent tile<br/>Renewal Risk Retention v1.0.3"]
@@ -274,8 +278,8 @@ domo publish        # run from pattern4-agent-portal/dist
 
 | Item | Status | Notes |
 | --- | --- | --- |
-| Live Domo **Workflow + agent ⇄ agent** | ✅ Delivered | *Approve &amp; execute* starts the governed `Renewal Risk Retention` workflow; a Domo AI agent tile calls the Databricks Agent Bricks Supervisor; human approval → writeback, visualized as the Action Journey |
-| **Unity AI Gateway** | ✅ Delivered | Usage tracking, rate limits, guardrails + inference tables on the model endpoint and a guardrailed reasoning endpoint |
+| Live Domo **Workflow + agent ⇄ agent** | Delivered | *Approve &amp; execute* starts the governed `Renewal Risk Retention` workflow; a Domo AI agent tile calls the Databricks Agent Bricks Supervisor; human approval → writeback, visualized as the Action Journey |
+| **Unity AI Gateway** | Delivered | Usage tracking, rate limits, guardrails + inference tables on the model endpoint and a guardrailed reasoning endpoint |
 | **Per-user OBO** | Documented | On-behalf-of identity into Databricks (U2M OAuth / token federation) — the embedded app carries a Domo identity today; the governed service principal bridges the call |
 | Prediction-feedback **edit/delete** | Staged | Full table CRUD in Lakebase Ops |
 | Domo **AI Services** model registration | Blocked | A confirmed supported route registers the model in Domo's governance/catalog layer |
